@@ -3,7 +3,8 @@
 역할 코드(FE1, FE2, BE-A, BE-B)는 `docs/project/team.md` 참고.
 
 ## 브랜치
-- `main`: 항상 배포 가능한 상태. **직접 push 금지**(GitHub 브랜치 보호로 강제)
+- `main`: 제출·배포용. `dev`에서 PR로만 머지한다. **직접 push 금지**(GitHub 브랜치 보호로 강제)
+- `dev`: 개발 통합(기본 브랜치). 작업 브랜치는 `dev`에서 만들고 `dev`로 PR을 보낸다. **직접 push 금지**
 - 작업 브랜치 이름: TODO(전원, 10/12 킥오프). 제안: `feat/<영역>-<내용>`, `fix/<영역>-<내용>`, `docs/<내용>`
   - 예: `feat/accounts-login`, `fix/checklist-progress`, `docs/security-log-policy`
 

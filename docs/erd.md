@@ -12,14 +12,18 @@
 | 4 | `users.password_changed_at`, `password_histories` 테이블 추가 | 비밀번호 90일 변경·최근 4개 재사용 금지·최소 1일(팀 결정) | **확정** |
 | 5 | 제보 마스킹 대상에 **카드번호·계좌번호** 추가 | 기반시설 IL 마스킹 기준. 통지문 붙여넣기로 들어올 수 있음 | 팀 확인 필요 |
 | 6 | 체크 제약 추가: 상태값 허용값, 검수 완료(승인·반려) 시 `reviewed_by`·`reviewed_at` 필수 | 진단 SR3-1 입력 범위, 추적 | 팀 확인 필요 |
-| 7 | 관리자 입력 `TEXT` 컬럼에도 최대 길이 지정(관리자 API serializer) | 진단 SR3-1 | 팀 확인 필요 |
+| 7 | 관리자 입력 `TEXT` 컬럼에도 최대 길이 지정(모델·serializer). 값은 "입력 길이 상한" 절 | 진단 SR3-1 | 팀 확인 필요 |
 | 8 | 삭제 정책 문구 정정: "제보 → 사고 SET NULL"은 **사고가 삭제될 때** 제보의 연결만 해제하는 동작 | 원문 의도 칸이 반대로 적혀 있었음 | 문구 수정 |
 | 9 | "DB 제약으로 강제" 문구 정정: 삭제 동작(CASCADE·SET NULL)은 Django 모델의 `on_delete`가 처리 | Django 5.2는 FK에 ON DELETE 절을 만들지 않음. 유일·체크 제약은 DB가 강제 | 문구 수정 |
 | 10 | DDL `users`에 Django가 만드는 `last_login`, `is_superuser` 표시 | 실제 스키마와 그림 일치 | 문구 수정 |
 | 11 | 사용자 소유 리소스에 외부용 UUID는 두지 않음 | API가 내 리소스를 URL ID가 아니라 `request.user`로 찾음(`docs/api.md`). 추측할 ID가 노출되지 않음 | 결정 기록 |
 | 12 | 관리자 기능은 Django 기본 admin 대신 React 관리자 화면 + 관리자 API. 관리자 변경 이력은 공통 감사 로그로 남김 | 팀 구성 변경(프론트 2명) | **확정** |
+| 13 | "항상" 트리거는 특수 조치 전용. 체크리스트 위에 사고의 공지 원문(`source_url`)과 상담 채널(`contact_info`)을 "기본 안내"로 항상 표시 | 모든 사용자에게 보여줄 내용은 사고마다 달라 공통 조치로 만들 수 없음. 걸린 조치가 없어도 볼 안내가 남음 | **확정** |
+| 14 | 설문 5문항으로 변경: 2~5번 예/아니요/모름, 5번 `damage_occurred`(이미 겪은 피해) 추가, 1번 "잘 모르겠어요"(`leak_items_unknown`) 추가, 체크리스트에 확실/확인 필요 구분 | 기억하기 어려운 문항에서 "아니요"를 고르면 금전 피해 차단 조치가 빠짐. 이미 피해를 입은 사람에게 구제 절차 안내 필요 | **임시** |
 
 "팀 확인 필요" 항목은 10/12 킥오프에서 확정한다. 반대 의견이 없으면 그대로 구현한다.
+
+**임시** 표시는 설문 명세(Claude Docs "소개딩 설문·대응 연결 명세")가 작성 중이라 바뀔 수 있는 내용이다. 모델은 임시 기준으로 만들되, 명세가 확정되면 이 문서를 먼저 고치고 마이그레이션을 맞춘다. 기획서와 달라진 점은 `docs/project/plan.md`에 모은다.
 
 ---
 
@@ -63,6 +67,9 @@
 | 유출 유형은 코드 상수 | 테이블 대신 Django `TextChoices`, DB 체크 제약으로 허용값만 받는다 | 우리가 정하는 고정 목록이고 관리자가 바꿀 일이 없다 |
 | 조치는 한 테이블 | `incident_id`가 비면 공통 조치, 있으면 그 사고의 특수 조치 | 화면에 보여줄 항목이 같다. 공통 조치 문구 수정도 한 곳에서 끝난다 |
 | 체크리스트는 계산형 | 목록은 볼 때마다 계산하고, 완료 기록만 저장 | 관리자가 나중에 추가한 특수 조치가 기존 사용자에게도 나타나야 한다(기획서 3-2) |
+| 기본 안내는 사고 정보로 표시 | 체크리스트 위에 그 사고의 `source_url`과 `contact_info`를 항상 보여준다. 조치가 아니라 진행률에 넣지 않는다. "항상" 트리거는 특수 조치 전용 | 걸린 조치가 없어도 볼 안내가 남는다. 사고마다 다른 정보라 공통 조치로 만들 수 없다 |
+| (임시) 설문 답에 "모름" | 설문 2~5번은 예/아니요/모름. 모름도 조건으로 쓰고 "확인 필요"로 표시 | 결제수단 연결처럼 기억하기 어려운 문항에서 "아니요"를 고르면 금전 피해 차단 조치가 빠진다. 보여주는 쪽이 안전하다 |
+| (임시) 설문 1번은 세 가지 | 항목 선택 / 잘 모르겠어요 / 해당 없음. 잘 모르겠어요는 선택 항목 없이 `leak_items_unknown`만 저장하고, 계산할 때 그 사고의 현재 유출 항목 전체를 쓴다 | 빈 선택이 "해당 없음"인지 "몰라서 비움"인지 구분해야 한다. 추가 공지로 항목이 늘어도 자동 반영 |
 | 출처 테이블 없음 | 사고·조치·제보에 URL 컬럼을 두고 https 검증 함수 하나를 공용으로 쓴다 | 같은 출처를 여러 곳에서 재사용하는 경우가 드물다 |
 | 조회수 제거 | 메인 목록은 공지일 최신순. "N명이 대응 중"은 설문 응답 수를 조회 시 집계 | 조회수는 새로고침으로 조작되고 GET마다 DB 쓰기가 생긴다 |
 | 상담 채널 위치 | 기업 상담센터는 `incidents.contact_info`. 공통 기관(KISA 118 등)은 FAQ(프론트 정적)와 공통 조치 설명에 넣는다 | 비회원이 보는 사고 상세에도 상담 채널이 필요하다(기획서 2-2) |
@@ -111,7 +118,7 @@
 - `incident_id`: 비어 있으면 공통 조치, 있으면 그 사고 전용 특수 조치
 - `trigger_type`: 언제 보여줄지. 유형 / 설문 / 항상 중 하나
 - `leak_type`: 트리거가 "유형"일 때의 유형 코드
-- `survey_key`: 트리거가 "설문"일 때의 응답 키(결제수단 연결 / 비밀번호 재사용 / 사칭 연락)
+- `survey_key`: 트리거가 "설문"일 때의 응답 키(결제수단 연결 / 비밀번호 재사용 / 사칭 연락 / 피해 발생(임시)). 피해 발생으로 걸리는 피해 구제 조치는 1순위
 - `priority`: 1~5 (1 금전 피해 차단 → 5 장기적 도용 예방)
 - `steps`: 단계별 설명. 공통 기관 연락처는 여기에 쓴다
 - `status`: 공개 / 비공개
@@ -119,7 +126,9 @@
 
 ### survey_responses
 - (user_id, incident_id)당 하나
-- `payment_linked`, `reused_password`, `impersonation_contact`: 설문 2~4번 문항 응답
+- (임시) `payment_linked`, `reused_password`, `impersonation_contact`, `damage_occurred`: 설문 2~5번 응답. 값은 `YES` / `NO` / `UNKNOWN`
+- (임시) `leak_items_unknown`: 설문 1번 "잘 모르겠어요". 참이면 선택 항목을 저장하지 않는다. 거짓이고 선택 항목이 없으면 "해당 없음"
+- 문항과 선택지 문구는 `docs/features.md` 상황 설문
 
 ### survey_selected_items
 - 설문 1번 문항("유출 항목 중 본인에게 해당하는 것")의 선택 결과. 응답과 유출 항목을 잇는 연결 테이블
@@ -142,16 +151,24 @@
 
 체크리스트는 저장하지 않고 화면을 열 때마다 계산한다. 저장하는 것은 설문 응답과 완료 기록뿐이다.
 
-계산 순서:
-1. 사용자가 설문에서 고른 유출 항목 → 그 항목들의 유형 집합
-2. 설문 2~4번 응답 중 "예"인 것 → 응답 조건 집합
+계산 순서 (1·2·4번의 "모름"·"잘 모르겠어요" 처리는 임시):
+1. 설문 1번 → 유형 집합. 항목을 골랐으면 고른 항목의 유형, "잘 모르겠어요"면 그 사고의 **현재** 유출 항목 전체의 유형, "해당 없음"이면 빈 집합
+2. 설문 2~5번 응답 중 "예" 또는 "모름"인 것 → 응답 조건 집합
 3. 공개된 조치 중에서 고른다
     - 사고 조건: 공통 조치이거나, 이 사고의 특수 조치
     - 트리거 조건: 유형이 1번 집합에 있거나, 설문 키가 2번 집합에 있거나, 트리거가 "항상"
-4. 중복을 빼고 우선순위(1~5) 순으로 정렬
-5. 진행률 = 현재 목록 중 완료 기록이 있는 조치 수 ÷ 현재 목록의 조치 수
+4. 중복을 빼고 우선순위(1~5) 순으로 정렬. 같은 순위 안에서는 확실 → 확인 필요 순
+5. 진행률 = 현재 목록 중 완료 기록이 있는 조치 수 ÷ 현재 목록의 조치 수 (확실·확인 필요 모두 포함, 기본 안내 제외)
 
-예시: A사 사고에서 연락처만 유출됐고, 사용자가 "결제수단 연결함, 비밀번호 재사용함, 사칭 연락 없음"으로 답한 경우
+**기본 안내**: 설문 결과와 상관없이 체크리스트 위에 사고의 `source_url`과 `contact_info`를 보여준다. 걸린 조치가 하나도 없으면 "선택한 내용으로는 추가 조치가 없어요"와 기본 안내만 보여준다.
+
+**(임시) 확실 / 확인 필요**: 조치마다 계산하는 값이고 DB에 저장하지 않는다.
+- 확실: 유형으로 걸림(1번에서 항목을 고른 경우), 설문 "예"로 걸림, 특수 조치의 "항상"
+- 확인 필요: 설문 "모름"으로만 걸림, 또는 1번 "잘 모르겠어요"로 유형에 걸림. 화면에 "해당되는지 먼저 확인하세요"를 단다
+- 같은 조치가 여러 조건에 걸리면 가장 확실한 쪽을 따른다
+- 우선순위가 먼저다. 모름으로 걸린 1순위 조치는 확실한 5순위 조치보다 위에 온다
+
+예시: A사 사고에서 연락처만 유출됐고, 사용자가 "결제수단 연결함, 비밀번호 재사용함, 사칭 연락 없음"으로 답한 경우. 확실/확인 필요가 섞인 예시는 설문 명세의 예시 시나리오를 본다
 
 | 조치 | 사고 | 트리거 | 순위 | 결과 |
 |---|---|---|---|---|
@@ -210,11 +227,24 @@
 - `leak_type`: 코드 상수에 정의된 값만
 - `status`: 테이블별 허용값만
 - 트리거가 "유형"이면 `leak_type` 필수, `survey_key`는 비움
-- 트리거가 "설문"이면 `survey_key` 필수. 값은 결제수단 연결 / 비밀번호 재사용 / 사칭 연락 중 하나
-- 트리거가 "항상"이면 `incident_id` 필수(특수 조치 전용). 미정 사항 참고
+- 트리거가 "설문"이면 `survey_key` 필수. 값은 결제수단 연결 / 비밀번호 재사용 / 사칭 연락 / 피해 발생(임시) 중 하나
+- 트리거가 "항상"이면 `incident_id` 필수(특수 조치 전용, 확정)
 - `priority`는 1~5
 - 반려 상태의 제보는 `reject_reason` 필수
 - 승인·반려 상태의 제보는 `reviewed_by`, `reviewed_at` 필수
+- (임시) 설문 응답 4개 컬럼(`payment_linked`, `reused_password`, `impersonation_contact`, `damage_occurred`)은 `YES` / `NO` / `UNKNOWN`만
+
+### 입력 길이 상한 (팀 확인 필요)
+
+`TEXT` 컬럼은 DB가 길이를 막지 않으므로 모델과 serializer에서 검증한다(진단 SR3-1).
+
+| 컬럼 | 최대 길이 |
+|---|---|
+| `incidents.summary` | 2,000자 |
+| `incidents.contact_info` | 500자 |
+| `actions.steps` | 5,000자 |
+| `reports.leak_items_text` | 1,000자 |
+| `reports.reject_reason` | 500자 |
 
 ### 삭제 정책
 
@@ -240,7 +270,7 @@ DB 제약으로 표현할 수 없는 규칙은 서버 코드에서 검증하고,
 
 - **공개 필터**: 사용자에게 보이는 모든 사고·조치 조회는 서버에서 "공개"만 거른다. URL을 직접 입력해도 비공개는 404(기획서 5-2-3)
 - **소유 필터**: 설문 응답, 완료 기록, 제보는 항상 `user = 요청자`로 조회(IDOR 방지). 이 리소스들은 URL에 ID를 받지 않는다
-- **설문 선택 항목 검증**: 고른 항목은 그 사고의 항목이고 "유출" 항목이어야 한다
+- **설문 선택 항목 검증**: 고른 항목은 그 사고의 항목이고 "유출" 항목이어야 한다. (임시) "잘 모르겠어요"(`leak_items_unknown`)와 선택 항목이 함께 오면 거부한다
 - **완료 처리 검증**: 완료하려는 조치는 공통 조치이거나 그 사고의 특수 조치이고, 공개 상태여야 한다. 이게 없으면 다른 사고의 특수 조치 ID로 완료 처리하는 요청을 막지 못한다
 - **상태 변경 권한**: 제보 검수와 공개 전환은 관리자만
 - **URL 검증**: 공용 검증 함수로 https만 허용하고 길이 제한. 서버는 이 URL에 접속하지 않는다(SSRF 방지). 프론트는 외부 링크를 `rel="noopener noreferrer"`로 연다
@@ -266,7 +296,7 @@ DB 계정 분리(앱 계정은 데이터 조회·수정만)는 `infra/CLAUDE.md`
 
 ## ERD Cloud 가져오기용 SQL
 
-ERD Cloud에서 그림을 그리기 위한 MySQL DDL이다. 10월 11일 검토 반영본.
+ERD Cloud에서 그림을 그리기 위한 MySQL DDL이다. 10월 11일 검토 반영본. `survey_responses`는 임시 설문 기준이다.
 
 - 그림 전용이다. 실제 테이블은 Django 마이그레이션이 만들므로 운영 DB에 실행하지 않는다.
 - 체크 제약(유형 코드, 트리거별 필수 컬럼, 우선순위 범위, 상태값)은 ERD 도구가 잘 읽지 못해 넣지 않았다. 실제로는 Django 모델에서 건다.
@@ -280,7 +310,7 @@ CREATE TABLE users (
   password_changed_at DATETIME NOT NULL COMMENT '비밀번호 마지막 변경(90일 강제, 최소 1일)',
   nickname VARCHAR(20) NOT NULL COMMENT '닉네임',
   last_login DATETIME NULL COMMENT '마지막 로그인(Django 기본)',
-  is_active BOOLEAN NOT NULL DEFAULT TRUE COMMENT '활성 여부',
+  is_active BOOLEAN NOT NULL DEFAULT TRUE COMMENT '활성 여부(관리자는 삭제 대신 비활성화)',
   is_staff BOOLEAN NOT NULL DEFAULT FALSE COMMENT '관리자 여부',
   is_superuser BOOLEAN NOT NULL DEFAULT FALSE COMMENT '최고 관리자(Django 기본)',
   date_joined DATETIME NOT NULL COMMENT '가입일',
@@ -312,9 +342,9 @@ CREATE TABLE incidents (
   occurred_at DATE NULL COMMENT '발생일(기업 발표 기준)',
   notified_at DATE NOT NULL COMMENT '공지일(목록 정렬 기준)',
   affected_count INT NULL COMMENT '영향 인원(기업 발표 기준)',
-  summary TEXT NOT NULL COMMENT '공지 요약',
+  summary TEXT NOT NULL COMMENT '공지 요약(최대 2,000자)',
   source_url VARCHAR(500) NOT NULL COMMENT '공식 출처(https만)',
-  contact_info TEXT NULL COMMENT '기업 전담 상담 채널',
+  contact_info TEXT NULL COMMENT '기업 전담 상담 채널(최대 500자)',
   status VARCHAR(20) NOT NULL DEFAULT 'PRIVATE' COMMENT '공개/비공개',
   notice_revised_at DATETIME NULL COMMENT '공지 갱신 시각(유출 항목 변경 시, 배너 판단)',
   created_at DATETIME NOT NULL COMMENT '등록일',
@@ -342,7 +372,7 @@ CREATE TABLE actions (
   survey_key VARCHAR(30) NULL COMMENT '설문 트리거 값',
   priority INT NOT NULL COMMENT '우선순위(1~5)',
   title VARCHAR(200) NOT NULL COMMENT '조치 제목',
-  steps TEXT NOT NULL COMMENT '단계별 설명(기관 연락처 포함)',
+  steps TEXT NOT NULL COMMENT '단계별 설명(기관 연락처 포함, 최대 5,000자)',
   source_url VARCHAR(500) NULL COMMENT '공식 출처(https만)',
   status VARCHAR(20) NOT NULL DEFAULT 'PRIVATE' COMMENT '공개/비공개',
   published_at DATETIME NULL COMMENT '처음 공개된 시각(새 조치 표시 판단)',
@@ -356,9 +386,11 @@ CREATE TABLE survey_responses (
   id BIGINT NOT NULL AUTO_INCREMENT COMMENT '설문 응답 ID',
   user_id BIGINT NOT NULL COMMENT '사용자 ID',
   incident_id BIGINT NOT NULL COMMENT '사고 ID',
-  payment_linked BOOLEAN NOT NULL COMMENT '결제수단 연결 여부',
-  reused_password BOOLEAN NOT NULL COMMENT '비밀번호 재사용 여부',
-  impersonation_contact BOOLEAN NOT NULL COMMENT '사칭 연락 수신 여부',
+  payment_linked VARCHAR(10) NOT NULL COMMENT '결제수단 연결 여부(YES/NO/UNKNOWN, 임시)',
+  reused_password VARCHAR(10) NOT NULL COMMENT '비밀번호 재사용 여부(YES/NO/UNKNOWN, 임시)',
+  impersonation_contact VARCHAR(10) NOT NULL COMMENT '사칭 연락 수신 여부(YES/NO/UNKNOWN, 임시)',
+  damage_occurred VARCHAR(10) NOT NULL COMMENT '피해 발생 여부(YES/NO/UNKNOWN, 임시)',
+  leak_items_unknown BOOLEAN NOT NULL DEFAULT FALSE COMMENT '설문 1번 잘 모르겠어요(참이면 선택 항목 없음, 임시)',
   updated_at DATETIME NOT NULL COMMENT '응답 수정일',
   PRIMARY KEY (id),
   UNIQUE KEY uq_survey_user_incident (user_id, incident_id),
@@ -393,9 +425,9 @@ CREATE TABLE reports (
   company_name VARCHAR(100) NOT NULL COMMENT '제보 기업명',
   source_url VARCHAR(500) NOT NULL COMMENT '공식 출처(https만)',
   notified_at DATE NULL COMMENT '공지일',
-  leak_items_text TEXT NOT NULL COMMENT '유출 항목(자유 텍스트, 저장 전 마스킹)',
+  leak_items_text TEXT NOT NULL COMMENT '유출 항목(자유 텍스트, 저장 전 마스킹, 최대 1,000자)',
   status VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT '대기/승인/반려',
-  reject_reason TEXT NULL COMMENT '반려 사유(반려 시 필수, 제보자에게 표시)',
+  reject_reason TEXT NULL COMMENT '반려 사유(반려 시 필수, 제보자에게 표시, 최대 500자)',
   linked_incident_id BIGINT NULL COMMENT '반영된 사고 ID',
   reviewed_by BIGINT NULL COMMENT '검수자 ID(승인·반려 시 필수)',
   reviewed_at DATETIME NULL COMMENT '검수 시각(승인·반려 시 필수)',
@@ -409,14 +441,14 @@ CREATE TABLE reports (
 
 ## 미정 사항과 다음 단계
 
-두 가지가 미정이지만 테이블 구조에는 영향이 없다.
-
+- **설문 구성(임시)**: 설문 명세 작성 중. 확정되면 "임시" 표시를 지우고 `docs/features.md`, `docs/api.md`, `docs/project/plan.md`를 함께 고친다. 남은 것: 같은 순위·같은 확실 여부 안의 순서, 피해 구제 조치 내용, 연락처(`CONTACT`) 유형에 연결할 조치
+- **설문 1번 "해당 없음" 저장 방식**: 지금은 `leak_items_unknown = false` + 선택 항목 0개. 이러면 1번을 비워 보낸 요청과 구분이 안 돼 "빈 선택 금지"를 서버가 강제할 수 없다. 후보는 API 요청에서 1번 답을 `SELECTED` / `UNKNOWN` / `NONE`으로 명시하게 하는 것, 또는 컬럼을 bool 대신 이 선택값으로 바꾸는 것
 - **유출 유형 목록**: 기획서의 5대 유형(연락처, 계정정보, 주민등록번호, 금융정보, 위치정보)에는 유심·인증키 같은 인증수단 정보가 들어갈 곳이 없다(기획서 우선순위 2순위와 충돌). 후보는 인증수단 정보 추가, 위치정보 재검토(대응 행동이 불분명하면 "기타"로 흡수), "기타" 추가. 실제 유출 공지 5~10건을 매핑해 기타가 많이 쌓이면 유형을 조정한다. 백엔드 골격의 `apps/incidents/constants.py`의 `LeakType`에는 후보 7개(5대 유형 + 인증수단 정보 + 기타)를 넣어 두었다.
-- **"항상" 트리거 범위**: 특수 조치 전용으로 둘지, 공통 조치에도 허용할지. 허용하면 모든 사고의 모든 사용자에게 붙는 조치가 생긴다.
 
 - [ ] 10/11 검토 반영 내역 중 "팀 확인 필요" 항목 확정 (10/12 킥오프)
+- [ ] 설문 명세 확정 후 "임시" 항목 정리
 - [ ] 실제 유출 공지 5~10건을 모아 유형 매핑으로 검증
-- [ ] "항상" 트리거 범위 결정
+- [x] "항상" 트리거 범위 결정: 특수 조치 전용 (검토 13번)
 - [ ] ERD Cloud 그림을 영역별(공식 정보 / 사용자 진행 / 제보 / 계정)로 재배치하고 위 SQL로 갱신
 - [x] 기능별 앱(accounts, incidents, guides, reports, mypage)으로 Django 뼈대 구성(`docs/backend.md`). 모델은 BE-A가 작성
 - [ ] 앱별 모델 담당자 지정, 모델 변경은 PR로만 받기(마이그레이션 충돌 방지)

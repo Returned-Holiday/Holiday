@@ -39,4 +39,4 @@
 - 협업 규칙: `docs/rules/common.md` (브랜치·커밋·PR 작업을 할 때 읽는다)
 - 보안 정책과 설계 원본: `docs/security.md` — 인증·권한·입력·업로드·로깅 작업 때 필요한 절만 읽는다
 - DB: `docs/erd.md` · API: `docs/api.md`, `docs/rules/api-response.md` · 화면: `docs/features.md`
-- 대회·역할·일정: `docs/project/`
+- 대회·역할·일정: `docs/project/` · 1라운드 기획서와 이후 달라진 점: `docs/project/plan.md`

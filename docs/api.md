@@ -21,8 +21,8 @@
 | `GET /api/incidents/?q=&page=` | 공개 | 공개 사고만 | `search` 60/분/IP | 기업명·별칭 검색, 검색어 50자 제한, 공지일 최신순 | BE-B |
 | `GET /api/incidents/<id>/` | 공개 | 공개 사고만(아니면 404) | 기본 | 유출·미유출 항목, 출처, 상담 채널, 대응 중 인원 | BE-B |
 | `GET /api/guides/incidents/<id>/survey/` | 회원 | (본인, 공개 사고) | 기본 | 내 응답. 없으면 빈 응답 | BE-A |
-| `PUT /api/guides/incidents/<id>/survey/` | 회원 | (본인, 공개 사고) | 기본 | 선택 항목은 그 사고의 "유출" 항목만 | BE-A |
-| `GET /api/guides/incidents/<id>/checklist/` | 회원 | (본인, 공개 사고) | 기본 | 공개 조치만으로 계산, 진행률, 새 조치·공지 갱신 표시 | BE-A |
+| `PUT /api/guides/incidents/<id>/survey/` | 회원 | (본인, 공개 사고) | 기본 | 선택 항목은 그 사고의 "유출" 항목만. (임시) 2~5번 `YES`/`NO`/`UNKNOWN`, "잘 모르겠어요"와 선택 항목이 함께 오면 400 | BE-A |
+| `GET /api/guides/incidents/<id>/checklist/` | 회원 | (본인, 공개 사고) | 기본 | 공개 조치만으로 계산, 진행률, 새 조치·공지 갱신 표시, 기본 안내(출처·상담 채널). (임시) 조치별 확실/확인 필요 | BE-A |
 | `PUT /api/guides/incidents/<id>/completions/<action_id>/` | 회원 | 공통 조치이거나 그 사고의 특수 조치, 공개 상태 | 기본 | 완료 처리 | BE-A |
 | `DELETE /api/guides/incidents/<id>/completions/<action_id>/` | 회원 | 위와 같음 | 기본 | 완료 해제 | BE-A |
 | `POST /api/guides/ocr/` | 회원 | – | `ocr` 10/시간/사용자 | JPG·PNG 5MB, 메모리 처리, 응답은 사고·항목 ID만 | BE-A |
