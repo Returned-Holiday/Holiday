@@ -23,26 +23,21 @@ export default defineConfig([
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
 
-      // 코드 삽입
       "no-eval": "error",
       "no-implied-eval": "error",
       "no-new-func": "error",
       "no-script-url": "error",
 
-      // 남은 디버그 코드, 오류 메시지 노출
       "no-console": "error",
       "no-debugger": "error",
       "no-alert": "error",
 
-      // 오류 상황 대응 부재
       "no-empty": ["error", { allowEmptyCatch: false }],
 
-      // Null 역참조·타입 우회
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/ban-ts-comment": "error",
       "@typescript-eslint/no-non-null-assertion": "error",
 
-      // 중요정보 저장
       "no-restricted-globals": [
         "error",
         { name: "localStorage", message: storageMessage },
@@ -57,7 +52,6 @@ export default defineConfig([
         { object: "Math", property: "random", message: "보안 용도에는 crypto.getRandomValues를 쓴다." },
       ],
 
-      // XSS, 신뢰되지 않는 URL
       "no-restricted-syntax": [
         "error",
         {
@@ -88,7 +82,7 @@ export default defineConfig([
     },
   },
   {
-    // SafeExternalLink는 외부 링크 규칙을 구현하는 유일한 곳이다.
+    // 외부 링크 금지 규칙을 SafeExternalLink 안에서만 예외로 둔다
     files: ["src/shared/ui/SafeExternalLink.tsx"],
     rules: {
       "no-restricted-syntax": "off",
