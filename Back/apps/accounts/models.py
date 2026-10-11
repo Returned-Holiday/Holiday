@@ -10,7 +10,7 @@ class UserManager(BaseUserManager):
     def _create_user(self, email: str, password: str | None, **extra_fields: object) -> "User":
         if not email:
             raise ValueError("email is required")
-        # 대소문자만 다른 이메일로 중복 가입하지 못하게 전체를 소문자로 저장한다
+        # 이메일 소문자 저장 (대소문자 중복 가입 방지)
         user = self.model(email=email.strip().lower(), **extra_fields)
         user.set_password(password)
         user.save(using=self._db)

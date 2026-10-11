@@ -2,7 +2,7 @@ import secrets
 
 from .base import *  # noqa: F403
 
-# 테스트마다 새로 만드는 키라서 저장소에 비밀값이 남지 않는다
+# 실행마다 랜덤 키 (저장소에 비밀값 X)
 SECRET_KEY = secrets.token_urlsafe(50)
 ALLOWED_HOSTS = ["testserver"]
 

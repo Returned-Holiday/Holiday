@@ -1,6 +1,6 @@
 from django.urls import include, path
 
-# 비회원에게 열 경로는 각 앱의 뷰에서 명시적으로 연다. 기본은 로그인 필요다
+# 기본 로그인 필요, 공개 경로는 뷰에서 명시
 urlpatterns = [
     path("api/auth/", include("apps.accounts.urls")),
     path("api/incidents/", include("apps.incidents.urls")),

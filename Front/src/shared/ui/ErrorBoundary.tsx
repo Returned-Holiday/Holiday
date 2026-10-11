@@ -9,7 +9,7 @@ type ErrorBoundaryState = {
   hasError: boolean;
 };
 
-// 오류 원문과 스택은 화면에 보여주지 않는다
+// 오류 원문·스택 노출 X
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   override state: ErrorBoundaryState = { hasError: false };
 

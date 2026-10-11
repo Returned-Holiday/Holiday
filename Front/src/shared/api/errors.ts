@@ -36,7 +36,7 @@ function readFieldErrors(value: unknown): FieldErrors {
   return result;
 }
 
-// 약속한 에러 형식이 아니면 원문 대신 일반 문구로 바꿔 내부 정보가 화면에 나가지 않게 한다
+// 형식 외 에러는 일반 문구로 (내부 정보 노출 방지)
 export function toApiError(error: unknown): ApiError {
   if (error instanceof ApiError) {
     return error;

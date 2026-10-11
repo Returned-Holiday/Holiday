@@ -11,7 +11,7 @@ class MissingSecretError(RuntimeError):
 
 @lru_cache(maxsize=1)
 def _load_secret_bundle() -> dict[str, str]:
-    # 운영 서버는 AWS_SECRET_ID가 있을 때 EC2 역할 권한으로 Secrets Manager에서 읽고, 로컬은 환경변수만 쓴다
+    # 운영: Secrets Manager (EC2 역할) / 로컬: 환경변수
     secret_id = os.environ.get("AWS_SECRET_ID")
     if not secret_id:
         return {}

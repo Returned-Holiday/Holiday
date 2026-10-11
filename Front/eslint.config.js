@@ -82,7 +82,7 @@ export default defineConfig([
     },
   },
   {
-    // 외부 링크 금지 규칙을 SafeExternalLink 안에서만 예외로 둔다
+    // SafeExternalLink만 예외
     files: ["src/shared/ui/SafeExternalLink.tsx"],
     rules: {
       "no-restricted-syntax": "off",

@@ -2,7 +2,7 @@ import { Navigate, Outlet, useLocation } from "react-router";
 import { useAuthStore } from "../../features/auth/useAuthStore";
 import { LOGIN_PATH, PASSWORD_CHANGE_PATH } from "../paths";
 
-// 화면 이동용 검사이고 실제 권한 검사는 서버가 한다
+// UX용 가드, 실제 권한 체크는 서버
 export function RequireAuth() {
   const status = useAuthStore((state) => state.status);
   const user = useAuthStore((state) => state.user);

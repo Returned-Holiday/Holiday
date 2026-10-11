@@ -4,7 +4,7 @@ import { useAuthStore } from "../../features/auth/useAuthStore";
 import { NotFoundPage } from "../../pages/public/NotFoundPage";
 import { ADMIN_OTP_PATH, PASSWORD_CHANGE_PATH } from "../paths";
 
-// 관리자가 아니면 로그인 화면 대신 404를 보여 관리자 화면의 존재를 드러내지 않는다
+// 비관리자 → 404 (관리자 화면 존재 숨김)
 export function RequireAdmin() {
   const status = useAuthStore((state) => state.status);
   const user = useAuthStore((state) => state.user);

@@ -29,7 +29,7 @@ def _error_body(code: str, message: str, fields: object = None) -> dict[str, obj
     return body
 
 
-# 예외 원문과 스택은 로그로만 남기고 응답에는 정해진 코드와 문구만 내보낸다
+# 원문·스택은 로그로만, 응답은 코드 + 일반 문구
 def api_exception_handler(exc: Exception, context: dict[str, object]) -> Response:
     response = exception_handler(exc, context)
     if response is None:

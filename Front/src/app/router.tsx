@@ -17,7 +17,7 @@ import { RequireAdmin } from "./guards/RequireAdmin";
 import { RequireAuth } from "./guards/RequireAuth";
 import { ADMIN_BASE_PATH, ADMIN_OTP_PATH, LOGIN_PATH, PASSWORD_CHANGE_PATH } from "./paths";
 
-// 관리자 화면 코드는 별도 파일로 나눠 관리자로 확인된 뒤에만 내려받게 한다
+// 관리자 화면 lazy 분리
 const AdminOtpPage = lazy(() =>
   import("../pages/admin/AdminOtpPage").then((module) => ({ default: module.AdminOtpPage })),
 );

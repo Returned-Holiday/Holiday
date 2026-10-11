@@ -7,7 +7,7 @@ type SafeExternalLinkProps = {
   showDomain?: boolean;
 };
 
-// 새 창이 원래 페이지를 조작하지 못하도록 opener와 referrer를 넘기지 않는다
+// tabnabbing 방지
 export function SafeExternalLink({ href, children, showDomain = true }: SafeExternalLinkProps) {
   const url = toSafeHttpsUrl(href);
   if (url === null) {
