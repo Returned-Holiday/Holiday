@@ -29,4 +29,5 @@
 | 10/11 | API 경로는 `/api/<앱>/...`(버전 접두사 없음), 관리자는 `/api/admin/<앱>/...` | 백엔드 팀 문서 | `docs/api.md` |
 | 10/11 | 앱 사이 규칙: 의존 방향 한쪽, 다른 앱은 `services`로만 호출, 보안 판단은 `common`, 모델은 담당자만 | 서로 기다리지 않고 코드를 깨지 않기 위해 | `docs/backend.md` |
 | 10/11 | 비밀번호 변경·탈퇴는 요청에서 현재 비밀번호를 매번 확인(별도 재인증 세션 없음) | 경로 단순화(`/api/auth/password/`, `/api/auth/withdraw/`) | `docs/security.md` |
+| 10/11 | 브랜치: `dev`(기본, 개발 통합) → `main`(제출·배포). 작업 브랜치는 `dev`로 PR, 둘 다 직접 push 금지 | 제출·배포본과 개발 중인 코드 분리 | `docs/rules/common.md` |
 | 10/11 | 로그인 잠금은 계정 기준만(django-axes). IP 단위 제한은 DRF `login` 요청 제한이 맡음 | nginx 뒤에서 axes가 실제 IP를 몰라 IP 잠금을 켜면 전체 사용자가 함께 잠김 | `Back/config/settings/base.py` |
