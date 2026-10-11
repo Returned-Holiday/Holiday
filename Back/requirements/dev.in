@@ -1,0 +1,4 @@
+-c base.txt
+pip-tools
+bandit
+pip-audit

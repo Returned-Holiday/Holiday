@@ -1,0 +1,9 @@
+Django>=5.2.8,<5.3
+djangorestframework
+django-axes
+django-otp
+mysqlclient
+Pillow
+requests
+boto3
+python-dotenv

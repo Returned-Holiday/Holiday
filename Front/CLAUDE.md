@@ -35,7 +35,7 @@ src/
 - 로그인 상태는 `useAuthStore`(메모리)에만. `persist`·브라우저 저장소 금지.
 - 서버 데이터(요약, 반려 사유 등)는 항상 텍스트로 렌더링한다.
 - 라우트 가드는 편의용이다. 권한 판단의 근거로 문서에 쓰지 않는다(실제 보호는 서버).
-- 새 패키지는 BE1 승인 후 `npm install --save-exact`로 추가하고 `package-lock.json`을 함께 커밋한다.
+- 새 패키지는 BE-B 승인 후 `npm install --save-exact`로 추가하고 `package-lock.json`을 함께 커밋한다.
 
 ## 명령어
 ```bash

@@ -1,9 +1,9 @@
 import axios from "axios";
 import { toApiError } from "./errors";
 
-// 같은 출처의 /api/v1만 호출하므로 CSRF 토큰 헤더가 다른 사이트로 새지 않는다
+// 같은 출처의 /api만 호출하므로 CSRF 토큰 헤더가 다른 사이트로 새지 않는다
 export const apiClient = axios.create({
-  baseURL: "/api/v1",
+  baseURL: "/api",
   withCredentials: true,
   xsrfCookieName: "csrftoken",
   xsrfHeaderName: "X-CSRFToken",

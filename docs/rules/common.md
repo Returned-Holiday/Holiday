@@ -1,6 +1,6 @@
 # 협업 규칙
 
-역할 코드(FE1, FE2, BE1, BE2)는 `docs/project/team.md` 참고.
+역할 코드(FE1, FE2, BE-A, BE-B)는 `docs/project/team.md` 참고.
 
 ## 브랜치
 - `main`: 항상 배포 가능한 상태. **직접 push 금지**(GitHub 브랜치 보호로 강제)
@@ -20,7 +20,9 @@ TODO(전원, 10/12 킥오프). 제안: `<종류>: <무엇을>` 한 줄 + 필요�
 
 ### 머지 조건
 - CI 통과: Semgrep, Bandit, pip-audit, npm audit, ESLint, `tsc`, 테스트
-- 리뷰는 필수가 아니다. 다만 **인증·권한·업로드·외부 링크·HTML 렌더링·의존성·인프라**를 건드린 PR은 BE1에게 한 번 보여주고 머지한다.
+- 리뷰는 기본적으로 필수가 아니다. 예외 두 가지:
+  - **BE-A의 PR은 모두 BE-B가 보안 관점으로 리뷰**한 뒤 머지한다(`docs/backend.md`)
+  - 프론트 PR 중 **인증·권한·업로드·외부 링크·HTML 렌더링·의존성**을 건드린 것은 BE-B에게 한 번 보여주고 머지한다
 - 보안 정책 값을 바꾸는 PR은 `docs/security.md`와 `docs/project/decisions.md`를 같은 PR에서 고친다
 
 ## 주석 규칙
@@ -43,24 +45,25 @@ TODO(전원, 10/12 킥오프). 제안: `<종류>: <무엇을>` 한 줄 + 필요�
 - 커밋 작성자는 본인 GitHub 계정이어야 한다. 처음 한 번 `git config user.name`, `git config user.email`을 본인 GitHub 계정과 같게 설정한다
 
 ## 모델·마이그레이션
-- 앱별 모델 담당자만 모델을 고친다. 담당: TODO(BE1, 10/12)
+- 앱별 모델 담당자만 모델을 고친다. 담당: `accounts`·`guides`는 BE-A, `incidents`·`reports`는 BE-B (`docs/backend.md`)
+- 뼈대 단계에서 BE-A가 전체 모델을 한 번에 만들고, 이후 다른 사람 앱의 모델은 PR로 담당자 리뷰를 받는다
 - 모델 변경 PR에는 `docs/erd.md` 수정을 함께 넣는다
 - 마이그레이션 충돌이 나면 직접 머지하지 말고 담당자와 상의 후 `makemigrations --merge`
 
 ## 의존성
-- 새 패키지는 **BE1 승인** 후 추가한다. 패키지 이름 철자를 반드시 확인한다(비슷한 이름의 악성 패키지 주의)
+- 새 패키지는 **BE-B 승인** 후 추가한다. 패키지 이름 철자를 반드시 확인한다(비슷한 이름의 악성 패키지 주의)
 - Python: `requirements/*.in` 수정 → `pip-compile --generate-hashes` → 생성된 `.txt` 함께 커밋
 - npm: `npm install <패키지>` 후 `package-lock.json` 함께 커밋. CI와 배포는 `npm ci`
 
 ## 비밀값
 - 키·비밀번호·토큰은 코드, 주석, 설정 기본값, 테스트, 커밋 메시지, 이슈, PR 어디에도 쓰지 않는다
 - 로컬은 `.env`(커밋 금지, `.env.example`만 커밋), 운영은 AWS Secrets Manager
-- 실수로 커밋했으면 즉시 BE1에게 알리고 **키를 폐기·재발급**한다(히스토리 삭제만으로는 부족)
+- 실수로 커밋했으면 즉시 BE-B에게 알리고 **키를 폐기·재발급**한다(히스토리 삭제만으로는 부족)
 
 ## 보안약점 관리
 - 도구나 리뷰에서 발견한 약점은 GitHub Issue로 등록한다
   - 라벨: `weakness` + 분류(`input`, `security-feature`, `error`, `code-error`, `encapsulation`, `api-misuse`, `time-state`)
-  - 제목 예: `[weakness] checklists/views.py: except Exception 사용`
+  - 제목 예: `[weakness] guides/views.py: except Exception 사용`
 - 고치는 PR 설명에 `Closes #번호`를 넣는다. 조치율은 이 Issue로 집계한다
 
 ## Claude Code 사용 규칙
@@ -68,5 +71,5 @@ TODO(전원, 10/12 킥오프). 제안: `<종류>: <무엇을>` 한 줄 + 필요�
 - 코드를 쓰게 하기 전에 **계획을 먼저 받고**(Plan 모드) 이해한 뒤 진행한다
 - 변경마다 "무엇을 하고 어떤 보안 처리를 했는지" 설명을 받는다
 - **자기가 설명하지 못하는 코드는 머지하지 않는다.** 진단에서 약점이 나왔을 때 원인을 찾고 고칠 수 있어야 한다
-- 처음 하는 기능은 기준 코드(BE1이 만든 기준 API, FE1의 공통 컴포넌트)를 참고하라고 지시한다
+- 처음 하는 기능은 기준 코드(백엔드 기준 API, FE1의 공통 컴포넌트)를 참고하라고 지시한다
 - 작업 전에 문서를 읽으라고 매번 시킬 필요는 없다. `CLAUDE.md`와 거기서 `@`로 연결한 규칙 문서는 세션을 시작할 때 자동으로 읽힌다. 큰 문서(`docs/security.md`, `docs/erd.md`)는 자동으로 읽히지 않으니, 그 문서가 필요한 작업(인증, 권한, 모델 변경 등)을 시킬 때만 "docs/security.md 3-1을 따라서"처럼 해당 부분을 짚어 준다

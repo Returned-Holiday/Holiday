@@ -25,7 +25,7 @@
 - 대상: 전체
 - 목적: 기업명 검색, 최근 공지된 사고 목록
 - 기능 / 입력 / 흐름 / 빈·에러 상태: TODO(FE2)
-- 사용 API: `GET /incidents`
+- 사용 API: `GET /api/incidents/`
 - 보안 동작:
   - 검색어 최대 50자
   - 공개된 사고만 보임
@@ -34,7 +34,7 @@
 - 대상: 전체
 - 목적: 기업 발표 기준 유출·미유출 항목, 발생·공지일, 영향 인원, 요약, 공식 출처, 상담 채널
 - 기능 / 흐름 / 빈·에러 상태: TODO(FE2)
-- 사용 API: `GET /incidents/{id}`
+- 사용 API: `GET /api/incidents/<id>/`
 - 보안 동작:
   - 비공개·없는 사고는 404 화면(어느 쪽인지 구분하지 않음)
   - 출처 링크는 새 창 + 도메인 표시(`SafeExternalLink`)
@@ -61,7 +61,7 @@
 ### 회원가입 (`/signup`)
 - 입력: 이메일, 비밀번호, 비밀번호 확인, 닉네임
 - 흐름 / 빈·에러 상태: TODO(FE2)
-- 사용 API: `POST /auth/signup`
+- 사용 API: `POST /api/auth/signup/`
 - 보안 동작:
   - 비밀번호 규칙을 입력 중에 안내: 2종 10자 또는 3종 8자, 연속·반복 문자 금지, 이메일 아이디 포함 금지
   - 서버도 같은 규칙으로 다시 검증
@@ -70,7 +70,7 @@
 ### 로그인 (`/login`)
 - 입력: 이메일, 비밀번호
 - 흐름 / 빈·에러 상태: TODO(FE2)
-- 사용 API: `POST /auth/login`
+- 사용 API: `POST /api/auth/login/`
 - 보안 동작:
   - 실패 문구는 하나: "이메일 또는 비밀번호가 일치하지 않습니다"
   - 5회 실패 시 "30분 후 다시 시도해 주세요"
@@ -79,6 +79,7 @@
 
 ### 비밀번호 변경 (`/account/password`)
 - 입력: 현재 비밀번호, 새 비밀번호, 새 비밀번호 확인
+- 사용 API: `POST /api/auth/password/`
 - 보안 동작:
   - 90일 경과로 들어온 경우 다른 메뉴로 이동 불가(서버도 다른 API를 403으로 막음)
   - 최근 4개와 같은 비밀번호, 변경 후 1일 이내 재변경 거부(강제 변경은 예외)
@@ -94,7 +95,7 @@
 ### 통지문 캡처 인식 (`/ocr`)
 - 목적: 유출 안내 문자·메일 캡처로 사고와 유출 항목 찾기
 - 흐름 / 빈·에러 상태: TODO(FE2)
-- 사용 API: `POST /ocr/analyze`
+- 사용 API: `POST /api/guides/ocr/`
 - 보안 동작:
   - **업로드 전에** 외부 처리 위탁(네이버 클라우드 CLOVA OCR) 고지
   - JPG·PNG, 최대 5MB 안내(검사는 사용성용, 실제 검증은 서버)
@@ -106,20 +107,20 @@
 - 문항: ① 공지된 유출 항목 중 본인 해당 항목 ② 결제수단 연결 ③ 비밀번호 재사용 ④ 사칭 연락 수신
 - OCR에서 들어온 경우 인식된 항목이 미리 체크됨
 - 흐름 / 빈·에러 상태: TODO(FE2)
-- 사용 API: `GET·PUT /incidents/{id}/survey`
+- 사용 API: `GET·PUT /api/guides/incidents/<id>/survey/`
 - 보안 동작: 선택지는 서버가 준 "유출" 항목만
 
 ### 맞춤 체크리스트 (`/incidents/:id/checklist`)
 - 우선순위 1~5 순 조치 목록, 단계별 설명, 출처, 기관 연락처, 진행률
 - "새 조치" 표시, "공지 내용이 갱신됐어요. 설문을 다시 확인해 주세요" 배너
 - 흐름 / 빈·에러 상태: TODO(FE2)
-- 사용 API: `GET /incidents/{id}/checklist`, `PUT·DELETE /incidents/{id}/checklist/{actionId}`
+- 사용 API: `GET /api/guides/incidents/<id>/checklist/`, `PUT·DELETE /api/guides/incidents/<id>/completions/<action_id>/`
 - 보안 동작: 목록·우선순위·진행률은 서버 계산값만 표시
 
 ### 사고 제보 (`/reports/new`)
 - 입력: 기업명, 공식 출처 URL(https), 공지일, 유출 항목(자유 텍스트)
 - 흐름 / 빈·에러 상태: TODO(FE2)
-- 사용 API: `POST /reports`
+- 사용 API: `POST /api/reports/`
 - 보안 동작:
   - "개인정보를 입력하지 마세요" 안내, 글자 수 표시
   - https가 아닌 URL은 입력 단계에서 거부(서버도 검증)
@@ -128,11 +129,11 @@
 ### 마이페이지 (`/me`)
 - 내 대응 중 사고와 진행률, 내 제보 목록(상태·반려 사유), 계정 정보
 - 흐름 / 빈·에러 상태: TODO(FE2)
-- 사용 API: `GET /me/checklists`, `GET /me/reports`, `GET /auth/me`
+- 사용 API: `GET /api/mypage/`, `GET /api/reports/`, `GET /api/auth/me/`, `POST /api/auth/withdraw/`
 - 보안 동작:
   - **마지막 로그인 일시**와 **비밀번호 마지막 변경일** 표시
   - 반려 사유는 텍스트로만 표시
-  - 탈퇴: 비밀번호 재확인 → 삭제되는 데이터 목록 → 확정
+  - 탈퇴: 삭제되는 데이터 목록 안내 → 현재 비밀번호 입력 → 확정
 
 ### 공통
 - 모든 화면 같은 위치에 로그아웃 버튼
@@ -152,13 +153,13 @@
 
 ### 관리자 OTP 인증 (`/manage/otp`)
 - 입력: OTP 6자리
-- 사용 API: `POST /auth/otp/verify`
+- 사용 API: `POST /api/auth/otp/`
 - 보안 동작: 5회/분 제한, 실패 문구 하나로 통일
 - 흐름 / 에러 상태: TODO(FE2)
 
 ### 사고 관리 (`/manage/incidents`, `/manage/incidents/:incidentId`)
 - 목록(공개·비공개 모두), 등록, 수정, 유출 항목 추가·수정·삭제, 공개 전환
-- 사용 API: `/admin/incidents`, `/admin/incidents/{id}/leak-items`
+- 사용 API: `/api/admin/incidents/`, `/api/admin/incidents/<id>/leak-items/`
 - 보안 동작:
   - 신규 등록은 비공개
   - 출처는 https만
@@ -168,18 +169,18 @@
 
 ### 기업 관리 (`/manage/companies`)
 - 기업명, 별칭(검색·OCR 매칭용)
-- 사용 API: `/admin/companies`
+- 사용 API: `/api/admin/incidents/companies/`
 - 보안 동작: 다른 기업과 같은 별칭은 저장 불가
 - 흐름 / 빈·에러 상태: TODO(FE2)
 
 ### 조치 관리 (`/manage/actions`)
 - 공통·특수 조치, 트리거(유형·설문·항상), 우선순위 1~5, 단계별 설명, 출처, 공개 전환
-- 사용 API: `/admin/actions`
+- 사용 API: `/api/admin/guides/actions/`
 - 보안 동작: 삭제 없음(비공개로 내림), 트리거별 필수값 검증
 - 흐름 / 빈·에러 상태: TODO(FE2)
 
 ### 제보 검수 (`/manage/reports`)
 - 대기·승인·반려 목록, 상세, 승인(반영 사고 연결) / 반려(사유 필수)
-- 사용 API: `/admin/reports`
+- 사용 API: `/api/admin/reports/`
 - 보안 동작: 제보 내용은 저장 시 마스킹된 값만 표시, 검수자·시각 자동 기록
 - 흐름 / 빈·에러 상태: TODO(FE2)
