@@ -1,0 +1,41 @@
+# 비밀값
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+npm-debug.log*
+
+# 로그·DB 덤프·백업 (기반 IL: 백업 파일 노출 방지)
+*.log
+*.sql
+*.bak
+*.backup
+*.old
+*.tmp
+
+# Claude Code 개인 설정
+.claude/settings.local.json
+CLAUDE.local.md
+
+# 에디터·OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
