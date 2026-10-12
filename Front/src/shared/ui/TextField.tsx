@@ -1,6 +1,7 @@
 import { useId, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from "react";
 import styled, { css } from "styled-components";
 import { textStyle } from "../../styles/typography";
+import checkSmall from "../../assets/icons/check-small.svg";
 import { Icon } from "./Icon";
 import { VisuallyHidden } from "./Page";
 
@@ -15,18 +16,20 @@ const Label = styled.label`
   color: ${({ theme }) => theme.colors.text.ink};
 `;
 
-type ControlProps = { $invalid: boolean; $soft?: boolean };
+type ControlProps = { $invalid: boolean; $soft?: boolean; $valid?: boolean };
 
 const controlStyle = css<ControlProps>`
   width: 100%;
   padding: 0 22px;
-  border: 1.5px solid
-    ${({ theme, $invalid, $soft }) =>
+  border: ${({ $invalid, $valid }) => ($invalid || $valid ? "2px" : "1.5px")} solid
+    ${({ theme, $invalid, $soft, $valid }) =>
       $invalid
         ? theme.colors.status.negative
-        : $soft
-          ? theme.colors.border.default
-          : theme.colors.text.mute};
+        : $valid
+          ? theme.colors.status.positive
+          : $soft
+            ? theme.colors.border.default
+            : theme.colors.text.mute};
   border-radius: ${({ theme }) => theme.radius.lg};
   background: ${({ theme }) => theme.colors.surface.card};
   ${textStyle("bodyLg")}
@@ -72,6 +75,14 @@ const ErrorText = styled.p`
   color: ${({ theme }) => theme.colors.status.negativeDeep};
 `;
 
+const ValidText = styled.p`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  ${textStyle("labelSmStrong")}
+  color: ${({ theme }) => theme.colors.status.positiveDeep};
+`;
+
 const Counter = styled.span`
   flex-shrink: 0;
   ${textStyle("bodySm")}
@@ -82,6 +93,7 @@ type FieldMeta = {
   label: ReactNode;
   hint?: ReactNode;
   error?: string;
+  valid?: string;
 };
 
 function useFieldIds(hint: ReactNode, error: string | undefined) {
@@ -95,17 +107,19 @@ function useFieldIds(hint: ReactNode, error: string | undefined) {
 function FieldMessages({
   hint,
   error,
+  valid,
   hintId,
   errorId,
   counter,
 }: {
   hint: ReactNode;
   error: string | undefined;
+  valid?: string;
   hintId: string;
   errorId: string;
   counter?: ReactNode;
 }) {
-  if (!hint && !error && !counter) {
+  if (!hint && !error && !counter && !valid) {
     return null;
   }
   return (
@@ -122,6 +136,12 @@ function FieldMessages({
           {error}
         </ErrorText>
       ) : null}
+      {valid && !error ? (
+        <ValidText role="status">
+          <img src={checkSmall} width={16} height={16} alt="" />
+          {valid}
+        </ValidText>
+      ) : null}
     </>
   );
 }
@@ -136,6 +156,7 @@ export function TextField({
   label,
   hint,
   error,
+  valid,
   hideLabel = false,
   appearance = "default",
   ...rest
@@ -156,9 +177,10 @@ export function TextField({
         aria-describedby={describedBy}
         $invalid={Boolean(error)}
         $soft={appearance === "soft"}
+        $valid={Boolean(valid) && !error}
         {...rest}
       />
-      <FieldMessages hint={hint} error={error} hintId={hintId} errorId={errorId} />
+      <FieldMessages hint={hint} error={error} valid={valid} hintId={hintId} errorId={errorId} />
     </Field>
   );
 }

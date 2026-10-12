@@ -10,6 +10,7 @@ import {
   ADMIN_INCIDENTS_PATH,
   ADMIN_REPORTS_PATH,
 } from "../paths";
+import { SessionExpiredModal } from "./SessionExpiredModal";
 import { stickyBar, type StickyBarProps } from "./stickyBar";
 
 const Shell = styled.div`
@@ -121,6 +122,7 @@ export function AdminLayout() {
       <main>
         <Outlet />
       </main>
+      <SessionExpiredModal />
     </Shell>
   );
 }

@@ -6,7 +6,13 @@ import { LOGIN_PATH, PASSWORD_CHANGE_PATH } from "../paths";
 export function RequireAuth() {
   const status = useAuthStore((state) => state.status);
   const user = useAuthStore((state) => state.user);
+  const sessionExpired = useAuthStore((state) => state.sessionExpired);
   const location = useLocation();
+
+  // 만료 모달 뒤는 빈 화면
+  if (sessionExpired) {
+    return null;
+  }
 
   if (status === "loading") {
     return <p role="status">불러오는 중입니다.</p>;

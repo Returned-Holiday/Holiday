@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { Navigate, Outlet, useLocation } from "react-router";
 import { useAuthStore } from "../../features/auth/useAuthStore";
 import { NotFoundPage } from "../../pages/public/NotFoundPage";
+import { SessionExpiredModal } from "../layout/SessionExpiredModal";
 import { SiteLayout } from "../layout/SiteLayout";
 import { ADMIN_OTP_PATH, PASSWORD_CHANGE_PATH } from "../paths";
 
@@ -9,7 +10,12 @@ import { ADMIN_OTP_PATH, PASSWORD_CHANGE_PATH } from "../paths";
 export function RequireAdmin() {
   const status = useAuthStore((state) => state.status);
   const user = useAuthStore((state) => state.user);
+  const sessionExpired = useAuthStore((state) => state.sessionExpired);
   const location = useLocation();
+
+  if (sessionExpired) {
+    return <SessionExpiredModal />;
+  }
 
   if (status === "loading") {
     return <p role="status">불러오는 중입니다.</p>;
