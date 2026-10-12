@@ -14,14 +14,15 @@
 | `POST /api/auth/signup/` | 공개 | – | `signup` 5/시간/IP | 비밀번호 규칙 검증, 이메일 소문자 정규화 | BE-A |
 | `POST /api/auth/login/` | 공개 | – | `login` 10/분/IP | 실패 문구 통일, 5회 30분 잠금, 세션 재발급, 응답에 `passwordExpired` | BE-A |
 | `POST /api/auth/logout/` | 회원 | – | 기본 | 세션 전체 삭제 | BE-A |
-| `GET /api/auth/me/` | 회원 | 본인 | 기본 | 닉네임, 이메일, 마지막 로그인, 비밀번호 변경일, `isStaff`, `otpVerified` | BE-A |
+| `GET /api/auth/me/` | 회원 | 본인 | 기본 | 닉네임, 이메일, 비밀번호 변경일, `isStaff`, `otpVerified` | BE-A |
 | `POST /api/auth/password/` | 회원(만료 상태 허용) | 본인 | `sensitive` 5/시간 | 현재 비밀번호 확인 → 최소 1일 → 규칙 → 최근 4개 → 저장 → 다른 세션 무효화 | BE-A |
 | `POST /api/auth/withdraw/` | 회원 | 본인 | `sensitive` | 현재 비밀번호 확인 → 개인 데이터 CASCADE 삭제 → 세션 삭제 | BE-A |
 | `POST /api/auth/otp/` | 관리자(OTP 전) | 본인 | `otp` 5/분 | TOTP 6자리 확인 → 이 세션에서 관리자 API 허용. 실패 기록 | BE-A |
-| `GET /api/incidents/?q=&page=` | 공개 | 공개 사고만 | `search` 60/분/IP | 기업명·별칭 검색, 검색어 50자 제한, 공지일 최신순 | BE-B |
-| `GET /api/incidents/<id>/` | 공개 | 공개 사고만(아니면 404) | 기본 | 유출·미유출 항목, 출처, 상담 채널, 대응 중 인원 | BE-B |
+| `GET /api/incidents/?q=&page=` | 공개 | 공개 사고만 | `search` 60/분/IP | 기업명·별칭 검색, 검색어 50자 제한, 공지일 최신순(다른 정렬 없음) | BE-B |
+| `GET /api/incidents/<id>/` | 공개 | 공개 사고만(아니면 404) | 기본 | 유출·미유출 항목, 출처, 상담 채널, 대응 중 인원, 대응 상태(`responseStatus`) | BE-B |
 | `GET /api/guides/incidents/<id>/survey/` | 회원 | (본인, 공개 사고) | 기본 | 내 응답. 없으면 빈 응답 | BE-A |
 | `PUT /api/guides/incidents/<id>/survey/` | 회원 | (본인, 공개 사고) | 기본 | 선택 항목은 그 사고의 "유출" 항목만. (임시) 2~5번 `YES`/`NO`/`UNKNOWN`, "잘 모르겠어요"와 선택 항목이 함께 오면 400 | BE-A |
+| `DELETE /api/guides/incidents/<id>/survey/` | 회원 | 본인(사고 공개 여부 무관) | `sensitive` | 내 설문 응답·선택 항목·그 사고의 완료 기록을 한 트랜잭션으로 삭제. 응답이 없으면 404 | BE-A |
 | `GET /api/guides/incidents/<id>/checklist/` | 회원 | (본인, 공개 사고) | 기본 | 공개 조치만으로 계산, 진행률, 새 조치·공지 갱신 표시, 기본 안내(출처·상담 채널). (임시) 조치별 확실/확인 필요 | BE-A |
 | `PUT /api/guides/incidents/<id>/completions/<action_id>/` | 회원 | 공통 조치이거나 그 사고의 특수 조치, 공개 상태 | 기본 | 완료 처리 | BE-A |
 | `DELETE /api/guides/incidents/<id>/completions/<action_id>/` | 회원 | 위와 같음 | 기본 | 완료 해제 | BE-A |
@@ -43,9 +44,9 @@
 | `POST /api/admin/accounts/users/<id>/deactivate/` | 관리자 계정 비활성화 | 삭제 대신 비활성화 | BE-A |
 | `GET·POST /api/admin/incidents/companies/` | 기업 목록·등록 | 별칭 정규화, 기업 간 중복 금지 | BE-B |
 | `PATCH /api/admin/incidents/companies/<id>/` | 기업 수정 | | BE-B |
-| `GET·POST /api/admin/incidents/` | 사고 목록(공개·비공개 모두)·등록 | 신규는 비공개 | BE-B |
-| `GET·PATCH /api/admin/incidents/<id>/` | 사고 조회·수정·공개 전환 | https URL 검증 | BE-B |
-| `POST /api/admin/incidents/<id>/leak-items/` | 유출 항목 추가 | `notice_revised_at` 갱신 | BE-B |
+| `GET·POST /api/admin/incidents/` | 사고 목록(공개·비공개 모두)·등록 | 신규는 비공개·대응 진행 중. 기업 ID 필수 | BE-B |
+| `GET·PATCH /api/admin/incidents/<id>/` | 사고 조회·수정·공개 전환·대응 상태 변경 | https URL 검증, `responseStatus`는 `ONGOING`/`CLOSED`만 | BE-B |
+| `POST /api/admin/incidents/<id>/leak-items/` | 유출 항목 추가 | 유출 유형(`leakType`) 필수. `notice_revised_at` 갱신 | BE-B |
 | `PATCH·DELETE /api/admin/incidents/<id>/leak-items/<item_id>/` | 유출 항목 수정·삭제 | 사용자가 고른 항목 삭제는 409(수정으로 정정). 수정 시 `notice_revised_at` 갱신 | BE-B |
 | `GET·POST /api/admin/guides/actions/` | 조치 목록·등록(공통·특수) | 트리거별 필수값 검증 | BE-A |
 | `GET·PATCH /api/admin/guides/actions/<id>/` | 조치 수정·공개 전환 | 처음 공개 시 `published_at` 기록 | BE-A |
