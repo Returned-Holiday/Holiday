@@ -13,6 +13,7 @@ import { IncidentDetailPage } from "../pages/public/IncidentDetailPage";
 import { MainPage } from "../pages/public/MainPage";
 import { NotFoundPage } from "../pages/public/NotFoundPage";
 import { PrivacyPolicyPage } from "../pages/public/PrivacyPolicyPage";
+import { ServerErrorPage } from "../pages/public/ServerErrorPage";
 import { RequireAdmin } from "./guards/RequireAdmin";
 import { RequireAuth } from "./guards/RequireAuth";
 import { SiteLayout } from "./layout/SiteLayout";
@@ -63,6 +64,11 @@ const AdminReportPage = lazy(() =>
 export const router = createBrowserRouter([
   {
     element: <SiteLayout />,
+    errorElement: (
+      <SiteLayout>
+        <ServerErrorPage />
+      </SiteLayout>
+    ),
     children: [
       { path: HOME_PATH, element: <MainPage /> },
       { path: "/incidents/:incidentId", element: <IncidentDetailPage /> },
@@ -86,6 +92,7 @@ export const router = createBrowserRouter([
   },
   {
     element: <RequireAdmin />,
+    errorElement: <ServerErrorPage />,
     children: [
       {
         element: <AdminLayout />,
