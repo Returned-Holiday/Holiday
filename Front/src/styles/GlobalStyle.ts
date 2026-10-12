@@ -57,6 +57,10 @@ export const GlobalStyle = createGlobalStyle`
     color: inherit;
   }
 
+  [hidden] {
+    display: none !important;
+  }
+
   img {
     display: block;
     max-width: 100%;
