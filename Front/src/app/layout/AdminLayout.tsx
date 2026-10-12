@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet } from "react-router";
 import styled from "styled-components";
 import { useAuthStore } from "../../features/auth/useAuthStore";
 import { useLogout } from "../../features/auth/useLogout";
+import { useScrolled } from "../../shared/hooks/useScrolled";
 import { mobileMedia, textStyle } from "../../styles/typography";
 import {
   ADMIN_ACTIONS_PATH,
@@ -9,13 +10,15 @@ import {
   ADMIN_INCIDENTS_PATH,
   ADMIN_REPORTS_PATH,
 } from "../paths";
+import { stickyBar, type StickyBarProps } from "./stickyBar";
 
 const Shell = styled.div`
   min-height: 100vh;
   background: ${({ theme }) => theme.colors.surface.canvas};
 `;
 
-const Bar = styled.header`
+const Bar = styled.header<StickyBarProps>`
+  ${stickyBar}
   background: ${({ theme }) => theme.colors.surface.navy};
   color: ${({ theme }) => theme.colors.text.onDark};
 `;
@@ -91,10 +94,11 @@ const LogoutButton = styled.button`
 export function AdminLayout() {
   const otpVerified = useAuthStore((state) => state.user?.otpVerified ?? false);
   const { logout, pending } = useLogout();
+  const scrolled = useScrolled();
 
   return (
     <Shell>
-      <Bar>
+      <Bar $scrolled={scrolled}>
         <Inner>
           <Brand to={ADMIN_INCIDENTS_PATH}>
             SEALD <RoleTag>관리자</RoleTag>

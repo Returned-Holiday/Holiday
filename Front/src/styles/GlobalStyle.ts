@@ -1,11 +1,19 @@
 import { createGlobalStyle } from "styled-components";
-import { textStyle } from "./typography";
+import { mobileMedia, textStyle } from "./typography";
 
 export const GlobalStyle = createGlobalStyle`
   *,
   *::before,
   *::after {
     box-sizing: border-box;
+  }
+
+  html {
+    scroll-padding-top: 96px;
+
+    ${mobileMedia} {
+      scroll-padding-top: 16px;
+    }
   }
 
   body {

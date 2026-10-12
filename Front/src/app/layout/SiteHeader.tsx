@@ -2,12 +2,15 @@ import { NavLink } from "react-router";
 import styled from "styled-components";
 import { useAuthStore } from "../../features/auth/useAuthStore";
 import { useLogout } from "../../features/auth/useLogout";
+import { useScrolled } from "../../shared/hooks/useScrolled";
 import { ButtonLink } from "../../shared/ui/Button";
 import { Logo } from "../../shared/ui/Logo";
 import { mobileMedia, textStyle } from "../../styles/typography";
 import { FAQ_PATH, INCIDENTS_PATH, LOGIN_PATH, MYPAGE_PATH, REPORT_NEW_PATH } from "../paths";
+import { stickyBar, type StickyBarProps } from "./stickyBar";
 
-const Bar = styled.header`
+const Bar = styled.header<StickyBarProps>`
+  ${stickyBar}
   background: ${({ theme }) => theme.colors.surface.card};
 `;
 
@@ -71,6 +74,7 @@ export function SiteHeader() {
   const status = useAuthStore((state) => state.status);
   const user = useAuthStore((state) => state.user);
   const { logout, pending } = useLogout();
+  const scrolled = useScrolled();
 
   const logoutButton = (
     <TextButton type="button" onClick={() => void logout()} disabled={pending}>
@@ -81,7 +85,7 @@ export function SiteHeader() {
   // 비밀번호 만료 → 다른 메뉴 숨김 (서버도 403)
   if (user?.passwordExpired) {
     return (
-      <Bar>
+      <Bar $scrolled={scrolled}>
         <Inner>
           <Logo />
           <Actions>{logoutButton}</Actions>
@@ -91,7 +95,7 @@ export function SiteHeader() {
   }
 
   return (
-    <Bar>
+    <Bar $scrolled={scrolled}>
       <Inner>
         <Logo />
         <Nav aria-label="주요 메뉴">

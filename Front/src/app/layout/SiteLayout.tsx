@@ -18,7 +18,7 @@ const SkipLink = styled.a`
   position: absolute;
   top: -100px;
   left: 16px;
-  z-index: 10;
+  z-index: 20;
   padding: 8px 16px;
   border-radius: ${({ theme }) => theme.radius.sm};
   background: ${({ theme }) => theme.colors.brand.primary};
