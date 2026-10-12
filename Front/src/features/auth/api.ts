@@ -20,3 +20,7 @@ export async function fetchCurrentUser(): Promise<CurrentUser | null> {
 export async function logout(): Promise<void> {
   await apiClient.post("/auth/logout/");
 }
+
+export async function login(email: string, password: string): Promise<void> {
+  await apiClient.post("/auth/login/", { email, password });
+}

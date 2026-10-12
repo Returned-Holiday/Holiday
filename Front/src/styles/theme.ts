@@ -55,6 +55,9 @@ export const theme: DefaultTheme = {
     button: { fontSize: "17px", lineHeight: 1.5, fontWeight: 700 },
     caption: { fontSize: "14px", lineHeight: 1.5, fontWeight: 500 },
   },
+  gradients: {
+    hero: "linear-gradient(90deg, #eef6fb 0%, #b0dbf0 100%)",
+  },
   fontFamily:
     '"Noto Sans KR", system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
   radius: {

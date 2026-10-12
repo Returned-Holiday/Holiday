@@ -2,6 +2,7 @@ import { useId, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttri
 import styled, { css } from "styled-components";
 import { textStyle } from "../../styles/typography";
 import { Icon } from "./Icon";
+import { VisuallyHidden } from "./Page";
 
 const Field = styled.div`
   display: flex;
@@ -14,11 +15,18 @@ const Label = styled.label`
   color: ${({ theme }) => theme.colors.text.ink};
 `;
 
-const controlStyle = css<{ $invalid: boolean }>`
+type ControlProps = { $invalid: boolean; $soft?: boolean };
+
+const controlStyle = css<ControlProps>`
   width: 100%;
   padding: 0 22px;
   border: 1.5px solid
-    ${({ theme, $invalid }) => ($invalid ? theme.colors.status.negative : theme.colors.text.mute)};
+    ${({ theme, $invalid, $soft }) =>
+      $invalid
+        ? theme.colors.status.negative
+        : $soft
+          ? theme.colors.border.default
+          : theme.colors.text.mute};
   border-radius: ${({ theme }) => theme.radius.lg};
   background: ${({ theme }) => theme.colors.surface.card};
   ${textStyle("bodyLg")}
@@ -33,9 +41,9 @@ const controlStyle = css<{ $invalid: boolean }>`
   }
 `;
 
-const Input = styled.input<{ $invalid: boolean }>`
+const Input = styled.input<ControlProps>`
   ${controlStyle}
-  height: 60px;
+  height: ${({ $soft }) => ($soft ? "56px" : "60px")};
 `;
 
 const TextArea = styled.textarea<{ $invalid: boolean }>`
@@ -118,18 +126,36 @@ function FieldMessages({
   );
 }
 
-type TextFieldProps = FieldMeta & Omit<InputHTMLAttributes<HTMLInputElement>, "id">;
+type TextFieldProps = FieldMeta &
+  Omit<InputHTMLAttributes<HTMLInputElement>, "id"> & {
+    hideLabel?: boolean;
+    appearance?: "default" | "soft";
+  };
 
-export function TextField({ label, hint, error, ...rest }: TextFieldProps) {
+export function TextField({
+  label,
+  hint,
+  error,
+  hideLabel = false,
+  appearance = "default",
+  ...rest
+}: TextFieldProps) {
   const { id, hintId, errorId, describedBy } = useFieldIds(hint, error);
   return (
     <Field>
-      <Label htmlFor={id}>{label}</Label>
+      {hideLabel ? (
+        <VisuallyHidden as="label" htmlFor={id}>
+          {label}
+        </VisuallyHidden>
+      ) : (
+        <Label htmlFor={id}>{label}</Label>
+      )}
       <Input
         id={id}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         $invalid={Boolean(error)}
+        $soft={appearance === "soft"}
         {...rest}
       />
       <FieldMessages hint={hint} error={error} hintId={hintId} errorId={errorId} />

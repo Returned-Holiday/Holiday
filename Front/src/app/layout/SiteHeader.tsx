@@ -30,10 +30,12 @@ const Nav = styled.nav`
   display: flex;
   align-items: center;
   gap: 32px;
+  margin-left: auto;
 
   ${mobileMedia} {
     order: 3;
     width: 100%;
+    margin-left: 0;
     gap: 20px;
     overflow-x: auto;
   }

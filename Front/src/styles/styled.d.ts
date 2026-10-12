@@ -62,6 +62,9 @@ declare module "styled-components" {
       button: TextStyle;
       caption: TextStyle;
     };
+    gradients: {
+      hero: string;
+    };
     fontFamily: string;
     radius: {
       sm: string;
