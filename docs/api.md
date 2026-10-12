@@ -40,8 +40,6 @@
 
 | 메소드 · 경로 | 내용 | 비고 | 담당 |
 |---|---|---|---|
-| `GET /api/admin/accounts/users/` | 회원 목록 | 이메일은 마스킹해서 보여준다 | BE-A |
-| `POST /api/admin/accounts/users/<id>/deactivate/` | 관리자 계정 비활성화 | 삭제 대신 비활성화 | BE-A |
 | `GET·POST /api/admin/incidents/companies/` | 기업 목록·등록 | 별칭 정규화, 기업 간 중복 금지 | BE-B |
 | `PATCH /api/admin/incidents/companies/<id>/` | 기업 수정 | | BE-B |
 | `GET·POST /api/admin/incidents/` | 사고 목록(공개·비공개 모두)·등록 | 신규는 비공개·대응 진행 중. 기업 ID 필수 | BE-B |
@@ -56,6 +54,7 @@
 | `POST /api/admin/reports/<id>/reject/` | 반려, 사유 필수 | 검수자·시각 기록 | BE-B |
 
 - 사고·조치·기업 삭제 API는 두지 않는다. 내릴 때는 비공개로 전환한다.
+- 회원 목록·관리자 계정 비활성화 API는 두지 않는다. 관리자 계정 비활성화와 OTP 기기 등록은 화면·API 없이 서버 명령으로만 한다(10/13 결정).
 
 ## 요청 제한
 
