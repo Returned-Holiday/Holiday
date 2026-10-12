@@ -17,5 +17,5 @@ apiClient.interceptors.response.use(
 );
 
 export async function ensureCsrfCookie(): Promise<void> {
-  await apiClient.get("/auth/csrf");
+  await apiClient.get("/auth/csrf/");
 }

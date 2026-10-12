@@ -7,7 +7,7 @@ type DataResponse<T> = { data: T };
 // 401 = 비로그인 → null
 export async function fetchCurrentUser(): Promise<CurrentUser | null> {
   try {
-    const response = await apiClient.get<DataResponse<CurrentUser>>("/auth/me");
+    const response = await apiClient.get<DataResponse<CurrentUser>>("/auth/me/");
     return response.data.data;
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) {
@@ -15,4 +15,8 @@ export async function fetchCurrentUser(): Promise<CurrentUser | null> {
     }
     throw error;
   }
+}
+
+export async function logout(): Promise<void> {
+  await apiClient.post("/auth/logout/");
 }
