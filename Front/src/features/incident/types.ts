@@ -1,21 +1,36 @@
 import { isRecord } from "../../shared/lib/guards";
 
-export type IncidentListItem = {
+export type ResponseStatus = "ONGOING" | "CLOSED";
+
+type IncidentBase = {
   id: number;
   companyName: string;
   notifiedAt: string;
+  responseStatus: ResponseStatus;
+};
+
+function isIncidentBase(value: unknown): value is IncidentBase {
+  return (
+    isRecord(value) &&
+    typeof value.id === "number" &&
+    typeof value.companyName === "string" &&
+    typeof value.notifiedAt === "string" &&
+    (value.responseStatus === "ONGOING" || value.responseStatus === "CLOSED")
+  );
+}
+
+export type IncidentListItem = IncidentBase & {
+  leakedLabels: string[];
 };
 
 export function isIncidentListItem(value: unknown): value is IncidentListItem {
   return (
     isRecord(value) &&
-    typeof value.id === "number" &&
-    typeof value.companyName === "string" &&
-    typeof value.notifiedAt === "string"
+    Array.isArray(value.leakedLabels) &&
+    value.leakedLabels.every((label) => typeof label === "string") &&
+    isIncidentBase(value)
   );
 }
-
-export type ResponseStatus = "ONGOING" | "CLOSED";
 
 export type LeakItem = {
   id: number;
@@ -23,13 +38,12 @@ export type LeakItem = {
   isLeaked: boolean;
 };
 
-export type IncidentDetail = IncidentListItem & {
+export type IncidentDetail = IncidentBase & {
   occurredAt: string | null;
   affectedCount: number | null;
   summary: string;
   sourceUrl: string;
   contactInfo: string | null;
-  responseStatus: ResponseStatus;
   leakItems: LeakItem[];
 };
 
@@ -52,9 +66,8 @@ export function isIncidentDetail(value: unknown): value is IncidentDetail {
     typeof value.summary === "string" &&
     typeof value.sourceUrl === "string" &&
     isNullableString(value.contactInfo) &&
-    (value.responseStatus === "ONGOING" || value.responseStatus === "CLOSED") &&
     Array.isArray(value.leakItems) &&
     value.leakItems.every(isLeakItem) &&
-    isIncidentListItem(value)
+    isIncidentBase(value)
   );
 }

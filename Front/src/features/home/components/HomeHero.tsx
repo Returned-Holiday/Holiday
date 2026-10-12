@@ -1,13 +1,10 @@
-import { useState, type FormEvent } from "react";
-import { Link, createSearchParams, useNavigate } from "react-router";
+import { Link } from "react-router";
 import styled from "styled-components";
-import { INCIDENTS_PATH, incidentPath } from "../../../app/paths";
+import { incidentPath } from "../../../app/paths";
 import bubbleTail from "../../../assets/main/bubble-tail.svg";
-import { Button } from "../../../shared/ui/Button";
 import { Illustration } from "../../../shared/ui/Illustration";
-import { VisuallyHidden } from "../../../shared/ui/Page";
 import { mobileMedia, textStyle } from "../../../styles/typography";
-import { SEARCH_QUERY_MAX_LENGTH } from "../../incident/api";
+import { IncidentSearchForm } from "../../incident/components/IncidentSearchForm";
 import type { IncidentListItem } from "../../incident/types";
 
 const Banner = styled.section`
@@ -56,36 +53,6 @@ const Lead = styled.p`
   ${mobileMedia} {
     ${textStyle("bodyMd")}
   }
-`;
-
-const SearchBox = styled.form`
-  position: relative;
-  z-index: 1;
-  display: flex;
-  gap: 8px;
-  padding: 8px;
-  border-radius: 20px;
-  background: ${({ theme }) => theme.colors.surface.card};
-`;
-
-const SearchInput = styled.input`
-  flex: 1;
-  min-width: 0;
-  height: 60px;
-  padding: 0 22px;
-  border: none;
-  border-radius: ${({ theme }) => theme.radius.lg};
-  background: ${({ theme }) => theme.colors.surface.card};
-  ${textStyle("bodyLg")}
-
-  &::placeholder {
-    color: ${({ theme }) => theme.colors.text.mute};
-  }
-`;
-
-const SearchButton = styled(Button)`
-  min-height: 60px;
-  padding: 0 30px;
 `;
 
 const Recent = styled.div`
@@ -138,18 +105,6 @@ type HomeHeroProps = {
 };
 
 export function HomeHero({ recent }: HomeHeroProps) {
-  const navigate = useNavigate();
-  const [query, setQuery] = useState("");
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const q = query.trim();
-    navigate({
-      pathname: INCIDENTS_PATH,
-      search: q ? `?${createSearchParams({ q })}` : "",
-    });
-  };
-
   return (
     <Banner aria-labelledby="home-hero-title">
       <Character aria-hidden="true">
@@ -169,21 +124,7 @@ export function HomeHero({ recent }: HomeHeroProps) {
           <br />
           지금 무엇을 해야 하는지 알려드려요.
         </Lead>
-        <SearchBox role="search" onSubmit={handleSubmit}>
-          <VisuallyHidden as="label" htmlFor="home-search">
-            기업 이름으로 사고 검색
-          </VisuallyHidden>
-          <SearchInput
-            id="home-search"
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            maxLength={SEARCH_QUERY_MAX_LENGTH}
-            placeholder="기업 이름 (예: ○○통신)"
-            autoComplete="off"
-          />
-          <SearchButton type="submit">검색</SearchButton>
-        </SearchBox>
+        <IncidentSearchForm id="home-search" />
         {recent.length > 0 ? (
           <Recent>
             <RecentLabel>최근 공지된 사고</RecentLabel>

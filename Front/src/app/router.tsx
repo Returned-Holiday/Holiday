@@ -10,6 +10,7 @@ import { ReportNewPage } from "../pages/member/ReportNewPage";
 import { SurveyPage } from "../pages/member/SurveyPage";
 import { FaqPage } from "../pages/public/FaqPage";
 import { IncidentDetailPage } from "../pages/public/IncidentDetailPage";
+import { IncidentSearchPage } from "../pages/public/IncidentSearchPage";
 import { MainPage } from "../pages/public/MainPage";
 import { NotFoundPage } from "../pages/public/NotFoundPage";
 import { PrivacyPolicyPage } from "../pages/public/PrivacyPolicyPage";
@@ -26,6 +27,7 @@ import {
   ADMIN_REPORTS_PATH,
   FAQ_PATH,
   HOME_PATH,
+  INCIDENTS_PATH,
   LOGIN_PATH,
   MYPAGE_PATH,
   OCR_PATH,
@@ -73,6 +75,7 @@ export const router = createBrowserRouter([
     ),
     children: [
       { path: HOME_PATH, element: <MainPage /> },
+      { path: INCIDENTS_PATH, element: <IncidentSearchPage /> },
       { path: "/incidents/:incidentId", element: <IncidentDetailPage /> },
       { path: FAQ_PATH, element: <FaqPage /> },
       { path: PRIVACY_PATH, element: <PrivacyPolicyPage /> },
