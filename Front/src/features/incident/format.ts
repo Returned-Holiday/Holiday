@@ -16,6 +16,20 @@ export function formatMonthDay(value: string): string {
   return `${month}.${day}`;
 }
 
+export function formatFullDate(value: string | null): string | null {
+  const date = value === null ? null : parseDate(value);
+  if (date === null) {
+    return null;
+  }
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}.${month}.${day}`;
+}
+
+export function formatCount(value: number | null): string | null {
+  return value === null ? null : `${value.toLocaleString("ko-KR")}명`;
+}
+
 export function isRecentlyNotified(value: string, now: Date = new Date()): boolean {
   const date = parseDate(value);
   if (date === null) {

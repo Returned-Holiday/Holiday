@@ -12,8 +12,13 @@ const Root = styled(Link)<{ $onDark: boolean }>`
   color: ${({ theme, $onDark }) => ($onDark ? theme.colors.text.onDark : theme.colors.text.ink)};
 `;
 
-const Icon = styled(Illustration)`
-  border-radius: 10px;
+const Mark = styled.span`
+  display: block;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: ${({ theme }) => theme.colors.brand.primarySoft};
 `;
 
 const Words = styled.span`
@@ -36,7 +41,9 @@ const Tagline = styled.span<{ $onDark: boolean }>`
 export function Logo({ onDark = false }: { onDark?: boolean }) {
   return (
     <Root to={HOME_PATH} $onDark={onDark} aria-label="SEALD 홈">
-      <Icon name="appIcon" width={40} />
+      <Mark>
+        <Illustration name="appIcon" width={40} />
+      </Mark>
       <Words aria-hidden="true">
         <Name>SEALD</Name>
         <Tagline $onDark={onDark}>유출 개인정보 대응 헬프데스크</Tagline>

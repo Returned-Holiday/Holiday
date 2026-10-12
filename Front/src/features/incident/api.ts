@@ -1,6 +1,11 @@
 import { apiClient } from "../../shared/api/client";
-import { readPaginated, type Paginated } from "../../shared/lib/guards";
-import { isIncidentListItem, type IncidentListItem } from "./types";
+import { isRecord, readPaginated, type Paginated } from "../../shared/lib/guards";
+import {
+  isIncidentDetail,
+  isIncidentListItem,
+  type IncidentDetail,
+  type IncidentListItem,
+} from "./types";
 
 export const SEARCH_QUERY_MAX_LENGTH = 50;
 
@@ -21,4 +26,16 @@ export async function fetchIncidents({
     signal,
   });
   return readPaginated(response.data, isIncidentListItem);
+}
+
+export async function fetchIncidentDetail(
+  incidentId: number,
+  signal?: AbortSignal,
+): Promise<IncidentDetail> {
+  const response = await apiClient.get<unknown>(`/incidents/${incidentId}/`, { signal });
+  const body = response.data;
+  if (!isRecord(body) || !isIncidentDetail(body.data)) {
+    throw new TypeError("unexpected incident response");
+  }
+  return body.data;
 }
