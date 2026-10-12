@@ -15,3 +15,15 @@ export function explainTerms(labels: string[]): string | null {
   }
   return `${meanings.join(", ")}예요.`;
 }
+
+// 설문 선택지 아래 짧은 설명
+const SHORT_MEANINGS: { term: string; meaning: string }[] = [
+  { term: "IMSI", meaning: "유심을 구분하는 고유 번호" },
+  { term: "유심 인증키", meaning: "유심이 진짜인지 확인하는 열쇠" },
+  { term: "IMEI", meaning: "휴대폰 기기의 고유 번호" },
+  { term: "CI", meaning: "본인확인용 연계정보" },
+];
+
+export function shortMeaning(label: string): string | null {
+  return SHORT_MEANINGS.find(({ term }) => label.includes(term))?.meaning ?? null;
+}

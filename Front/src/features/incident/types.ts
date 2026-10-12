@@ -44,6 +44,7 @@ export type IncidentDetail = IncidentBase & {
   summary: string;
   sourceUrl: string;
   contactInfo: string | null;
+  activeCount: number;
   leakItems: LeakItem[];
 };
 
@@ -66,6 +67,7 @@ export function isIncidentDetail(value: unknown): value is IncidentDetail {
     typeof value.summary === "string" &&
     typeof value.sourceUrl === "string" &&
     isNullableString(value.contactInfo) &&
+    typeof value.activeCount === "number" &&
     Array.isArray(value.leakItems) &&
     value.leakItems.every(isLeakItem) &&
     isIncidentBase(value)
