@@ -14,6 +14,7 @@ import { MainPage } from "../pages/public/MainPage";
 import { NotFoundPage } from "../pages/public/NotFoundPage";
 import { PrivacyPolicyPage } from "../pages/public/PrivacyPolicyPage";
 import { ServerErrorPage } from "../pages/public/ServerErrorPage";
+import { TermsPage } from "../pages/public/TermsPage";
 import { RequireAdmin } from "./guards/RequireAdmin";
 import { RequireAuth } from "./guards/RequireAuth";
 import { SiteLayout } from "./layout/SiteLayout";
@@ -32,6 +33,7 @@ import {
   PRIVACY_PATH,
   REPORT_NEW_PATH,
   SIGNUP_PATH,
+  TERMS_PATH,
 } from "./paths";
 
 // 관리자 화면 lazy 분리
@@ -74,6 +76,7 @@ export const router = createBrowserRouter([
       { path: "/incidents/:incidentId", element: <IncidentDetailPage /> },
       { path: FAQ_PATH, element: <FaqPage /> },
       { path: PRIVACY_PATH, element: <PrivacyPolicyPage /> },
+      { path: TERMS_PATH, element: <TermsPage /> },
       { path: LOGIN_PATH, element: <LoginPage /> },
       { path: SIGNUP_PATH, element: <SignupPage /> },
       {

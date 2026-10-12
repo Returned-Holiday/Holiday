@@ -1,7 +1,6 @@
+import { PolicyPageLayout } from "../../features/policy/components/PolicyPageLayout";
+import { PRIVACY_POLICY } from "../../features/policy/privacy";
+
 export function PrivacyPolicyPage() {
-  return (
-    <main>
-      <h1>개인정보 처리방침</h1>
-    </main>
-  );
+  return <PolicyPageLayout document={PRIVACY_POLICY} />;
 }
