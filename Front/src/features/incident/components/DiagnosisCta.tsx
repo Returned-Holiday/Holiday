@@ -50,7 +50,6 @@ export function DiagnosisCta({ incidentId }: { incidentId: number }) {
         </ButtonLink>
       ) : (
         <>
-          {/* 로그인 후 설문으로 복귀 */}
           <ButtonLink to={LOGIN_PATH} state={{ from: target }} variant="accent" fullWidth>
             내 대응법 보기
           </ButtonLink>

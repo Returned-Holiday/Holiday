@@ -1,6 +1,5 @@
 import type { PolicyDocumentData } from "./types";
 
-// 초안: 팀 검토 후 확정
 export const TERMS_OF_SERVICE: PolicyDocumentData = {
   title: "이용약관",
   effectiveDate: "2026.10.28",

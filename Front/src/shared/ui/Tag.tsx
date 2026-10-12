@@ -31,7 +31,6 @@ const ChipBox = styled.span<{ $leaked: boolean; $size: "md" | "sm" }>`
         `}
 `;
 
-// 색 외에 문구로도 구분 (색각 이상 대응)
 export function LeakChip({ leaked, label, size = "md" }: LeakChipProps) {
   return (
     <ChipBox $leaked={leaked} $size={size}>

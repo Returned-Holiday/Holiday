@@ -228,7 +228,6 @@ type BaseInfoProps = {
   contactInfo: string | null;
 };
 
-// 체크리스트 위 기본 안내 (진행률 제외)
 export function BaseInfo({ companyName, sourceUrl, contactInfo }: BaseInfoProps) {
   const source = toSafeHttpsUrl(sourceUrl);
   return (

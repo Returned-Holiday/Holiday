@@ -146,7 +146,6 @@ export function DropZone({ disabled, onFile }: DropZoneProps) {
         accept={OCR_ACCEPT.join(",")}
         onChange={(event) => {
           const file = event.target.files?.[0];
-          // 같은 파일 재선택 허용 + 참조 즉시 해제
           event.target.value = "";
           if (file) {
             onFile(file);

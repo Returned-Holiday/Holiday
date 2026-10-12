@@ -64,7 +64,6 @@ export function FaqPage() {
   );
   const [scrollTarget, setScrollTarget] = useState<string | null>(null);
 
-  // SPA는 해시 위치로 자동 이동 X → 직접 열고 스크롤
   useEffect(() => {
     const target = resolveFaqHash(hash);
     if (target === null) {
@@ -78,7 +77,6 @@ export function FaqPage() {
     setScrollTarget(faqAnchor(target.itemId ?? target.categoryId));
   }, [hash]);
 
-  // 분류 전환이 그려진 뒤 스크롤
   useEffect(() => {
     if (scrollTarget === null) {
       return;

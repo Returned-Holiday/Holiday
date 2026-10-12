@@ -3,7 +3,6 @@ import { ApiError } from "../../shared/api/errors";
 
 type State<T> = { status: "loading" } | { status: "error" } | { status: "success"; data: T };
 
-// loader는 호출 측에서 useCallback으로 고정
 export function useAdminLoad<T>(loader: (signal?: AbortSignal) => Promise<T>) {
   const [state, setState] = useState<State<T>>({ status: "loading" });
 

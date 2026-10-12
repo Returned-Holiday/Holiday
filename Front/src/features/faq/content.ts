@@ -1,4 +1,3 @@
-// 초안: 팀 검토 후 확정 (출처는 기관 대표 주소)
 export type FaqSource = {
   label: string;
   url: string;

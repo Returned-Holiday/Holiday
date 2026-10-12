@@ -61,7 +61,6 @@ export function isChecklist(value: unknown): value is Checklist {
   );
 }
 
-// 우선순위 이름 (docs/erd.md actions.priority)
 export const PRIORITY_LABELS: Record<number, string> = {
   1: "금전 피해 차단",
   2: "인증 수단 보호",

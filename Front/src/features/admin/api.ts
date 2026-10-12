@@ -38,12 +38,10 @@ function readData<T>(body: unknown, guard: (value: unknown) => value is T): T {
   return body.data;
 }
 
-// OTP
 export async function verifyOtp(code: string): Promise<void> {
   await apiClient.post("/auth/otp/", { code });
 }
 
-// 사고
 export type AdminIncidentRow = {
   id: number;
   companyName: string;
@@ -155,7 +153,6 @@ export async function deleteLeakItem(incidentId: number, itemId: number): Promis
   await apiClient.delete(`/admin/incidents/${incidentId}/leak-items/${itemId}/`);
 }
 
-// 기업
 export type Company = { id: number; name: string; aliases: string[] };
 
 function isCompany(value: unknown): value is Company {
@@ -181,7 +178,6 @@ export async function saveCompany(input: Omit<Company, "id">, id?: number): Prom
   }
 }
 
-// 조치
 export type TriggerType = "LEAK_TYPE" | "SURVEY" | "ALWAYS";
 
 export type AdminAction = {
@@ -226,7 +222,6 @@ export async function saveAction(input: Omit<AdminAction, "id">, id?: number): P
   }
 }
 
-// 제보 검수
 export type ReportStatus = "PENDING" | "APPROVED" | "REJECTED";
 
 export type AdminReportRow = {

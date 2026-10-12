@@ -1,6 +1,5 @@
 import type { PolicyDocumentData } from "./types";
 
-// 초안: 팀·법령 검토 후 확정. 보관 기간은 docs/security.md 3-6
 export const PRIVACY_POLICY: PolicyDocumentData = {
   title: "개인정보처리방침",
   effectiveDate: "2026.10.28",

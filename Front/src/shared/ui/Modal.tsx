@@ -45,7 +45,6 @@ type ModalProps = {
   children: ReactNode;
 };
 
-// 네이티브 dialog: 포커스 가둠·배경 inert·닫힐 때 포커스 복귀
 export function Modal({
   open,
   title,
@@ -78,7 +77,6 @@ export function Modal({
     }
   };
 
-  // 코드로 닫은 경우(open=false)는 onClose 호출 X
   const handleClose = () => {
     if (openRef.current) {
       onClose();

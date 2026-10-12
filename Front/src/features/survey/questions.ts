@@ -1,7 +1,6 @@
 import { PARTICLE_OR, withParticle } from "../../shared/lib/korean";
 import type { Answer, YesNoKey } from "./types";
 
-// 임시 설문 (docs/features.md 상황 설문)
 export const YES_NO_QUESTIONS: { key: YesNoKey; text: (company: string) => string }[] = [
   { key: "paymentLinked", text: (company) => `${company}에 카드나 계좌 같은 결제수단을 등록한 적이 있나요?` },
   { key: "reusedPassword", text: (company) => `${company}에서 쓰던 비밀번호를 다른 사이트에서도 쓰고 있나요?` },

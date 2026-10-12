@@ -4,7 +4,6 @@ import { isSurveyAnswers, type SurveyAnswers } from "./types";
 
 const surveyUrl = (incidentId: number) => `/guides/incidents/${incidentId}/survey/`;
 
-// 응답 없음 → null
 export async function fetchSurvey(incidentId: number, signal?: AbortSignal): Promise<SurveyAnswers | null> {
   const response = await apiClient.get<unknown>(surveyUrl(incidentId), { signal });
   const body = response.data;

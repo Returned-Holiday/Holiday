@@ -153,7 +153,6 @@ export function SignupPage() {
               checked={form.agreements.terms}
               onChange={(event) => form.setAgreements((current) => ({ ...current, terms: event.target.checked }))}
             />
-            {/* 입력 내용 유지 → 새 창 */}
             <Link to={TERMS_PATH} target="_blank" rel="noopener noreferrer">
               보기
             </Link>
