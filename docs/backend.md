@@ -12,7 +12,7 @@
 
 | 기획서 기능 영역 | 앱 | 담당 | 관리자 API |
 |---|---|---|---|
-| 계정 관리 | `accounts` | BE-A | 회원 목록, 관리자 계정 비활성화(삭제 대신), 관리자 OTP |
+| 계정 관리 | `accounts` | BE-A | 관리자 OTP 인증(계정 비활성화·OTP 기기 등록은 서버 명령) |
 | 맞춤 대응 가이드 | `guides` (설문, 체크리스트, OCR) | BE-A | 조치 등록·공개 |
 | 인프라·설정 | AWS, nginx, `config` | BE-A | 없음 |
 | 사고 조회 | `incidents` | BE-B | 사고·유출 항목 등록, 공개 |
@@ -100,7 +100,7 @@ apps/guides/services/
 
 | 앱 | 담당 | 모델 | 주요 서비스 함수 | 관리자 API |
 |---|---|---|---|---|
-| `accounts` | BE-A | User, PasswordHistory | 가입, 로그인 잠금, 비밀번호 변경, 탈퇴 | 회원 목록, 관리자 비활성화 |
+| `accounts` | BE-A | User, PasswordHistory | 가입, 로그인 잠금, 비밀번호 변경, 탈퇴 | 없음(OTP 인증은 `/api/auth/otp/`) |
 | `incidents` | BE-B | Company, Incident, IncidentLeakItem | 공개 사고 조회, 기업명·별칭 검색, 표시 이름 조합 | 사고 등록·공개, 유출 항목 편집, 공지 갱신 시각 기록 |
 | `guides` | BE-A | Action, SurveyResponse(선택 항목 포함), ActionCompletion | 체크리스트 계산, 진행률, 완료 검증, OCR | 조치 등록·공개, 공개 시각 기록 |
 | `reports` | BE-B | Report | 제보 생성(저장 전 마스킹), 승인·반려 | 제보 검수(반려 사유 필수) |
@@ -117,7 +117,7 @@ apps/guides/services/
 | `guides` | `/api/guides/incidents/<id>/survey/`, `.../checklist/`, `.../completions/<action_id>/`, `/api/guides/ocr/` | 회원 |
 | `reports` | `/api/reports/` (작성, 내 제보 목록) | 회원 |
 | `mypage` | `/api/mypage/` | 회원 |
-| 관리자 | `/api/admin/accounts/`, `/api/admin/incidents/`, `/api/admin/guides/`, `/api/admin/reports/` | 관리자(허용 IP + `is_staff` + OTP) |
+| 관리자 | `/api/admin/incidents/`, `/api/admin/guides/`, `/api/admin/reports/` | 관리자(허용 IP + `is_staff` + OTP) |
 
 `guides`에는 조치 목록을 직접 조회하는 경로를 두지 않는다. 조치는 체크리스트 계산 결과로만 내보내서, 비공개 조치나 다른 사고의 특수 조치가 새는 경로를 줄인다.
 
