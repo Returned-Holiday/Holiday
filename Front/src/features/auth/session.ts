@@ -15,7 +15,7 @@ export async function bootstrapSession(): Promise<void> {
       setUser(user);
     }
   } catch (error) {
-    if (error instanceof ApiError) {
+    if (error instanceof ApiError || error instanceof TypeError) {
       setAnonymous();
       return;
     }
