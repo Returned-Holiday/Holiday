@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { ApiError, GENERIC_ERROR_MESSAGE } from "../../shared/api/errors";
 import { changePassword, fetchCurrentUser } from "./api";
 import { checkPassword } from "./password";
@@ -36,7 +36,7 @@ export function usePasswordChangeForm(onSuccess: () => void) {
     setNewPasswordConfirm("");
   };
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const fields: Field[] = ["currentPassword", "newPassword", "newPasswordConfirm"];
     const next: Errors = {};

@@ -25,9 +25,9 @@ const SubmitButton = styled(Button)`
 export function PasswordChangePage() {
   const navigate = useNavigate();
   const forced = useAuthStore((state) => state.user?.passwordExpired ?? false);
-  const form = usePasswordChangeForm(() =>
-    navigate(forced ? HOME_PATH : MYPAGE_PATH, { replace: true, state: { passwordChanged: true } }),
-  );
+  const form = usePasswordChangeForm(() => {
+    void navigate(forced ? HOME_PATH : MYPAGE_PATH, { replace: true, state: { passwordChanged: true } });
+  });
   const { values, setters, errors } = form;
 
   return (

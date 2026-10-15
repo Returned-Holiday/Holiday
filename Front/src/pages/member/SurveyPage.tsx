@@ -116,7 +116,9 @@ function SurveyForm({ incident, saved, prefillIds }: SurveyFormProps) {
     leaked.map((item) => item.id),
     saved,
     prefillIds,
-    () => navigate(checklistPath(incident.id)),
+    () => {
+      void navigate(checklistPath(incident.id));
+    },
   );
   const question = form.step > 1 ? YES_NO_QUESTIONS[form.step - 2] : undefined;
 
@@ -194,7 +196,13 @@ function SurveyForm({ incident, saved, prefillIds }: SurveyFormProps) {
       <Actions>
         <Button
           variant="tertiary"
-          onClick={() => (form.step === 1 ? navigate(incidentPath(incident.id)) : form.previous())}
+          onClick={() => {
+            if (form.step === 1) {
+              void navigate(incidentPath(incident.id));
+            } else {
+              form.previous();
+            }
+          }}
         >
           이전
         </Button>
