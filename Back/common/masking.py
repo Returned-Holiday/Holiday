@@ -2,11 +2,24 @@ import re
 
 MASK = "*"
 
+# 칸마다 따로 (010-1234 5678, 010 - 1234 같은 혼용 허용)
+_SEP = r"[-.\s]{0,3}"
+
 # 고정 길이 수량자만 (ReDoS 방지), 입력 길이는 serializer에서 제한
 _EMAIL = re.compile(r"(?<![\w.%+-])([\w.%+-]{1,64})@([A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63}){1,8})")
-_RESIDENT_NUMBER = re.compile(r"(?<!\d)(\d{6})([-\s]?)([1-8])\d{6}(?!\d)")
-_CARD_NUMBER = re.compile(r"(?<!\d)(\d{4})([-\s]?)(\d{2})\d{2}\2\d{4}\2(\d{4})(?!\d)")
-_PHONE_NUMBER = re.compile(r"(?<!\d)(0(?:1[016789]|2|[3-7]\d))([-\s]?)(\d{3,4})\2\d{4}(?!\d)")
+_RESIDENT_NUMBER = re.compile(rf"(?<!\d)(\d{{6}})({_SEP})([1-8])\d{{6}}(?!\d)")
+_CARD_NUMBER = re.compile(
+    rf"(?<!\d)(\d{{4}})({_SEP})(\d{{2}})\d{{2}}({_SEP})\d{{4}}({_SEP})(\d{{4}})(?!\d)"
+)
+# 아멕스 4-6-5
+_AMEX_CARD_NUMBER = re.compile(
+    rf"(?<!\d)(3[47]\d{{2}})({_SEP})(\d{{2}})\d{{4}}({_SEP})\d{{2}}(\d{{3}})(?!\d)"
+)
+# (02)1234-5678 괄호 지역번호 포함
+_PHONE_NUMBER = re.compile(
+    rf"(?<![\d+])((?:\+82{_SEP}0?|0)(?:1[016789]|2|[3-7]\d))(\)?{_SEP})(\d{{3,4}})({_SEP})\d{{4}}(?!\d)"
+)
+# 계좌는 - 만 (. 허용 시 IP·금액 오탐), 형식 애매하면 가림 쪽
 _ACCOUNT_NUMBER = re.compile(r"(?<![\d-])\d{2,6}(?:-\d{2,7}){1,3}(?![\d-])|(?<!\d)\d{10,14}(?!\d)")
 
 ACCOUNT_DIGITS_MIN = 10
@@ -25,13 +38,18 @@ def _mask_resident_number(match: re.Match[str]) -> str:
 
 
 def _mask_card_number(match: re.Match[str]) -> str:
-    sep = match.group(2)
-    return f"{match.group(1)}{sep}{match.group(3)}{MASK * 2}{sep}{MASK * 4}{sep}{match.group(4)}"
+    first, sep1, kept, sep2, sep3, last = match.groups()
+    return f"{first}{sep1}{kept}{MASK * 2}{sep2}{MASK * 4}{sep3}{last}"
+
+
+def _mask_amex_card_number(match: re.Match[str]) -> str:
+    first, sep1, kept, sep2, last = match.groups()
+    return f"{first}{sep1}{kept}{MASK * 4}{sep2}{MASK * 2}{last}"
 
 
 def _mask_phone_number(match: re.Match[str]) -> str:
-    sep = match.group(2)
-    return f"{match.group(1)}{sep}{match.group(3)}{sep}{MASK * 4}"
+    prefix, sep1, middle, sep2 = match.groups()
+    return f"{prefix}{sep1}{middle}{sep2}{MASK * 4}"
 
 
 def _mask_account_number(match: re.Match[str]) -> str:
@@ -56,5 +74,6 @@ def mask_pii(text: str) -> str:
     text = _EMAIL.sub(_mask_email, text)
     text = _RESIDENT_NUMBER.sub(_mask_resident_number, text)
     text = _CARD_NUMBER.sub(_mask_card_number, text)
+    text = _AMEX_CARD_NUMBER.sub(_mask_amex_card_number, text)
     text = _PHONE_NUMBER.sub(_mask_phone_number, text)
     return _ACCOUNT_NUMBER.sub(_mask_account_number, text)
