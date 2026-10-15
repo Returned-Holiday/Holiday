@@ -3,17 +3,19 @@ from datetime import timedelta
 from types import SimpleNamespace
 
 from django.conf import settings
+from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
-from django.test import SimpleTestCase, TestCase
+from django.test import RequestFactory, SimpleTestCase, TestCase
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.test import APIClient, APITestCase
 
 from apps.accounts.models import PasswordHistory, User
+from apps.accounts.services import axes_username
 from apps.accounts.tests.helpers import create_member, random_password
 from apps.accounts.validators import KisaPasswordValidator
 
@@ -159,6 +161,20 @@ class LoginSecurityTests(APITestCase):
         response = self.post_login("MEMBER@EXAMPLE.COM", self.raw)
         self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
 
+    def test_variant_cannot_bypass_lock(self) -> None:
+        for _ in range(5):
+            self.post_login("member@example.com", random_password())
+        response = self.post_login("MEMBER@example.com", self.raw)
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_direct_authenticate_variant_cannot_bypass_lock(self) -> None:
+        factory = RequestFactory()
+        for variant in ("member@example.com", "MEMBER@example.com", "Member@Example.com", "mEMBER@example.com", "member@EXAMPLE.com"):
+            authenticate(factory.post("/"), email=variant, password=random_password())
+        request = factory.post("/")
+        self.assertIsNone(authenticate(request, email="MEMBER@EXAMPLE.COM", password=self.raw))
+        self.assertTrue(request.axes_locked_out)
+
     def test_rotates_session_on_login(self) -> None:
         session = self.client.session
         session["probe"] = True
@@ -196,3 +212,17 @@ class MeSecurityTests(APITestCase):
         response = self.client.get("/api/auth/me/")
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(response.json()["code"], "AUTH_REQUIRED")
+
+
+class AxesUsernameTests(SimpleTestCase):
+    def test_normalizes_credentials(self) -> None:
+        self.assertEqual(axes_username(RequestFactory().post("/"), {"email": " Member@Example.COM "}), "member@example.com")
+
+    def test_falls_back_to_post_body(self) -> None:
+        request = RequestFactory().post("/", {"email": "MEMBER@example.com"})
+        self.assertEqual(axes_username(request, None), "member@example.com")
+
+    def test_missing_email(self) -> None:
+        for credentials in ({}, {"email": ""}, {"email": "   "}, {"email": ["a@b.c"]}):
+            with self.subTest(credentials=credentials):
+                self.assertIsNone(axes_username(RequestFactory().post("/"), credentials or None))

@@ -53,6 +53,7 @@ AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = timedelta(minutes=30)
 AXES_LOCKOUT_PARAMETERS = ["username"]
 AXES_USERNAME_FORM_FIELD = "email"
+AXES_USERNAME_CALLABLE = "apps.accounts.services.axes_username"
 AXES_RESET_ON_SUCCESS = True
 # 로그인 기록은 CloudWatch로, DB엔 잠금 계산용만
 AXES_DISABLE_ACCESS_LOG = True
