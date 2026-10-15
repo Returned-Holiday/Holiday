@@ -40,3 +40,4 @@
 | 10/15 | 성공 응답은 목록 포함 전부 `{"data": ...}`로 감쌈(204·에러 제외). 공통 렌더러가 처리 | 규칙 하나로 예외 없음. 프론트 타입 검사 한 방식 | `docs/rules/api-response.md` |
 | 10/15 | 가입 동의는 검증만, 저장 X. 닉네임은 한글·영문·숫자 2~20자 | 동의 없이 가입 불가 → 계정 존재가 동의 증거(`date_joined`). 개인정보 최소 수집 | `docs/security.md` 3-1, `docs/api.md` |
 | 10/15 | 설문 응답 없는 사고의 체크리스트·완료 처리는 404 | API 직접 호출로 설문 단계 건너뛰기 차단(PV) | `docs/api.md` |
+| 10/15 | 비로그인 POST(가입·로그인)도 CSRF 검사(`csrf_protect`). 로그인 필요 응답은 401(DRF 기본 403 대신) | DRF는 로그인 사용자만 CSRF 검사 → 로그인 CSRF 차단. 프론트는 401로 세션 만료 판단 | `docs/security.md` 5, `docs/rules/api-response.md` |
