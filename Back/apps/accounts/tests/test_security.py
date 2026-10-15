@@ -17,6 +17,16 @@ class UserStorageTests(TestCase):
         with self.assertRaises(IntegrityError), transaction.atomic():
             User.objects.create_user(email="MEMBER@example.com", nickname="second")
 
+    def test_lookup_normalizes_email(self) -> None:
+        user = User.objects.create_user(email="member@example.com", nickname="member")
+        for variant in ("MEMBER@example.com", " Member@Example.com "):
+            with self.subTest(variant=variant):
+                self.assertEqual(User.objects.get_by_natural_key(variant), user)
+
+    def test_str_has_no_email(self) -> None:
+        user = User.objects.create_user(email="member@example.com", nickname="member")
+        self.assertNotIn("member", str(user))
+
     def test_delete_user_removes_password_histories(self) -> None:
         user = User.objects.create_user(email="member@example.com", nickname="member")
         # 실행마다 랜덤 값 (고정 비밀번호 X)
