@@ -327,7 +327,7 @@ function ActionEditor({
 export function AdminActionPage() {
   const loader = useCallback(async (signal?: AbortSignal) => {
     const [actions, incidents] = await Promise.all([fetchActions(signal), fetchAdminIncidents({}, signal)]);
-    return { actions, incidents: incidents.results };
+    return { actions, incidents };
   }, []);
   const { state, reload } = useAdminLoad(loader);
   const [selectedId, setSelectedId] = useState<number | "new" | null>(null);

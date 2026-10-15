@@ -148,8 +148,8 @@ export function AdminIncidentListPage() {
 
       {state.status === "loading" ? <StateMessage role="status">불러오는 중이에요.</StateMessage> : null}
       {state.status === "error" ? <StateMessage role="alert">목록을 불러오지 못했어요.</StateMessage> : null}
-      {state.status === "success" && state.data.count === 0 ? <StateMessage>조건에 맞는 사고가 없어요.</StateMessage> : null}
-      {state.status === "success" && state.data.count > 0 ? (
+      {state.status === "success" && state.data.length === 0 ? <StateMessage>조건에 맞는 사고가 없어요.</StateMessage> : null}
+      {state.status === "success" && state.data.length > 0 ? (
         <TableWrap>
           <Table>
             <thead>
@@ -165,7 +165,7 @@ export function AdminIncidentListPage() {
               </tr>
             </thead>
             <tbody>
-              {state.data.results.map((row) => (
+              {state.data.map((row) => (
                 <tr key={row.id}>
                   <td>{incidentTitle(row.companyName)}</td>
                   <td>{formatFullDate(row.notifiedAt)}</td>
