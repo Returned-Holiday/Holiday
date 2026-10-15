@@ -23,12 +23,12 @@ export function toSafeHttpsUrl(value: string): URL | null {
   return url;
 }
 
-// //외부도메인 오픈 리다이렉트 차단
+// //외부도메인 오픈 리다이렉트 차단. 백슬래시·공백·제어문자 거부 (브라우저가 지우거나 /로 바꿔 //가 될 수 있음)
 export function isSafeInternalPath(value: unknown): value is string {
   return (
     typeof value === "string" &&
     value.startsWith("/") &&
     !value.startsWith("//") &&
-    !value.startsWith("/\\")
+    !/[\\\s\p{Cc}]/u.test(value)
   );
 }
