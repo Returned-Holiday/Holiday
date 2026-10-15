@@ -23,7 +23,7 @@ class SignupSerializer(serializers.Serializer):
     confirm_age = serializers.BooleanField()
 
     def validate_email(self, value: str) -> str:
-        return value.strip().lower()
+        return User.objects.normalize_login_email(value)
 
     def validate(self, attrs: dict) -> dict:
         missing = {name: ["필수 항목에 동의해 주세요."] for name in AGREEMENT_FIELDS if not attrs[name]}
@@ -41,8 +41,9 @@ class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=EMAIL_MAX_LENGTH)
     password = serializers.CharField(max_length=PASSWORD_INPUT_MAX_LENGTH, trim_whitespace=False, write_only=True)
 
+    # axes 실패 횟수도 정규화한 이메일 기준 (대소문자 변형 잠금 우회 X)
     def validate_email(self, value: str) -> str:
-        return value.strip().lower()
+        return User.objects.normalize_login_email(value)
 
 
 class MeSerializer(serializers.ModelSerializer):

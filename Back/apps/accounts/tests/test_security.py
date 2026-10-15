@@ -153,6 +153,12 @@ class LoginSecurityTests(APITestCase):
         # 잠금 응답에 이메일 X
         self.assertNotIn(b"member", response.content)
 
+    def test_case_variants_share_lock_count(self) -> None:
+        for variant in ("member@example.com", "MEMBER@example.com", "Member@Example.com", " member@EXAMPLE.com", "mEmber@example.com"):
+            self.post_login(variant, random_password())
+        response = self.post_login("MEMBER@EXAMPLE.COM", self.raw)
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
     def test_rotates_session_on_login(self) -> None:
         session = self.client.session
         session["probe"] = True
