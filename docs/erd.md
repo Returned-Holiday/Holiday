@@ -40,7 +40,7 @@
 소개딩(개인정보 유출 대응 헬프데스크)의 DB는 **테이블 10개**로 구성한다. 이 문서는 ERD 그림에 담기지 않는 규칙과 논의에서 합의한 결정을 정리한다.
 
 - 기준: 개발기획서, 10월 7일·11일 논의, 10월 11일 보안 검토
-- 실제 스키마는 Django 마이그레이션이 만든다. 아래 SQL은 ERD Cloud 그림 전용이라 DB에 실행하지 않는다. 실제 테이블명은 Django 규칙(예: `incidents_incident`)을 따른다.
+- 실제 스키마는 Django 마이그레이션이 만든다. 아래 SQL은 ERD Cloud 그림 전용이라 DB에 실행하지 않는다. 실제 테이블명은 모델 `Meta.db_table`로 ERD 이름과 같게 지정한다(예: `users`, `incidents`). Django 기본 테이블과 M2M 연결 테이블은 Django 규칙을 따른다.
 - Django 기본 테이블(권한·그룹, 세션, django-axes, django-otp)은 범위 밖이다. 단 보관 정책은 `docs/security.md` 3-6을 따른다. Django 기본 admin은 설치하지 않는다.
 - 운영 DB는 AWS RDS MySQL 8.4를 전제로 한다.
 
