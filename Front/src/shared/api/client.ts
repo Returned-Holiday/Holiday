@@ -12,12 +12,19 @@ export const apiClient = axios.create({
   headers: { Accept: "application/json" },
 });
 
-// 세션 확인·로그인 요청의 401은 만료로 보지 않음
-const SESSION_PROBE_URLS = ["/auth/me/", "/auth/login/", "/auth/csrf/"];
+// 세션 확인·로그인·로그아웃 요청의 401은 만료로 보지 않음
+const SESSION_PROBE_URLS = ["/auth/me/", "/auth/login/", "/auth/logout/", "/auth/csrf/"];
 let unauthorizedHandler: (() => void) | null = null;
+// 서버 세션은 요청마다 연장 → 마지막 응답 시각 = 유휴 기준
+let lastResponseAt = Date.now();
+let csrfReady = false;
 
 export function setUnauthorizedHandler(handler: (() => void) | null): void {
   unauthorizedHandler = handler;
+}
+
+export function getLastResponseAt(): number {
+  return lastResponseAt;
 }
 
 // 요청 body·params 키 → snake_case
@@ -30,11 +37,13 @@ apiClient.interceptors.request.use((config) => {
 // 응답·에러 body 키 → camelCase (에러 fields 키 포함)
 apiClient.interceptors.response.use(
   (response) => {
+    lastResponseAt = Date.now();
     response.data = toCamelKeys(response.data);
     return response;
   },
   (error: unknown) => {
     if (isAxiosError(error) && error.response !== undefined) {
+      lastResponseAt = Date.now();
       error.response.data = toCamelKeys(error.response.data);
     }
     const apiError = toApiError(error);
@@ -48,4 +57,12 @@ apiClient.interceptors.response.use(
 
 export async function ensureCsrfCookie(): Promise<void> {
   await apiClient.get("/auth/csrf/");
+  csrfReady = true;
+}
+
+// 앱 시작 때 발급 실패 → 비로그인 POST 전에 재발급
+export async function prepareCsrf(): Promise<void> {
+  if (!csrfReady) {
+    await ensureCsrfCookie();
+  }
 }
