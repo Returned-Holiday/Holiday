@@ -52,7 +52,7 @@ React: 자동 이스케이프, 라우트 가드(화면 단위 인가, 편의용)
 | 세션 인증만 | `DEFAULT_AUTHENTICATION_CLASSES = SessionAuthentication` |
 | 로그인 | `authenticate()` + `login()` (세션 키 자동 교체). 실패 문구 하나로 통일 |
 | 잠금 | django-axes: 실패 5회, 잠금 30분, 계정 기준. 로그인 요청 IP 제한(10/분)과 함께 사용 |
-| 비밀번호 검증 | Django 기본 검증기 + KISA 규칙 커스텀 검증기. 가입·변경 모두 서버에서 검증 |
+| 비밀번호 검증 | Django 기본 검증기 + KISA 규칙 커스텀 검증기(`apps/accounts/validators.py`). 가입·변경 모두 서버에서 검증 |
 | 만료 강제 | `users.password_changed_at` + 90일. 만료된 세션은 공통 권한 클래스가 비밀번호 변경·로그아웃·`/auth/me` 외 모두 403 |
 | 변경 | 현재 비밀번호 확인 → 최소 사용 1일 → 규칙 → 최근 4개 비교 → 저장 → `update_session_auth_hash()`(다른 세션 무효화) |
 | 탈퇴 | 비밀번호 재확인 → 사용자 삭제(개인 데이터 CASCADE) → 세션 삭제 |
