@@ -162,7 +162,7 @@ React: 자동 이스케이프, 라우트 가드(화면 단위 인가, 편의용)
 | SR1-3 LDAP | 해당 없음 | – | – |
 | SR1-4 시스템 자원 | 사용자 입력으로 파일 경로·OS 명령을 만들지 않음 | 3-5 | – |
 | SR1-5 XSS | React 이스케이프, ESLint 규칙 | 3-4 | 제보에 `<script>` → 텍스트로 표시 |
-| SR1-6 CSRF | Django CSRF + axios 헤더 | `docs/rules/api-response.md` | 토큰 없이 POST → 403 |
+| SR1-6 CSRF | Django CSRF + axios 헤더. DRF는 로그인 사용자만 검사 → 가입·로그인은 `csrf_protect` 추가 | `docs/rules/api-response.md` | 토큰 없이 POST → 403 |
 | SR1-7 HTTP 응답·리다이렉트 | 서버 리다이렉트 없음, https 링크만 | 3-3 | `javascript:` URL 제보 → 거부 |
 | SR1-8 메모리 | 해당 없음(Python/TS) | – | – |
 | SR1-9 보안기능 입력값 | 역할·우선순위는 서버가 결정 | 3-2, 3-3 | 우선순위 값을 조작해 전송 → 무시 |

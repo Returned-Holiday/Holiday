@@ -56,6 +56,8 @@ AXES_USERNAME_FORM_FIELD = "email"
 AXES_RESET_ON_SUCCESS = True
 # 로그인 기록은 CloudWatch로, DB엔 잠금 계산용만
 AXES_DISABLE_ACCESS_LOG = True
+# 기본 잠금 응답은 이메일 노출 → 공통 에러 형식
+AXES_LOCKOUT_CALLABLE = "apps.accounts.exceptions.lockout_response"
 # nginx 뒤라 axes는 실제 IP 모름 → IP 제한은 DRF login throttle
 SILENCED_SYSTEM_CHECKS = ["axes.W006"]
 
@@ -87,9 +89,11 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
     "EXCEPTION_HANDLER": "config.errors.api_exception_handler",
+    # throttle_scope 지정 뷰만 범위별 제한
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
         "anon": "60/min",

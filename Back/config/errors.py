@@ -22,11 +22,26 @@ _ERROR_BY_EXCEPTION: list[tuple[type[exceptions.APIException], str, str]] = [
 ]
 
 
+class CodedAPIException(exceptions.APIException):
+    error_code = "REQUEST_ERROR"
+    default_detail = GENERIC_MESSAGE
+
+
+class Conflict(CodedAPIException):
+    status_code = status.HTTP_409_CONFLICT
+    error_code = "CONFLICT"
+    default_detail = "이미 사용 중이거나 처리할 수 없는 요청입니다."
+
+
 def _error_body(code: str, message: str, fields: object = None) -> dict[str, object]:
     body: dict[str, object] = {"code": code, "message": message}
     if fields is not None:
         body["fields"] = fields
     return body
+
+
+def error_json(code: str, message: str, status_code: int) -> JsonResponse:
+    return JsonResponse(_error_body(code, message), status=status_code)
 
 
 # 원문·스택은 로그로만, 응답은 코드 + 일반 문구
@@ -39,6 +54,15 @@ def api_exception_handler(exc: Exception, context: dict[str, object]) -> Respons
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
+    # 고정 문구만 (입력값 X)
+    if isinstance(exc, CodedAPIException):
+        response.data = _error_body(exc.error_code, exc.default_detail)
+        return response
+
+    # 세션 인증은 DRF가 403으로 바꿈 → 로그인 필요는 401
+    if isinstance(exc, (exceptions.NotAuthenticated, exceptions.AuthenticationFailed)):
+        response.status_code = status.HTTP_401_UNAUTHORIZED
+
     for exception_type, code, message in _ERROR_BY_EXCEPTION:
         if isinstance(exc, exception_type):
             fields = response.data if isinstance(exc, exceptions.ValidationError) else None
@@ -50,8 +74,8 @@ def api_exception_handler(exc: Exception, context: dict[str, object]) -> Respons
 
 
 def not_found(request: HttpRequest, exception: Exception) -> JsonResponse:
-    return JsonResponse(_error_body("NOT_FOUND", "요청한 정보를 찾을 수 없습니다."), status=404)
+    return error_json("NOT_FOUND", "요청한 정보를 찾을 수 없습니다.", 404)
 
 
 def server_error(request: HttpRequest) -> JsonResponse:
-    return JsonResponse(_error_body("SERVER_ERROR", GENERIC_MESSAGE), status=500)
+    return error_json("SERVER_ERROR", GENERIC_MESSAGE, 500)
