@@ -40,3 +40,18 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = "email"
     EMAIL_FIELD = "email"
     REQUIRED_FIELDS = ["nickname"]
+
+    class Meta:
+        db_table = "users"
+
+
+class PasswordHistory(models.Model):
+    # 탈퇴 시 함께 삭제
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="password_histories")
+    # 해시만 저장 (평문 X)
+    password = models.CharField(max_length=128)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "password_histories"
+        indexes = [models.Index(fields=["user", "created_at"], name="ix_pwhist_user_created")]
