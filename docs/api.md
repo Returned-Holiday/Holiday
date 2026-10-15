@@ -213,3 +213,94 @@
 - 처리: 처음 공개로 바뀔 때만 `published_at` 기록(서버 시각)
 - 응답 200: 조치 객체
 - 에러: 400 `VALIDATION_ERROR`, 404
+
+### 사고·제보·마이페이지 (BE-B)
+
+**(BE-B 확인 필요)** BE-A가 `docs/project/frontend-api-proposal.md`와 ERD로 작성한 초안이다. 담당자가 확인하고 고친다.
+
+#### GET /api/incidents/?q=&page=
+- 권한: 공개 / 요청 제한: search
+- 요청: `q` 기업명·별칭(앞뒤 공백 제거, 최대 50자). 비우면 최근 목록(메인)
+- 처리: 공개 사고만, 공지일 최신순(다른 정렬 없음)
+- 응답 200: `{ data: { count, next, previous, results[] } }`, `results[]`: `{ id, company_name, notified_at, response_status, leaked_labels[] }`
+- `leaked_labels`: 그 사고의 "유출" 항목 이름들
+- 에러: 400 `VALIDATION_ERROR`(50자 초과)
+- 테스트: 비공개 사고 미포함, 별칭 검색
+
+#### GET /api/incidents/<id>/
+- 권한: 공개 / 요청 제한: 기본
+- 응답 200: `{ data: { id, company_name, notified_at, occurred_at, affected_count, summary, source_url, contact_info, response_status, active_count, leak_items[]: { id, label, is_leaked } } }`
+- `active_count`: 설문 응답 수. `leak_type`은 사용자 응답에 넣지 않음
+- 에러: 404(비공개·없음 구분 X)
+
+#### POST /api/reports/
+- 권한: 회원 / 요청 제한: report
+- 요청: `{ company_name: string(최대 100), source_url: string(최대 500), notified_at: date|null, leak_items_text: string(최대 1,000) }`
+- 검증: `validate_https_url`, 길이. 제보자는 `request.user`, 상태는 서버가 `PENDING`(요청 값 무시)
+- 저장: `leak_items_text`는 `mask_pii` 후 저장
+- 응답 201: `{ data: { id } }`
+- 에러: 400 `VALIDATION_ERROR`
+- 보안 이벤트 로그: 제보 등록(user_id, report_id). 내용 기록 X
+- 테스트: http URL 거부, 카드번호 마스킹 저장, `status` 조작 무시
+
+#### GET /api/reports/
+- 권한: 회원 / 요청 제한: 기본
+- 처리: `request.user`의 제보만, 최신순
+- 응답 200: `{ data: { count, next, previous, results[] } }`, `results[]`: `{ id, company_name, created_at, status: "PENDING"|"APPROVED"|"REJECTED", reject_reason, reviewed_at }`
+
+#### GET /api/mypage/
+- 권한: 회원 / 요청 제한: 기본
+- 처리: 내가 설문에 응답한 공개 사고만(비공개 전환된 사고는 숨김). 진행률은 `guides` 서비스 함수로 계산
+- 응답 200: `{ data: { incidents[]: { incident_id, company_name, completed_count, total_count, urgent_remaining, next_urgent_title } } }`
+- `urgent_remaining`: 1~3순위 중 남은 조치 수, `next_urgent_title`: 그중 가장 높은 순위 조치 제목(없으면 `null`)
+
+### 사고·기업·제보 관리자 API (BE-B)
+
+**(BE-B 확인 필요)** 권한: `IsStaffWithOtp`(아니면 404) / 요청 제한: admin. 사고·기업 삭제 API 없음(405).
+
+#### GET·POST /api/admin/incidents/companies/
+- GET 응답 200: `{ data: { count, next, previous, results[]: { id, name, aliases[] } } }`
+- POST 요청: `{ name: string(최대 100), aliases: string[] }` (별칭 개수·길이 상한 **(미정)**)
+- 처리: 별칭 공백 제거·소문자 정규화
+- 응답 201: 기업 객체
+- 에러: 400 `VALIDATION_ERROR`, 409 `CONFLICT`(기업명 중복, 다른 기업과 별칭 중복)
+
+#### PATCH /api/admin/incidents/companies/<id>/
+- 요청: POST 필드 일부 / 응답 200: 기업 객체 / 에러: 400, 404, 409
+
+#### GET·POST /api/admin/incidents/
+- GET `?q=&status=`: 공개·비공개 모두. `results[]`: `{ id, company_name, notified_at, leak_item_count, status: "PUBLIC"|"PRIVATE", response_status }`
+- POST 요청: `{ company_id, occurred_at: date|null, notified_at: date, affected_count: number|null(0 이상), source_url, contact_info: string|null(최대 500), summary: string(최대 2,000), response_status }`
+- 처리: 신규는 `PRIVATE`(요청 값 무시), `response_status` 기본 `ONGOING`
+- 응답 201: 관리자 사고 객체 `{ id, company_id, occurred_at, notified_at, affected_count, source_url, contact_info, summary, status, response_status, notice_revised_at, leak_items[]: { id, label, is_leaked, leak_type, selected_by_users } }`
+- 에러: 400 `VALIDATION_ERROR`(없는 기업 포함)
+
+#### GET·PATCH /api/admin/incidents/<id>/
+- PATCH 요청: POST 필드 일부 + `status`, `response_status: "ONGOING"|"CLOSED"`
+- "공지 갱신" 수동 표시 방법 **(미정: 예 `mark_notice_revised: true`)**
+- 응답 200: 관리자 사고 객체 / 에러: 400, 404
+
+#### POST /api/admin/incidents/<id>/leak-items/
+- 요청: `{ label: string(최대 100), is_leaked: bool, leak_type: LeakType 7개 중 하나 }`
+- 처리: `notice_revised_at` 갱신
+- 응답 201: 관리자 사고 객체
+
+#### PATCH·DELETE /api/admin/incidents/<id>/leak-items/<item_id>/
+- 항목이 그 사고 소속이 아니면 404
+- PATCH: 요청 POST 필드 일부, `notice_revised_at` 갱신, 응답 200 관리자 사고 객체
+- DELETE: 응답 204. 사용자가 고른 항목이면 409 `CONFLICT`(수정으로 정정)
+
+#### GET /api/admin/reports/?status=
+- `results[]`: `{ id, company_name, reporter_nickname, created_at, status }`. 제보자 이메일 미포함
+
+#### GET /api/admin/reports/<id>/
+- 응답 200: 위 필드 + `source_url, notified_at, leak_items_text(마스킹된 값), reject_reason, linked_incident_id, reviewed_at`
+
+#### POST /api/admin/reports/<id>/approve/
+- 요청: `{ incident_id: number|null }`
+- 처리: `PENDING`만 처리. 검수자 `request.user`, 시각 서버
+- 응답 200: 제보 상세 객체 / 에러: 404, 409 `CONFLICT`(이미 검수됨)
+
+#### POST /api/admin/reports/<id>/reject/
+- 요청: `{ reason: string(1~500) }`
+- 처리·응답·에러: approve와 같음. 사유 없으면 400
