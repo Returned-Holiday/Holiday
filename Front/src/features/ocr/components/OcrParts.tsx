@@ -59,7 +59,7 @@ export function OcrNotice() {
         </li>
         <li>
           <img src={checkPrimary} width={20} height={20} alt="" />
-          이름·전화번호는 가린 뒤, 등록된 공식 사고 정보와 맞춰봐요
+          전화번호·카드번호 같은 개인정보는 가린 뒤, 등록된 공식 사고 정보와 맞춰봐요
         </li>
       </ul>
     </NoticeBox>
