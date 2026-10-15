@@ -44,7 +44,7 @@ python manage.py migrate
 python manage.py runserver                # http://127.0.0.1:8000 (프론트 개발 서버가 /api를 여기로 보냄)
 DJANGO_SETTINGS_MODULE=config.settings.test python manage.py test
 python manage.py check --deploy --settings=config.settings.prod   # 운영 값이 환경변수에 있어야 함
-bandit -q -r . -x ./requirements          # 보안 정적분석
+bandit -q -r . -x ./requirements,./.venv  # 보안 정적분석
 pip-audit -r requirements/base.txt        # 의존성 취약점
 ```
 의존성 추가: `requirements/*.in`을 고친 뒤 `pip-compile --generate-hashes --allow-unsafe --strip-extras --no-header requirements/base.in`으로 `.txt`를 다시 만들고 둘 다 커밋한다(BE-B 승인).
