@@ -79,3 +79,4 @@
 | `CONFLICT` | 409 | 중복, 삭제할 수 없는 항목 | 각 앱 |
 | `FILE_TOO_LARGE` | 413 | 업로드 5MB 초과 | guides |
 | `UNSUPPORTED_FILE` | 400 | JPG·PNG 아님 | guides |
+| `OCR_UNAVAILABLE` | 503 | 외부 OCR 서비스 실패(일반 문구, 원인은 로그에만) | guides |

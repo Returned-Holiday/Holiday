@@ -91,8 +91,8 @@
 #### POST /api/auth/signup/
 - 권한: 공개 / 요청 제한: signup
 - 요청: `{ email: string(최대 254), password: string(8~64), nickname: string(2~20), agree_terms: bool, agree_privacy: bool, confirm_age: bool }`
-- 검증: 이메일 형식·소문자 정규화, 비밀번호 KISA 규칙(`docs/security.md` 1), 닉네임 한글·영문·숫자만 **(미정)**, 동의 3개 모두 `true`
-- 동의 값은 검증만 하고 저장하지 않음 **(미정: ERD에 컬럼 없음)**
+- 검증: 이메일 형식·소문자 정규화, 비밀번호 KISA 규칙(`docs/security.md` 1), 닉네임 한글·영문·숫자만(공백·특수문자 X), 동의 3개 모두 `true`
+- 동의 값은 검증만 하고 저장하지 않음(근거: `docs/security.md` 3-1 가입 동의)
 - 응답 201: `{ data: { nickname } }`. 자동 로그인 없음, 로그인 화면으로 이동
 - 에러: 400 `VALIDATION_ERROR`(`fields.email`·`password`·`nickname`·`agree_*`), 409 `CONFLICT`(이미 가입된 이메일)
 - 보안 이벤트 로그: 가입(user_id, IP)
@@ -171,17 +171,17 @@
 - 권한: 회원 / 요청 제한: 기본
 - 응답 200: `{ data: { incident_id, company_name, source_url, contact_info, notice_revised, leak_items_unknown, completed_count, total_count, actions[] } }`
 - `actions[]`: `{ id, priority, title, summary, steps, source_url, reason, certainty: "CERTAIN"|"CHECK_NEEDED", is_new, completed }`. 우선순위 → 확실 순, 서버 계산
-- `summary`: ERD에 없음. 컬럼 추가 전까지 `null` **(미정)**
+- `summary`: ERD에 없음. 항상 `null`(프론트는 null이면 줄 생략)
 - `reason`: 서버가 만든 표시 문구(예: "설문: 결제수단 연결")
-- 에러: 404(설문 응답 없음 **(미정)**: 프론트는 설문 화면으로 이동)
+- 에러: 404(설문 응답 없음. 프론트는 설문 화면으로 이동)
 - 테스트: 비공개 조치·다른 사고 특수 조치 미포함, 진행률 서버 계산
 
 #### PUT /api/guides/incidents/<id>/completions/<action_id>/
 - 권한: 회원 / 요청 제한: 기본
-- 검증: 조치가 공개 상태이고, 공통 조치이거나 그 사고의 특수 조치
+- 검증: 그 사고에 내 설문 응답이 있고, 조치가 공개 상태이며, 공통 조치이거나 그 사고의 특수 조치
 - 응답 204. 이미 완료면 그대로 204
-- 에러: 404(조건 밖의 조치)
-- 테스트: 다른 사고 특수 조치 ID 404, 비공개 조치 404
+- 에러: 404(설문 응답 없음, 조건 밖의 조치)
+- 테스트: 설문 없이 완료 요청 404(PV), 다른 사고 특수 조치 ID 404, 비공개 조치 404
 
 #### DELETE /api/guides/incidents/<id>/completions/<action_id>/
 - 권한·검증: PUT과 같음
@@ -192,7 +192,7 @@
 - 요청: `multipart/form-data`, `image`(JPG·PNG, 5MB 이하)
 - 처리: 메모리에서만 처리 → OCR → 마스킹 → 기업·유출 항목 매칭. 이미지·원문 저장·로그 X
 - 응답 200: `{ data: { incident: { id, company_name } | null, matched_items: [{ id, label }] } }`. 인식 원문은 내보내지 않음
-- 에러: 400 `UNSUPPORTED_FILE`(확장자·시그니처), 413 `FILE_TOO_LARGE`, 503 OCR 서비스 실패 **(미정: 코드)**
+- 에러: 400 `UNSUPPORTED_FILE`(확장자·시그니처), 413 `FILE_TOO_LARGE`, 503 `OCR_UNAVAILABLE`(외부 OCR 실패, 원인은 로그에만)
 - 보안 이벤트 로그: OCR 호출(user_id, 결과 일치 여부만)
 - 테스트: 확장자만 바꾼 파일 거부, 5MB 초과 거부, 응답에 원문 없음
 
