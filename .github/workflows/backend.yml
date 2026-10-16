@@ -42,6 +42,12 @@ jobs:
           DJANGO_SETTINGS_MODULE: config.settings.test
         run: python manage.py check
 
+      # 모델 변경 후 마이그레이션 누락 X
+      - name: Migrations check
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.test
+        run: python manage.py makemigrations --check --dry-run
+
       - name: Tests
         env:
           DJANGO_SETTINGS_MODULE: config.settings.test

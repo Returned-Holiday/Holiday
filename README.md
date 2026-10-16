@@ -52,7 +52,7 @@ ReturnedHoliday/
 | `docs/features.md` | 일부 | 화면별 기능·입력·흐름·빈/에러 상태(FE2, 10/13) |
 | `infra/CLAUDE.md` | 일부 | 허용 IP·리소스 이름(BE-A, 배포 준비 시) |
 | `Front/CLAUDE.md` | 완료 | — |
-| CI 워크플로 | 완료(`.github/workflows/`: backend, frontend, semgrep) | 브랜치 보호에 필수 검사(`backend`, `frontend`, `semgrep`) 등록(레포 관리자, #6·#7 머지 후), 마이그레이션 누락 검사 추가(모델 머지 후, BE-B), 금지 API용 Semgrep 사용자 정의 규칙 추가(`raw()`·`extra()` 등, BE-B) |
+| CI 워크플로 | 완료(`.github/workflows/`: backend, frontend, semgrep + 금지 API 규칙 `.semgrep/rules.yml`, 마이그레이션 누락 검사), 브랜치 보호 필수 검사 등록 완료 | — |
 
 ## Claude Code로 작업할 때
 - 이 레포를 열면 루트 `CLAUDE.md`가, `Back/`·`Front/`·`infra/`에서 작업하면 그 폴더의 `CLAUDE.md`가 함께 적용된다.
