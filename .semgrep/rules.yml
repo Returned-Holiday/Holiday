@@ -29,6 +29,7 @@ rules:
       - pattern: os.system(...)
       - pattern: os.popen(...)
       - pattern: subprocess.$FUNC(..., shell=True, ...)
+      - pattern-regex: ^\s*(import|from)\s+subprocess\b
 
   - id: rh-unsafe-deserialization
     languages: [python]
@@ -100,6 +101,26 @@ rules:
             ...
           except:
             ...
+      - pattern: |
+          try:
+            ...
+          except (..., Exception, ...):
+            ...
+      - pattern: |
+          try:
+            ...
+          except (..., Exception, ...) as $ERR:
+            ...
+      - pattern: |
+          try:
+            ...
+          except (..., BaseException, ...):
+            ...
+      - pattern: |
+          try:
+            ...
+          except (..., BaseException, ...) as $ERR:
+            ...
 
   - id: rh-except-pass
     languages: [python]
@@ -116,6 +137,28 @@ rules:
             ...
           except $EXC as $ERR:
             pass
+
+  - id: rh-log-format
+    languages: [python]
+    severity: ERROR
+    message: "로그 메시지에 f-string·format 금지 → logger.info(\"... %s\", value) (포맷 스트링 삽입)"
+    patterns:
+      - pattern-either:
+          - pattern: $LOGGER.$METHOD(f"...", ...)
+          - pattern: $LOGGER.$METHOD("...".format(...), ...)
+          - pattern: $LOGGER.$METHOD("..." % $ARGS, ...)
+      - metavariable-regex:
+          metavariable: $METHOD
+          regex: ^(debug|info|warning|error|exception|critical|log)$
+
+  - id: rh-mask-bypass
+    languages: [python]
+    severity: ERROR
+    message: "제보 일괄 저장 금지 (save() 마스킹 건너뜀) → 객체마다 save()"
+    pattern-either:
+      - pattern: Report.objects.bulk_create(...)
+      - pattern: Report.objects.bulk_update(...)
+      - pattern: $QS.update(..., leak_items_text=$VALUE, ...)
 
   - id: rh-debug-code
     languages: [python]
