@@ -4,6 +4,7 @@ from collections.abc import Callable
 from django.http import HttpRequest, HttpResponse
 from django.utils.cache import add_never_cache_headers
 
+from common.audit import resolve_audit_action
 from common.passwords import is_password_expired
 from common.request import client_ip
 from config.errors import error_json
@@ -58,9 +59,10 @@ class AdminAuditMiddleware:
                 f"{key}={value}" for key, value in sorted(match.kwargs.items()) if isinstance(value, int)
             ) if match else ""
             audit_logger.info(
-                "admin_api user_id=%s ip=%s method=%s route=%s target=%s status=%s",
+                "admin_api user_id=%s ip=%s action=%s method=%s route=%s target=%s status=%s",
                 user.pk if user.is_authenticated else None,
                 client_ip(request),
+                resolve_audit_action(request),
                 request.method if request.method in AUDIT_METHODS else "OTHER",
                 route,
                 target or "-",

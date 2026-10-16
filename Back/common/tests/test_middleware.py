@@ -4,8 +4,13 @@ from django.http import HttpRequest, JsonResponse
 from django.test import TestCase, modify_settings, override_settings
 from django.urls import path
 from django.utils import timezone
+from rest_framework.permissions import AllowAny
+from rest_framework.request import Request
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.accounts.models import User
+from common.audit import set_audit_action
 
 SECURITY_MIDDLEWARE = [
     "common.middleware.NoStoreApiMiddleware",
@@ -18,8 +23,23 @@ def ok_view(request: HttpRequest, **kwargs: object) -> JsonResponse:
     return JsonResponse({})
 
 
+class PublishView(APIView):
+    permission_classes = [AllowAny]
+
+    def patch(self, request: Request, pk: int) -> Response:
+        set_audit_action(request, "PUBLISH")
+        return Response({})
+
+
+def forged_action_view(request: HttpRequest) -> JsonResponse:
+    request.audit_action = "VIEW status=200\nforged"
+    return JsonResponse({})
+
+
 urlpatterns = [
     path("api/admin/things/<int:pk>/", ok_view),
+    path("api/admin/things/<int:pk>/publish/", PublishView.as_view()),
+    path("api/admin/custom-action/", forged_action_view),
     path("api/admin/notes/<str:slug>/", ok_view),
     path("api/things/", ok_view),
 ]
@@ -92,6 +112,22 @@ class AdminAuditTests(TestCase):
             self.assertIn(expected, line)
         self.assertNotIn("admin@example.com", line)
 
+    def test_default_action_by_method(self) -> None:
+        self.client.force_login(self.admin)
+        for method, action in (("get", "VIEW"), ("post", "CREATE"), ("patch", "UPDATE"), ("delete", "DELETE")):
+            with self.subTest(method=method):
+                self.assertIn(f"action={action}", self.audit_line(method, "/api/admin/things/7/"))
+
+    def test_view_sets_specific_action(self) -> None:
+        self.client.force_login(self.admin)
+        line = self.audit_line("patch", "/api/admin/things/7/publish/", data={}, content_type="application/json")
+        self.assertIn("action=PUBLISH method=PATCH", line)
+
+    def test_unknown_action_not_recorded(self) -> None:
+        line = self.audit_line("post", "/api/admin/custom-action/")
+        self.assertIn("action=CREATE", line)
+        self.assertNotIn("forged", line)
+
     def test_request_body_not_recorded(self) -> None:
         self.client.force_login(self.admin)
         line = self.audit_line("post", "/api/admin/things/7/", data={"memo": "010-1234-5678"},
@@ -113,3 +149,9 @@ class AdminAuditTests(TestCase):
     def test_non_admin_api_not_recorded(self) -> None:
         with self.assertNoLogs("app.audit", "INFO"):
             self.client.get("/api/things/")
+
+
+class SetAuditActionTests(TestCase):
+    def test_rejects_unknown_action(self) -> None:
+        with self.assertRaises(ValueError):
+            set_audit_action(HttpRequest(), "DROP")
