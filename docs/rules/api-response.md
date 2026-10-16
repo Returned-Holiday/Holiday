@@ -24,7 +24,7 @@
 
 ## 응답 형식
 
-성공:
+성공(`Back/config/renderers.py`가 감싼다):
 ```json
 { "data": { ... } }
 ```
