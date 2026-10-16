@@ -150,7 +150,7 @@ apps/guides/services/
 | settings(base/local/test/prod) 보안 기본값 | 완료. `check`, 운영 설정 `check --deploy` 경고 0건 |
 | 의존성 해시 고정(`requirements/*.txt`) | 완료 |
 | `accounts.User` | ERD 필드로 작성. BE-A의 기존 인증 코드로 바꿔도 되며, ERD 필드만 맞춘다 |
-| 나머지 모델, 마이그레이션 | BE-A가 뼈대 단계에서 작성 |
+| 나머지 모델, 마이그레이션 | 앱 담당자가 작성. `incidents`·`reports` 완료(BE-B) |
 | 고정 함수 | 이름과 형태만 있음 |
 | 뷰·serializer·URL | 비어 있음 |
 

@@ -104,7 +104,7 @@
 
 ### companies
 - `name` (UNIQUE): 대표 기업명
-- `aliases`: 검색과 OCR 매칭에 쓸 다른 표기들. JSON 배열, 저장 시 공백 제거·소문자 정규화, 기업 간 중복 금지
+- `aliases`: 검색과 OCR 매칭에 쓸 다른 표기들. JSON 배열(빈 값은 `[]`, NULL 없음), 저장 시 공백 제거·소문자 정규화, 기업당 20개·각 1~50자. 다른 기업의 이름·별칭과 겹치면 거부(정규화 후 비교)
 
 ### incidents
 - `company_id`: 사고를 낸 기업
@@ -114,7 +114,7 @@
 - `contact_info`: 기업 전담 상담 채널
 - `status`: 공개 / 비공개(신규 등록 기본값은 비공개)
 - `response_status`: 대응 진행 중 / 대응 종료. 관리자가 지정, 신규 등록 기본값은 진행 중. 사고 상세 배지에 표시. 공개 필터와 무관
-- `notice_revised_at`: 기업 추가 공지로 유출 항목이 바뀐 시각. 유출 항목을 저장할 때와 관리자가 "공지 갱신"을 표시할 때만 갱신. "공지 갱신" 배너 판단 기준
+- `notice_revised_at`: 기업 추가 공지로 유출 항목이 바뀐 시각. 유출 항목을 추가·수정·삭제할 때만 자동 갱신(수동 표시 없음). "공지 갱신" 배너 판단 기준
 
 사고 제목 컬럼은 두지 않는다. 화면에는 "SK텔레콤 · 2025.04 공지 · 휴대전화번호, 유심 정보 외 2건"처럼 조합해 표시한다.
 
@@ -345,7 +345,7 @@ CREATE TABLE password_histories (
 CREATE TABLE companies (
   id BIGINT NOT NULL AUTO_INCREMENT COMMENT '기업 ID',
   name VARCHAR(100) NOT NULL COMMENT '기업명',
-  aliases JSON NULL COMMENT '별칭 배열(공백 제거, 소문자 정규화, 기업 간 중복 금지)',
+  aliases JSON NOT NULL COMMENT '별칭 배열(빈 값 [], 공백 제거, 소문자 정규화, 기업 간 중복 금지)',
   PRIMARY KEY (id),
   UNIQUE KEY uq_companies_name (name)
 ) COMMENT '기업';
@@ -465,6 +465,6 @@ CREATE TABLE reports (
 - [ ] 실제 유출 공지 5~10건을 모아 유형 매핑으로 검증
 - [x] "항상" 트리거 범위 결정: 특수 조치 전용 (검토 13번)
 - [ ] ERD Cloud 그림을 영역별(공식 정보 / 사용자 진행 / 제보 / 계정)로 재배치하고 위 SQL로 갱신
-- [x] 기능별 앱(accounts, incidents, guides, reports, mypage)으로 Django 뼈대 구성(`docs/backend.md`). 모델은 BE-A가 작성
-- [ ] 앱별 모델 담당자 지정, 모델 변경은 PR로만 받기(마이그레이션 충돌 방지)
+- [x] 기능별 앱(accounts, incidents, guides, reports, mypage)으로 Django 뼈대 구성(`docs/backend.md`)
+- [x] 앱별 모델 담당자 지정(accounts·guides BE-A, incidents·reports BE-B), 모델 변경은 PR로만 받기(마이그레이션 충돌 방지)
 - [ ] 11월 2일 소스코드 진단 전까지 스키마 안정화

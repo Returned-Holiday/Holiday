@@ -1,9 +1,15 @@
-from django.db.models import Model, QuerySet
+from django.db.models import QuerySet
+from django.shortcuts import get_object_or_404
+
+from apps.incidents.constants import IncidentStatus
+from apps.incidents.models import Incident
 
 
-def get_public_incidents() -> QuerySet:
-    raise NotImplementedError
+# 사용자 화면 사고 조회는 여기로만 (비공개 노출 X)
+def get_public_incidents() -> QuerySet[Incident]:
+    return Incident.objects.filter(status=IncidentStatus.PUBLIC)
 
 
-def get_public_incident_or_404(incident_id: int) -> Model:
-    raise NotImplementedError
+# 비공개·없음 모두 404 (존재 여부 숨김)
+def get_public_incident_or_404(incident_id: int) -> Incident:
+    return get_object_or_404(get_public_incidents(), pk=incident_id)
