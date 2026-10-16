@@ -57,6 +57,10 @@ Back/
 │   ├── validators.py         #   https URL 검증, 입력 길이 검증
 │   ├── permissions.py        #   관리자 전용 등 권한 검사
 │   ├── queries.py            #   본인 소유 데이터만 꺼내는 소유 필터
+│   ├── middleware.py         #   비밀번호 만료 차단, 관리자 감사 로그, API 캐시 금지
+│   ├── log_filters.py        #   로그 개인정보 마스킹 필터
+│   ├── passwords.py          #   비밀번호 만료 기준(90일)
+│   ├── request.py            #   클라이언트 IP 추출(XFF 신뢰 범위)
 │   └── tests/
 └── apps/
     ├── accounts/             # [BE-A] 계정 관리
@@ -138,7 +142,7 @@ apps/guides/services/
 |---|---|---|
 | `incidents` (BE-B) | `services.get_public_incidents()`, `services.get_public_incident_or_404(incident_id)`, 유출 유형 상수 `constants.LeakType` | guides, reports |
 | `guides` (BE-A) | `services.get_progress(user)` | mypage |
-| `common` (BE-B) | `masking.mask_pii()`, `validators.validate_https_url()`, `queries.get_owned_or_404()` | 전체 |
+| `common` (BE-B) | `masking.mask_pii()`, `validators.validate_https_url()`, `queries.get_owned_or_404()`, `request.client_ip()`, `passwords.is_password_expired()` | 전체 |
 
 `common/permissions.py`의 `IsStaffWithOtp`(관리자 API 권한)는 정책이 확정되어 구현까지 해 두었다.
 
