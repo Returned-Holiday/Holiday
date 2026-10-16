@@ -7,9 +7,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from common.passwords import is_password_expired
+from common.request import client_ip
+
 from .exceptions import AccountLocked, LoginFailed
 from .serializers import LoginSerializer, MeSerializer, SignupSerializer
-from .services import client_ip, create_member, is_password_expired, security_logger
+from .services import create_member, security_logger
 
 
 @method_decorator(ensure_csrf_cookie, name="dispatch")
