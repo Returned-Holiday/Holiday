@@ -1,10 +1,16 @@
-from django.db import transaction
-from django.db.models import Prefetch, QuerySet
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import IntegrityError, transaction
+from django.db.models import Prefetch, ProtectedError, QuerySet, RestrictedError
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from rest_framework import serializers
 
 from apps.incidents.constants import IncidentStatus
+from apps.incidents.exceptions import CompanyKeyConflict, LeakItemInUse
 from apps.incidents.models import Company, Incident, IncidentLeakItem
 from apps.incidents.validators import normalize_company_key
+
+COMPANY_CONFLICT_CODES = frozenset({"conflict", "unique"})
 
 
 # 사용자 화면 사고 조회는 여기로만 (비공개 노출 X)
@@ -32,12 +38,15 @@ def _matching_company_ids(key: str) -> list[int]:
     ]
 
 
-def search_public_incidents(query: str) -> QuerySet[Incident]:
-    incidents = get_public_incidents()
+def filter_by_company_query(incidents: QuerySet[Incident], query: str) -> QuerySet[Incident]:
     key = normalize_company_key(query)
     if key:
         incidents = incidents.filter(company_id__in=_matching_company_ids(key))
     return incidents
+
+
+def search_public_incidents(query: str) -> QuerySet[Incident]:
+    return filter_by_company_query(get_public_incidents(), query)
 
 
 # 별칭 중복 검사 → 저장을 기업 행 잠금 안에서 (TOCTOU), ModelSerializer는 clean() 안 부름 → 여기로만 저장
@@ -47,3 +56,50 @@ def save_company(company: Company) -> Company:
         company.full_clean()
         company.save()
     return company
+
+
+# 모델 검증 오류 → API 오류 (중복 409, 나머지 400)
+def save_company_for_api(company: Company) -> Company:
+    try:
+        return save_company(company)
+    except IntegrityError as error:
+        # 이름 유일 제약 (동시 등록)
+        raise CompanyKeyConflict from error
+    except DjangoValidationError as error:
+        codes = {item.code for items in error.error_dict.values() for item in items}
+        if codes & COMPANY_CONFLICT_CODES:
+            raise CompanyKeyConflict from error
+        raise serializers.ValidationError(error.message_dict) from error
+
+
+def _mark_notice_revised(incident_id: int) -> None:
+    now = timezone.now()
+    Incident.objects.filter(pk=incident_id).update(notice_revised_at=now, updated_at=now)
+
+
+# 유출 항목 변경 + 공지 갱신 시각 → 한 트랜잭션
+def add_leak_item(incident: Incident, data: dict[str, object]) -> IncidentLeakItem:
+    with transaction.atomic():
+        item = IncidentLeakItem.objects.create(incident=incident, **data)
+        _mark_notice_revised(incident.pk)
+    return item
+
+
+def update_leak_item(item: IncidentLeakItem, data: dict[str, object]) -> IncidentLeakItem:
+    if not data:
+        return item
+    with transaction.atomic():
+        for field, value in data.items():
+            setattr(item, field, value)
+        item.save(update_fields=list(data))
+        _mark_notice_revised(item.incident_id)
+    return item
+
+
+def delete_leak_item(item: IncidentLeakItem) -> None:
+    try:
+        with transaction.atomic():
+            item.delete()
+            _mark_notice_revised(item.incident_id)
+    except (ProtectedError, RestrictedError) as error:
+        raise LeakItemInUse from error
