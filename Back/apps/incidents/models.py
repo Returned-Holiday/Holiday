@@ -37,7 +37,7 @@ class Company(models.Model):
         # 기업 수 적음 → 전체 비교 (JSON 검색은 DB마다 다름)
         for name, aliases in Company.objects.exclude(pk=self.pk).values_list("name", "aliases"):
             taken.add(normalize_company_key(name))
-            taken.update(aliases)
+            taken.update(normalize_company_key(alias) for alias in aliases)
         errors = {}
         if normalize_company_key(self.name) in taken:
             errors["name"] = ValidationError(ALIAS_CONFLICT_MESSAGE, code="conflict")

@@ -1,3 +1,5 @@
+import unicodedata
+
 from django.core.exceptions import ValidationError
 
 from apps.incidents.constants import ALIAS_MAX_LENGTH, ALIASES_MAX_COUNT
@@ -5,9 +7,9 @@ from apps.incidents.constants import ALIAS_MAX_LENGTH, ALIASES_MAX_COUNT
 INVALID_ALIASES_MESSAGE = f"별칭은 {ALIASES_MAX_COUNT}개까지, 각 1~{ALIAS_MAX_LENGTH}자로 입력해 주세요."
 
 
-# 공백 제거·소문자 (SKT / skt / S K T 같은 표기 통일)
+# NFKC·공백 제거·소문자 (SKT / ＳＫＴ / S K T 같은 표기 통일, 전각 우회 X)
 def normalize_company_key(value: str) -> str:
-    return "".join(value.split()).lower()
+    return "".join(unicodedata.normalize("NFKC", value).split()).lower()
 
 
 def normalize_aliases(value: object) -> list[str]:
