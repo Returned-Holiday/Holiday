@@ -12,6 +12,17 @@ EC2 ─IAM Role─▶ Secrets Manager(DB 계정, SECRET_KEY, OCR 키), CloudWatc
 EC2 ─HTTPS─▶ 네이버 클로바 OCR (통지문 분석 시에만)
 ```
 
+## 파일
+| 파일 | 서버 위치 |
+|---|---|
+| `nginx/returnedholiday.conf`, `nginx/proxy-params.conf` | `/etc/nginx/conf.d/`, `/etc/nginx/returnedholiday/` |
+| `nginx/_error.html` | `/srv/returnedholiday/nginx/` |
+| `systemd/*` | `/etc/systemd/system/` |
+| `cloudwatch/agent.json` | CloudWatch 에이전트 설정 |
+| `deploy.md` | 배포 순서·확인 체크리스트 |
+
+도메인·리전·시크릿 이름은 `<...>` 자리표시자. 서버에서 치환하고 레포에는 실제 값을 쓰지 않는다.
+
 ## nginx 기준값
 | 설정 | 값 | 근거 |
 |---|---|---|

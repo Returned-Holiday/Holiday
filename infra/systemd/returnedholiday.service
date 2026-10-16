@@ -1,0 +1,35 @@
+# /etc/systemd/system/returnedholiday.service
+[Unit]
+Description=ReturnedHoliday Django (Gunicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# root X 전용 계정 (WEB-09)
+User=returnedholiday
+Group=returnedholiday
+WorkingDirectory=/srv/returnedholiday/app/Back
+Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
+Environment=PYTHONDONTWRITEBYTECODE=1
+# 시크릿 이름·리전만, 값은 Secrets Manager (EC2 역할로 조회)
+Environment=AWS_REGION=<리전>
+Environment=AWS_SECRET_ID=<앱용 시크릿 이름>
+# 내부 바인딩만, 접근 로그는 nginx 한 곳 (쿼리스트링 X)
+ExecStart=/srv/returnedholiday/venv/bin/gunicorn config.wsgi:application --bind 127.0.0.1:8000 --workers 3 --timeout 30 --log-level warning
+Restart=on-failure
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/returnedholiday
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target
