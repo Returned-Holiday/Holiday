@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { PASSWORD_CHANGE_PATH } from "../../app/paths";
 import { ApiError, GENERIC_ERROR_MESSAGE } from "../../shared/api/errors";
@@ -15,7 +15,7 @@ export function useLogin(onSuccess?: () => void) {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (email.trim() === "" || password === "") {
       setError(EMPTY_INPUT_MESSAGE);
@@ -31,7 +31,7 @@ export function useLogin(onSuccess?: () => void) {
       }
       setUser(user);
       if (user.passwordExpired) {
-        navigate(PASSWORD_CHANGE_PATH, { replace: true });
+        void navigate(PASSWORD_CHANGE_PATH, { replace: true });
         return;
       }
       onSuccess?.();

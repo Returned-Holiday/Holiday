@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type SubmitEvent } from "react";
 import { useNavigate, useParams } from "react-router";
 import styled from "styled-components";
 import { ADMIN_INCIDENTS_PATH } from "../../app/paths";
@@ -139,9 +139,10 @@ function IncidentForm({ incident, companies, onSaved }: {
     }
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  // Enter 제출 → 지금 공개 상태 유지 (공개 사고가 실수로 내려가지 않게)
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
-    void save("PRIVATE");
+    void save(incident?.status ?? "PRIVATE");
   };
 
   return (
@@ -211,14 +212,27 @@ function IncidentForm({ incident, companies, onSaved }: {
       </Panel>
       {error ? <FormError role="alert">{error}</FormError> : null}
       <Actions>
-        <Button type="submit" variant="tertiary" disabled={pending}>
-          비공개로 저장
-        </Button>
-        {incident ? (
-          <Button onClick={() => void save("PUBLIC")} disabled={pending}>
-            검토 완료 · 공개하기
-          </Button>
-        ) : null}
+        {incident?.status === "PUBLIC" ? (
+          <>
+            <Button variant="tertiary" onClick={() => void save("PRIVATE")} disabled={pending}>
+              비공개로 내리기
+            </Button>
+            <Button type="submit" disabled={pending}>
+              저장
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button type="submit" variant="tertiary" disabled={pending}>
+              비공개로 저장
+            </Button>
+            {incident ? (
+              <Button onClick={() => void save("PUBLIC")} disabled={pending}>
+                검토 완료 · 공개하기
+              </Button>
+            ) : null}
+          </>
+        )}
       </Actions>
     </Form>
   );
@@ -270,7 +284,7 @@ export function AdminIncidentEditPage() {
             companies={state.data.companies}
             onSaved={(saved) => {
               if (isNew) {
-                navigate(`${ADMIN_INCIDENTS_PATH}/${saved.id}`, { replace: true });
+                void navigate(`${ADMIN_INCIDENTS_PATH}/${saved.id}`, { replace: true });
                 return;
               }
               setNotice("저장했어요");

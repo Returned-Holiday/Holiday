@@ -22,7 +22,7 @@ export function useLogout() {
     } finally {
       setAnonymous();
       setPending(false);
-      navigate(HOME_PATH, { replace: true });
+      void navigate(HOME_PATH, { replace: true });
     }
   };
 

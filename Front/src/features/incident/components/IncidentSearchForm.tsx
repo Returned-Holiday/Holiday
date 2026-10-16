@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { createSearchParams, useNavigate } from "react-router";
 import styled from "styled-components";
 import { INCIDENTS_PATH } from "../../../app/paths";
@@ -49,10 +49,10 @@ export function IncidentSearchForm({ id, initialQuery = "", bordered = false }: 
   const navigate = useNavigate();
   const [query, setQuery] = useState(initialQuery);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const q = query.trim();
-    navigate({
+    void navigate({
       pathname: INCIDENTS_PATH,
       search: q ? `?${createSearchParams({ q })}` : "",
     });

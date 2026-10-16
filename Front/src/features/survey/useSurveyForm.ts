@@ -10,11 +10,14 @@ type Draft = {
   answers: Partial<Record<YesNoKey, Answer>>;
 };
 
-function toDraft(saved: SurveyAnswers | null, prefillIds: number[]): Draft {
+// 지금 유출 항목만 남김 (공지 갱신으로 미유출이 된 항목 ID 전송 X → 서버 400 방지)
+function toDraft(saved: SurveyAnswers | null, allowed: Set<number>, prefillIds: number[]): Draft {
   if (saved !== null) {
+    const selectedItemIds = saved.selectedItemIds.filter((id) => allowed.has(id));
+    const stale = saved.leakItemsAnswer === "SELECTED" && selectedItemIds.length === 0;
     return {
-      leakItemsAnswer: saved.leakItemsAnswer,
-      selectedItemIds: saved.selectedItemIds,
+      leakItemsAnswer: stale ? null : saved.leakItemsAnswer,
+      selectedItemIds,
       answers: {
         paymentLinked: saved.paymentLinked,
         reusedPassword: saved.reusedPassword,
@@ -23,9 +26,10 @@ function toDraft(saved: SurveyAnswers | null, prefillIds: number[]): Draft {
       },
     };
   }
+  const prefill = prefillIds.filter((id) => allowed.has(id));
   return {
-    leakItemsAnswer: prefillIds.length > 0 ? "SELECTED" : null,
-    selectedItemIds: prefillIds,
+    leakItemsAnswer: prefill.length > 0 ? "SELECTED" : null,
+    selectedItemIds: prefill,
     answers: {},
   };
 }
@@ -39,9 +43,7 @@ export function useSurveyForm(
 ) {
   // 이 사고의 유출 항목 ID만 (선택지 조작 방지는 서버가 최종)
   const allowed = new Set(leakedIds);
-  const [draft, setDraft] = useState<Draft>(() =>
-    toDraft(saved, prefillIds.filter((id) => allowed.has(id))),
-  );
+  const [draft, setDraft] = useState<Draft>(() => toDraft(saved, allowed, prefillIds));
   const [step, setStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);

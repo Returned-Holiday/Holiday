@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import { LOGIN_PATH } from "../../app/paths";
 import { ApiError } from "../../shared/api/errors";
@@ -49,7 +49,7 @@ export function useSignupForm() {
 
   const touch = (field: Field) => setErrors((current) => ({ ...current, [field]: validate(field) }));
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const fields: Field[] = ["email", "password", "passwordConfirm", "nickname", "agreements"];
     const next: Errors = {};
@@ -71,7 +71,7 @@ export function useSignupForm() {
         agreePrivacy: agreements.privacy,
         confirmAge: agreements.age,
       });
-      navigate(LOGIN_PATH, { replace: true, state: { signedUp: true } });
+      void navigate(LOGIN_PATH, { replace: true, state: { signedUp: true } });
     } catch (caught) {
       if (!(caught instanceof ApiError)) {
         throw caught;

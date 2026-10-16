@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { useNavigate } from "react-router";
 import styled from "styled-components";
 import { HOME_PATH } from "../../../app/paths";
@@ -122,7 +122,7 @@ export function WithdrawModal({ open, onClose }: WithdrawModalProps) {
     onClose();
   };
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (password === "") {
       setError("현재 비밀번호를 입력해 주세요.");
@@ -134,7 +134,7 @@ export function WithdrawModal({ open, onClose }: WithdrawModalProps) {
       // 탈퇴는 현재 비밀번호 매번 확인
       await withdraw(password);
       setAnonymous();
-      navigate(HOME_PATH, { replace: true });
+      void navigate(HOME_PATH, { replace: true });
     } catch (caught) {
       if (!(caught instanceof ApiError)) {
         throw caught;

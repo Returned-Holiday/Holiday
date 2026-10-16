@@ -59,9 +59,9 @@ export function LoginPage() {
   const navigate = useNavigate();
   const status = useAuthStore((state) => state.status);
   const { from, signedUp } = readState(location.state);
-  const { email, setEmail, password, setPassword, error, pending, submit } = useLogin(() =>
-    navigate(from, { replace: true }),
-  );
+  const { email, setEmail, password, setPassword, error, pending, submit } = useLogin(() => {
+    void navigate(from, { replace: true });
+  });
 
   if (status === "authenticated" && !pending) {
     return <Navigate to={from} replace />;

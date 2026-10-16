@@ -6,6 +6,7 @@ import type { IncidentListItem } from "./types";
 
 type State =
   | { status: "loading" }
+  | { status: "outOfRange" }
   | { status: "error"; message: string }
   | { status: "success"; page: Paginated<IncidentListItem> };
 
@@ -29,6 +30,11 @@ export function useIncidentSearch(q: string, page: number) {
       .then((result) => setState({ status: "success", page: result }))
       .catch((error: unknown) => {
         if (controller.signal.aborted) {
+          return;
+        }
+        // 없는 페이지(주소 직접 입력, 결과 감소) → 첫 페이지로
+        if (error instanceof ApiError && error.status === 404 && page > 1) {
+          setState({ status: "outOfRange" });
           return;
         }
         if (error instanceof ApiError || error instanceof TypeError) {

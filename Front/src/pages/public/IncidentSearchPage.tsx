@@ -1,6 +1,6 @@
-import { useSearchParams } from "react-router";
+import { createSearchParams, Navigate, useSearchParams } from "react-router";
 import styled from "styled-components";
-import { REPORT_NEW_PATH } from "../../app/paths";
+import { INCIDENTS_PATH, REPORT_NEW_PATH } from "../../app/paths";
 import { SEARCH_QUERY_MAX_LENGTH } from "../../features/incident/api";
 import { IncidentCard } from "../../features/incident/components/IncidentCard";
 import { IncidentSearchForm } from "../../features/incident/components/IncidentSearchForm";
@@ -68,6 +68,10 @@ export function IncidentSearchPage() {
     setParams(nextParams);
     window.scrollTo({ top: 0 });
   };
+
+  if (state.status === "outOfRange") {
+    return <Navigate to={{ pathname: INCIDENTS_PATH, search: q ? `?${createSearchParams({ q })}` : "" }} replace />;
+  }
 
   return (
     <PageContainer>

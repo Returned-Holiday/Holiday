@@ -27,7 +27,7 @@ export function AdminReportPage() {
   const loader = useCallback(
     async (signal?: AbortSignal) => {
       const [reports, incidents] = await Promise.all([fetchAdminReports(status, signal), fetchAdminIncidents({}, signal)]);
-      return { reports, incidents: incidents.results };
+      return { reports, incidents };
     },
     [status],
   );
@@ -50,7 +50,7 @@ export function AdminReportPage() {
             }}
           >
             {tab.label}
-            {tab.value === status && data ? ` ${data.reports.count}` : ""}
+            {tab.value === status && data ? ` ${data.reports.length}` : ""}
           </FilterTab>
         ))}
       </FilterTabs>
@@ -59,8 +59,8 @@ export function AdminReportPage() {
       {data ? (
         <TwoColumn>
           <ListPanel aria-label="제보 목록">
-            {data.reports.results.length === 0 ? <li>해당하는 제보가 없어요.</li> : null}
-            {data.reports.results.map((report) => (
+            {data.reports.length === 0 ? <li>해당하는 제보가 없어요.</li> : null}
+            {data.reports.map((report) => (
               <li key={report.id}>
                 <ListButton
                   type="button"

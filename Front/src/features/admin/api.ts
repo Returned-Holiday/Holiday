@@ -1,5 +1,5 @@
 import { apiClient } from "../../shared/api/client";
-import { isRecord, readPaginated, type Paginated } from "../../shared/lib/guards";
+import { isRecord, readPaginated } from "../../shared/lib/guards";
 
 // 관리자 화면 전용 (lazy 청크에만 포함)
 export type PublishStatus = "PUBLIC" | "PRIVATE";
@@ -30,6 +30,27 @@ const isNullableNumber = (value: unknown) => value === null || typeof value === 
 const isPublish = (value: unknown): value is PublishStatus => value === "PUBLIC" || value === "PRIVATE";
 const isLeakType = (value: unknown): value is LeakType => LEAK_TYPES.some((type) => type.value === value);
 const isSurveyKey = (value: unknown): value is SurveyKey => SURVEY_KEYS.some((key) => key.value === value);
+
+// 페이지 크기 20 고정 → 페이지 번호로 끝까지 순회 (응답의 next 주소는 따르지 않음, 상한 있음)
+const MAX_PAGES = 50;
+
+async function fetchAllPages<T>(
+  url: string,
+  params: Record<string, string | undefined>,
+  isItem: (item: unknown) => item is T,
+  signal?: AbortSignal,
+): Promise<T[]> {
+  const items: T[] = [];
+  for (let page = 1; page <= MAX_PAGES; page += 1) {
+    const response = await apiClient.get<unknown>(url, { params: { ...params, page }, signal });
+    const result = readPaginated(response.data, isItem);
+    items.push(...result.results);
+    if (result.next === null) {
+      break;
+    }
+  }
+  return items;
+}
 
 function readData<T>(body: unknown, guard: (value: unknown) => value is T): T {
   if (!isRecord(body) || !guard(body.data)) {
@@ -64,11 +85,10 @@ function isIncidentRow(value: unknown): value is AdminIncidentRow {
 }
 
 export async function fetchAdminIncidents(
-  params: { q?: string; status?: PublishStatus; page?: number },
+  params: { q?: string; status?: PublishStatus },
   signal?: AbortSignal,
-): Promise<Paginated<AdminIncidentRow>> {
-  const response = await apiClient.get<unknown>("/admin/incidents/", { params, signal });
-  return readPaginated(response.data, isIncidentRow);
+): Promise<AdminIncidentRow[]> {
+  return fetchAllPages("/admin/incidents/", params, isIncidentRow, signal);
 }
 
 export type AdminLeakItem = {
@@ -168,8 +188,7 @@ function isCompany(value: unknown): value is Company {
 }
 
 export async function fetchCompanies(signal?: AbortSignal): Promise<Company[]> {
-  const response = await apiClient.get<unknown>("/admin/incidents/companies/", { signal });
-  return readPaginated(response.data, isCompany).results;
+  return fetchAllPages("/admin/incidents/companies/", {}, isCompany, signal);
 }
 
 export async function saveCompany(input: Omit<Company, "id">, id?: number): Promise<void> {
@@ -214,8 +233,7 @@ function isAdminAction(value: unknown): value is AdminAction {
 }
 
 export async function fetchActions(signal?: AbortSignal): Promise<AdminAction[]> {
-  const response = await apiClient.get<unknown>("/admin/guides/actions/", { signal });
-  return readPaginated(response.data, isAdminAction).results;
+  return fetchAllPages("/admin/guides/actions/", {}, isAdminAction, signal);
 }
 
 export type ActionInput = Omit<AdminAction, "id" | "publishedAt">;
@@ -274,9 +292,8 @@ function isAdminReport(value: unknown): value is AdminReport {
   );
 }
 
-export async function fetchAdminReports(status: ReportStatus, signal?: AbortSignal): Promise<Paginated<AdminReportRow>> {
-  const response = await apiClient.get<unknown>("/admin/reports/", { params: { status }, signal });
-  return readPaginated(response.data, isReportRow);
+export async function fetchAdminReports(status: ReportStatus, signal?: AbortSignal): Promise<AdminReportRow[]> {
+  return fetchAllPages("/admin/reports/", { status }, isReportRow, signal);
 }
 
 export async function fetchAdminReport(id: number, signal?: AbortSignal): Promise<AdminReport> {

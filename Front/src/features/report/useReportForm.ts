@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { ApiError } from "../../shared/api/errors";
 import { toSafeHttpsUrl } from "../../shared/lib/validators";
 import { COMPANY_NAME_MAX, createReport, LEAK_ITEMS_MAX } from "./api";
@@ -40,7 +40,7 @@ export function useReportForm() {
   const setValue = (field: Field, value: string) => setValues((current) => ({ ...current, [field]: value }));
   const touch = (field: Field) => setErrors((current) => ({ ...current, [field]: validate(field) }));
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const fields: Field[] = ["companyName", "sourceUrl", "notifiedAt", "leakItemsText"];
     const next: Errors = {};

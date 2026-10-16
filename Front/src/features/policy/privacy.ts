@@ -25,6 +25,7 @@ export const PRIVACY_POLICY: PolicyDocumentData = {
           ["맞춤 대응 가이드", "설문 응답, 조치 완료 기록", "체크리스트 생성, 진행률 저장"],
           ["사고 제보", "기업명, 공식 출처 URL, 공지일, 유출 항목", "제보 검수, 결과 안내"],
           ["문자 캡처 인식", "통지문 이미지 (저장 안 함)", "유출 사고·항목 매칭"],
+          ["서비스 이용 시 자동 수집", "접속 IP 주소, 접속 일시, 브라우저 정보, 쿠키", "부정 이용 방지, 보안 사고 대응, 로그인 유지"],
         ],
       },
     },
@@ -119,15 +120,31 @@ export const PRIVACY_POLICY: PolicyDocumentData = {
       collapsed: true,
       body: {
         kind: "text",
-        paragraphs: [
-          "개인정보 보호책임자: 반납한연휴 팀",
-          "개인정보 침해에 대한 신고나 상담이 필요하면 개인정보침해 신고센터(국번 없이 118)에도 문의할 수 있습니다.",
+        paragraphs: ["개인정보 보호책임자: 반납한연휴 팀"],
+      },
+    },
+    {
+      id: "remedies",
+      title: "제9조  권익침해 구제 방법",
+      collapsed: true,
+      body: {
+        kind: "table",
+        columns: [
+          { label: "기관", width: 300 },
+          { label: "전화", width: 200 },
+          { label: "홈페이지", width: 338 },
+        ],
+        rows: [
+          ["개인정보 분쟁조정위원회", "국번 없이 1833-6972", "www.kopico.go.kr"],
+          ["개인정보침해 신고센터(KISA)", "국번 없이 118", "privacy.kisa.or.kr"],
+          ["대검찰청 사이버수사과", "국번 없이 1301", "www.spo.go.kr"],
+          ["경찰청 사이버수사국", "국번 없이 182", "ecrm.police.go.kr"],
         ],
       },
     },
     {
       id: "changes",
-      title: "제9조  방침의 변경",
+      title: "제10조  방침의 변경",
       collapsed: true,
       body: {
         kind: "text",
