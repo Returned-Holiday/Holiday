@@ -1,0 +1,5 @@
+# 기본 제외 목록 대체 (tests/도 검사 → 제출 소스 전체)
+:include .gitignore
+node_modules/
+build/
+dist/

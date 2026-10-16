@@ -31,3 +31,4 @@ jobs:
           --config p/python --config p/django
           --config p/typescript --config p/react
           --config p/secrets
+          --config .semgrep/

@@ -1,0 +1,162 @@
+# 팀 금지 API (docs/rules/secure-python.md, secure-ts.md)
+rules:
+  - id: rh-raw-sql
+    languages: [python]
+    severity: ERROR
+    message: "직접 SQL 금지 → ORM 사용 (SQL 삽입)"
+    pattern-either:
+      - pattern: $MODEL.objects.raw(...)
+      - pattern: $QS.extra(...)
+      - pattern: RawSQL(...)
+      - pattern: connection.cursor(...)
+      - pattern: connections[$DB].cursor(...)
+
+  - id: rh-code-exec
+    languages: [python]
+    severity: ERROR
+    message: "동적 코드 실행 금지 → 허용 목록 딕셔너리로 선택 (코드 삽입)"
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: exec(...)
+      - pattern: compile(...)
+      - pattern: __import__(...)
+
+  - id: rh-os-command
+    languages: [python]
+    severity: ERROR
+    message: "OS 명령 실행 금지 (OS 명령어 삽입)"
+    pattern-either:
+      - pattern: os.system(...)
+      - pattern: os.popen(...)
+      - pattern: subprocess.$FUNC(..., shell=True, ...)
+
+  - id: rh-unsafe-deserialization
+    languages: [python]
+    severity: ERROR
+    message: "pickle·marshal·shelve·yaml.load 금지 → json, yaml.safe_load (역직렬화)"
+    pattern-either:
+      - pattern-regex: ^\s*(import|from)\s+(pickle|cPickle|marshal|shelve|dill)\b
+      - pattern: yaml.load(...)
+      - pattern: yaml.unsafe_load(...)
+
+  - id: rh-xml-parsing
+    languages: [python]
+    severity: ERROR
+    message: "XML 파싱 금지 (XXE)"
+    pattern-regex: ^\s*(import|from)\s+(xml|lxml)\b
+
+  - id: rh-insecure-random
+    languages: [python]
+    severity: ERROR
+    message: "random 모듈 금지 → secrets (적절하지 않은 난수)"
+    pattern-regex: ^\s*(import\s+random\b|from\s+random\s+import)
+
+  - id: rh-weak-hash
+    languages: [python]
+    severity: ERROR
+    message: "MD5·SHA1 금지 → sha256 이상, 비밀번호는 Django 해셔 (취약한 암호 알고리즘)"
+    pattern-either:
+      - pattern: hashlib.md5(...)
+      - pattern: hashlib.sha1(...)
+      - patterns:
+          - pattern: hashlib.new($NAME, ...)
+          - metavariable-regex:
+              metavariable: $NAME
+              regex: (?i)["'](md5|sha1)["']
+
+  - id: rh-tls-verify-disabled
+    languages: [python]
+    severity: ERROR
+    message: "인증서 검증 끄기 금지 (부적절한 인증서 유효성 검증)"
+    pattern: $FUNC(..., verify=False, ...)
+
+  - id: rh-broad-except
+    languages: [python]
+    severity: ERROR
+    message: "광범위 예외 처리 금지 → 예상 가능한 예외만 (부적절한 예외 처리)"
+    pattern-either:
+      - pattern: |
+          try:
+            ...
+          except Exception:
+            ...
+      - pattern: |
+          try:
+            ...
+          except Exception as $ERR:
+            ...
+      - pattern: |
+          try:
+            ...
+          except BaseException:
+            ...
+      - pattern: |
+          try:
+            ...
+          except BaseException as $ERR:
+            ...
+      - pattern: |
+          try:
+            ...
+          except:
+            ...
+
+  - id: rh-except-pass
+    languages: [python]
+    severity: ERROR
+    message: "예외 무시 금지 → 처리하거나 상위로 (오류 상황 대응 부재)"
+    pattern-either:
+      - pattern: |
+          try:
+            ...
+          except $EXC:
+            pass
+      - pattern: |
+          try:
+            ...
+          except $EXC as $ERR:
+            pass
+
+  - id: rh-debug-code
+    languages: [python]
+    severity: ERROR
+    message: "디버그 코드 금지 → logging (남은 디버그 코드)"
+    pattern-either:
+      - pattern: print(...)
+      - pattern: breakpoint(...)
+      - pattern-regex: ^\s*(import|from)\s+(pdb|ipdb)\b
+
+  - id: rh-debug-setting
+    languages: [python]
+    severity: ERROR
+    message: "DEBUG = True 금지 → 로컬 env로만 (남은 디버그 코드)"
+    pattern: DEBUG = True
+
+  - id: rh-csrf-disabled
+    languages: [python]
+    severity: ERROR
+    message: "CSRF 검사 끄기 금지 (CSRF)"
+    pattern-either:
+      - pattern-regex: \bcsrf_exempt\b
+      - pattern: authentication_classes = []
+      - pattern: authentication_classes = ()
+
+  - id: rh-mark-safe
+    languages: [python]
+    severity: ERROR
+    message: "자동 이스케이프 우회 금지 (XSS)"
+    pattern-either:
+      - pattern: mark_safe(...)
+      - pattern: SafeString(...)
+
+  - id: rh-temp-file
+    languages: [python]
+    severity: ERROR
+    message: "tempfile.mktemp 금지, 업로드는 메모리 처리 (TOCTOU)"
+    pattern: tempfile.mktemp(...)
+
+  - id: rh-lint-bypass
+    languages: [typescript]
+    severity: ERROR
+    message: "ESLint·타입 검사 끄기 주석 금지 (보안 규칙 우회)"
+    pattern-regex: (eslint-disable|@ts-ignore|@ts-nocheck|@ts-expect-error)
