@@ -39,6 +39,7 @@ class IncidentListApiTests(TestCase):
         cases = {
             "sk 텔레": [skt_incident.pk],
             "SKT": [skt_incident.pk],
+            "ＳＫＴ": [skt_incident.pk],
             "케이": [kt_incident.pk],
             "  ": [kt_incident.pk, skt_incident.pk],
             "없는기업": [],

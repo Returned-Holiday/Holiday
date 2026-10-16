@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.db.models import Prefetch, QuerySet
 from django.shortcuts import get_object_or_404
 
@@ -37,3 +38,12 @@ def search_public_incidents(query: str) -> QuerySet[Incident]:
     if key:
         incidents = incidents.filter(company_id__in=_matching_company_ids(key))
     return incidents
+
+
+# 별칭 중복 검사 → 저장을 기업 행 잠금 안에서 (TOCTOU), ModelSerializer는 clean() 안 부름 → 여기로만 저장
+def save_company(company: Company) -> Company:
+    with transaction.atomic():
+        list(Company.objects.select_for_update().order_by("pk").values_list("pk", flat=True))
+        company.full_clean()
+        company.save()
+    return company

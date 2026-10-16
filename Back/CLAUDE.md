@@ -9,7 +9,7 @@ Python 3.12+ · Django 5.2 LTS · Django REST Framework · MySQL 8.4(RDS) · Gun
 | 앱 | 담당 | 내용 |
 |---|---|---|
 | `config` | BE-A | 설정, URL, Secrets 로더, 오류 응답 |
-| `common` | BE-B | 권한, 마스킹, URL 검증, 소유 필터, 시각 추상 모델 (DB 테이블 없음) |
+| `common` | BE-B | 권한, 마스킹, URL 검증, 소유 필터, 시각 추상 모델, 보안 미들웨어(만료 차단·감사 로그·캐시 금지), 로그 마스킹 필터 (DB 테이블 없음) |
 | `apps.accounts` | BE-A | 회원, 로그인 잠금, 비밀번호 정책, 탈퇴, 관리자 OTP |
 | `apps.incidents` | BE-B | 기업, 사고, 유출 항목, 검색 |
 | `apps.guides` | BE-A | 조치, 설문, 체크리스트, OCR(`services/ocr/`) |

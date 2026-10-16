@@ -3,9 +3,10 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import RegexValidator
 from rest_framework import serializers
 
+from common.passwords import is_password_expired
+
 from .constants import EMAIL_MAX_LENGTH, NICKNAME_MAX_LENGTH, NICKNAME_PATTERN, PASSWORD_INPUT_MAX_LENGTH
 from .models import User
-from .services import is_password_expired
 
 AGREEMENT_FIELDS = ("agree_terms", "agree_privacy", "confirm_age")
 

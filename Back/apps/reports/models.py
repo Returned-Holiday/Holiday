@@ -4,7 +4,6 @@ from django.db import models
 from django.db.models import Q
 
 from apps.incidents.constants import COMPANY_NAME_MAX_LENGTH
-from apps.incidents.models import Incident
 from apps.reports.constants import ReportStatus
 from common.masking import mask_pii
 from common.validators import LEAK_ITEMS_TEXT_MAX_LENGTH, REJECT_REASON_MAX_LENGTH, URL_MAX_LENGTH, validate_https_url
@@ -21,7 +20,7 @@ class Report(models.Model):
     reject_reason = models.TextField(null=True, blank=True, validators=[MaxLengthValidator(REJECT_REASON_MAX_LENGTH)])
     # 사고 삭제 시 연결만 해제
     linked_incident = models.ForeignKey(
-        Incident, on_delete=models.SET_NULL, null=True, blank=True, related_name="reports"
+        "incidents.Incident", on_delete=models.SET_NULL, null=True, blank=True, related_name="reports"
     )
     # 관리자 계정 삭제 X (검수 추적)
     reviewed_by = models.ForeignKey(
@@ -49,7 +48,7 @@ class Report(models.Model):
             ),
         ]
 
-    # 저장 경로 무관 마스킹 (원문 DB 저장 X)
+    # 원문 DB 저장 X, bulk_create·update는 save() 우회 → Semgrep rh-mask-bypass로 차단
     def save(self, *args: object, **kwargs: object) -> None:
         self.leak_items_text = mask_pii(self.leak_items_text)
         super().save(*args, **kwargs)

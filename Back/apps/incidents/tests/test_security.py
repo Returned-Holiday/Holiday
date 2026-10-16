@@ -18,7 +18,7 @@ from apps.incidents.constants import (
     ResponseStatus,
 )
 from apps.incidents.models import Company, Incident, IncidentLeakItem
-from apps.incidents.services import get_public_incident_or_404, get_public_incidents
+from apps.incidents.services import get_public_incident_or_404, get_public_incidents, save_company
 from apps.incidents.tests.helpers import make_incident
 from apps.incidents.validators import normalize_aliases
 from apps.incidents.views import IncidentListView
@@ -28,6 +28,9 @@ from common.validators import SUMMARY_MAX_LENGTH
 class AliasNormalizeTests(SimpleTestCase):
     def test_removes_spaces_lowercases_and_dedupes(self) -> None:
         self.assertEqual(normalize_aliases([" S K T ", "SKT", "Sk 텔레콤"]), ["skt", "sk텔레콤"])
+
+    def test_fullwidth_same_key(self) -> None:
+        self.assertEqual(normalize_aliases(["ＳＫＴ", "ｓｋ　텔레콤"]), ["skt", "sk텔레콤"])
 
     def test_rejects_invalid_values(self) -> None:
         cases = {
@@ -64,11 +67,36 @@ class CompanyConflictTests(TestCase):
     def test_rejects_name_equal_to_other_company_alias(self) -> None:
         self.assert_conflict(Company(name="SKT", aliases=[]), "name")
 
+    def test_rejects_fullwidth_variant_of_other_alias(self) -> None:
+        self.assert_conflict(Company(name="KT", aliases=["ＳＫＴ"]), "aliases")
+
     def test_own_aliases_not_conflict_on_update(self) -> None:
         company = Company.objects.get(name="SK텔레콤")
         company.aliases = ["SKT", "에스케이티"]
         company.full_clean()
         self.assertEqual(company.aliases, ["skt", "에스케이티"])
+
+
+class SaveCompanyTests(TestCase):
+    def setUp(self) -> None:
+        save_company(Company(name="SK텔레콤", aliases=["SKT"]))
+
+    def test_saves_normalized(self) -> None:
+        company = save_company(Company(name="KT", aliases=[" 케이 티 "]))
+        company.refresh_from_db()
+        self.assertEqual(company.aliases, ["케이티"])
+
+    def test_conflict_not_saved(self) -> None:
+        for company in (Company(name="KT", aliases=["skt"]), Company(name="ＳＫＴ", aliases=[])):
+            with self.subTest(name=company.name), self.assertRaises(ValidationError) as ctx:
+                save_company(company)
+            self.assertEqual(next(iter(ctx.exception.error_dict.values()))[0].code, "conflict")
+        self.assertEqual(Company.objects.count(), 1)
+
+    def test_duplicate_name_rejected(self) -> None:
+        with self.assertRaises(ValidationError) as ctx:
+            save_company(Company(name="SK텔레콤"))
+        self.assertIn("name", ctx.exception.error_dict)
 
 
 class IncidentConstraintTests(TestCase):

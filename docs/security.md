@@ -53,7 +53,7 @@ React: 자동 이스케이프, 라우트 가드(화면 단위 인가, 편의용)
 | 로그인 | `authenticate()` + `login()` (세션 키 자동 교체). 실패 문구 하나로 통일 |
 | 잠금 | django-axes: 실패 5회, 잠금 30분, 계정 기준. 로그인 요청 IP 제한(10/분)과 함께 사용 |
 | 비밀번호 검증 | Django 기본 검증기 + KISA 규칙 커스텀 검증기(`apps/accounts/validators.py`). 가입·변경 모두 서버에서 검증 |
-| 만료 강제 | `users.password_changed_at` + 90일. 만료된 세션은 공통 권한 클래스가 비밀번호 변경·로그아웃·`/auth/me` 외 모두 403 |
+| 만료 강제 | `users.password_changed_at` + 90일. 만료된 세션은 공통 미들웨어(`common/middleware.py` `PasswordExpiryMiddleware`)가 비밀번호 변경·로그아웃·`/auth/me`(+ CSRF 발급·로그인) 외 모든 `/api/` 요청을 403 `PASSWORD_EXPIRED`. 권한 클래스는 뷰가 `permission_classes`를 바꾸면 빠지므로 경로 기준으로 막는다. 기준 값은 `common/passwords.py` |
 | 변경 | 현재 비밀번호 확인 → 최소 사용 1일 → 규칙 → 최근 4개 비교 → 저장 → `update_session_auth_hash()`(다른 세션 무효화) |
 | 탈퇴 | 비밀번호 재확인 → 사용자 삭제(개인 데이터 CASCADE) → 세션 삭제 |
 | 가입 동의 | 약관·처리방침·만 14세 이상 동의는 서버에서 모두 `true`인지 검증만 하고 저장하지 않음. 동의 없이는 가입이 불가하므로 계정 존재 = 가입 시 동의, 시각은 `date_joined`. 개인정보 최소 수집 |
@@ -77,7 +77,7 @@ React: 자동 이스케이프, 라우트 가드(화면 단위 인가, 편의용)
 | 정책 | 구현 |
 |---|---|
 | 모든 입력은 serializer에서 검증 | 타입·길이·형식. 공통 검증 함수: `validate_https_url`, 길이 상수 |
-| SQL은 ORM만 | `raw()`, `extra()`, 커서 문자열 결합 금지. Semgrep 규칙으로 차단 |
+| SQL은 ORM만 | `raw()`, `extra()`, `RawSQL`, 커서 직접 사용 금지. Semgrep 사용자 정의 규칙(`.semgrep/rules.yml`)으로 PR마다 차단. 같은 파일에 금지 API 목록(`docs/rules/secure-python.md`, `secure-ts.md`)의 나머지도 규칙화 |
 | URL | https만, 500자 이하, 계정정보(`user:pass@`)·IP 주소·localhost 호스트 거부. **서버는 이 URL에 접속하지 않는다**(SSRF 원천 차단). 구현: `common/validators.py` |
 | 제보 자유 텍스트 | 저장 전 마스킹: 전화번호, 이메일, 주민번호, **카드번호, 계좌번호**. 길이 제한. 구분자 `-`·`.`·공백 혼용, 괄호 지역번호, `+82` 국제번호, 15자리 아멕스 카드 인식. 한계: 공백으로만 나눈 계좌번호(숫자 나열과 구분 불가), 전각 숫자는 일부만 가림. 계좌와 구분할 수 없는 숫자열(주문번호·사업자번호 등)은 계좌로 보고 가림(놓치는 쪽보다 더 가리는 쪽). 구현: `common/masking.py` |
 | 사용자 입력을 계산에 쓰지 않음 | 체크리스트 우선순위·진행률은 서버가 계산 |
@@ -88,7 +88,7 @@ React: 자동 이스케이프, 라우트 가드(화면 단위 인가, 편의용)
 | XSS | React 기본 이스케이프만. `dangerouslySetInnerHTML`·`innerHTML` 금지(ESLint error). 관리자 화면도 같은 규칙 |
 | 외부 링크 | `SafeExternalLink`: https만, `rel="noopener noreferrer"` |
 | 보안 헤더 | Django: `X_FRAME_OPTIONS=DENY`, nosniff, Referrer-Policy, HSTS<br>nginx: CSP `script-src 'self'`, `style-src 'self' 'unsafe-inline'`(styled-components 런타임 스타일 때문), `frame-ancestors 'none'` |
-| 캐시 | 회원 API 응답 `Cache-Control: no-store` |
+| 캐시 | `/api/` 응답 전체 `Cache-Control: no-store`(공용 PC·뒤로 가기 노출 방지). 구현: `common/middleware.py` `NoStoreApiMiddleware` |
 | 소스 노출 | 운영 빌드 소스맵 끔. HTML·번들에 주석·디버그 정보 없음 |
 
 ### 3-5. 파일 업로드 (OCR)
@@ -108,8 +108,8 @@ React: 자동 이스케이프, 라우트 가드(화면 단위 인가, 편의용)
 | 상세 에러 미노출 | `DEBUG=False`, DRF 공통 예외 핸들러(`{"code","message"}`), Django 404·500 핸들러, React ErrorBoundary |
 | 예외 처리 | `except Exception`·`except: pass` 금지. 예상 가능한 예외만 구체적으로 처리 |
 | 보안 이벤트 | 로그인 성공·실패, 잠금, 로그아웃, 비밀번호 변경, 탈퇴, 403, 429, 제보 검수, OCR 호출(내용 제외) |
-| 관리자 접속·처리 기록 | 관리자 API 요청마다 기록(조회 포함): 시각, 관리자 ID, IP, 대상(종류·ID), 행위(조회·등록·수정·공개 전환·승인·반려). 공통 감사 로그 모듈이 남긴다. 변경 전후 값은 남기지 않는다 |
-| 로그 필드 | 시각, user_id, IP, 경로, 결과. 이메일·전화번호는 마스킹 필터. 비밀번호·OCR 원문은 어떤 로그에도 없음 |
+| 관리자 접속·처리 기록 | 관리자 API 요청마다 기록(조회 포함): 시각, 관리자 ID, IP, 대상(종류·ID), 행위(조회·등록·수정·공개 전환·승인·반려). 공통 감사 로그 모듈이 남긴다. 변경 전후 값은 남기지 않는다. 구현: `common/middleware.py` `AdminAuditMiddleware` → 전용 로거 `app.audit`(1년 보관 로그 그룹). 대상은 URL 패턴과 정수 ID만 기록(경로 원문·요청 본문 X, 로그 위조 방지). 행위는 메소드 기본값(GET 조회·POST 등록·PATCH 수정·DELETE 삭제), 공개 전환·승인·반려처럼 메소드로 구분 안 되는 행위는 뷰에서 `common.audit.set_audit_action(request, "PUBLISH")` 등으로 지정(허용 값만 기록) |
+| 로그 필드 | 시각, user_id, IP, 경로, 결과. 이메일·전화번호 등은 마스킹 필터(`common/log_filters.py` `PiiMaskingFilter`, 모든 핸들러에 연결, 예외 원문 포함). 비밀번호·OCR 원문은 어떤 로그에도 없음. IP 추출은 `common/request.py` `client_ip` |
 | 저장 위치 | CloudWatch Logs (로그 그룹별 보관 기간으로 자동 삭제) |
 | 위변조 방지 | 서버 IAM 역할에는 로그 쓰기 권한만, 삭제 권한 없음 |
 | DB 내 로그 최소화 | axes 접속 기록 테이블 끔(`AXES_DISABLE_ACCESS_LOG`), 만료 세션 매일 `clearsessions` |
