@@ -1,4 +1,5 @@
 import axios, { isAxiosError } from "axios";
+import { toCamelKeys, toSnakeKeys } from "./case";
 import { toApiError } from "./errors";
 
 // 동일 출처만 호출 (CSRF 헤더 외부 유출 방지)
@@ -19,9 +20,23 @@ export function setUnauthorizedHandler(handler: (() => void) | null): void {
   unauthorizedHandler = handler;
 }
 
+// 요청 body·params 키 → snake_case
+apiClient.interceptors.request.use((config) => {
+  config.data = toSnakeKeys(config.data);
+  config.params = toSnakeKeys(config.params);
+  return config;
+});
+
+// 응답·에러 body 키 → camelCase (에러 fields 키 포함)
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    response.data = toCamelKeys(response.data);
+    return response;
+  },
   (error: unknown) => {
+    if (isAxiosError(error) && error.response !== undefined) {
+      error.response.data = toCamelKeys(error.response.data);
+    }
     const apiError = toApiError(error);
     const url = isAxiosError(error) ? error.config?.url : undefined;
     if (apiError.status === 401 && url !== undefined && !SESSION_PROBE_URLS.includes(url)) {

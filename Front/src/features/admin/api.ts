@@ -90,6 +90,7 @@ export type AdminIncident = {
   summary: string;
   status: PublishStatus;
   responseStatus: ResponseStatus;
+  noticeRevisedAt: string | null;
   leakItems: AdminLeakItem[];
 };
 
@@ -117,6 +118,7 @@ function isAdminIncident(value: unknown): value is AdminIncident {
     isString(value.summary) &&
     isPublish(value.status) &&
     (value.responseStatus === "ONGOING" || value.responseStatus === "CLOSED") &&
+    isNullableString(value.noticeRevisedAt) &&
     Array.isArray(value.leakItems) &&
     value.leakItems.every(isAdminLeakItem)
   );
@@ -127,7 +129,7 @@ export async function fetchAdminIncident(id: number, signal?: AbortSignal): Prom
   return readData(response.data, isAdminIncident);
 }
 
-export type IncidentInput = Omit<AdminIncident, "id" | "leakItems">;
+export type IncidentInput = Omit<AdminIncident, "id" | "noticeRevisedAt" | "leakItems">;
 
 export async function createAdminIncident(input: IncidentInput): Promise<AdminIncident> {
   const response = await apiClient.post<unknown>("/admin/incidents/", input);
@@ -191,6 +193,7 @@ export type AdminAction = {
   steps: string;
   sourceUrl: string | null;
   status: PublishStatus;
+  publishedAt: string | null;
 };
 
 function isAdminAction(value: unknown): value is AdminAction {
@@ -205,7 +208,8 @@ function isAdminAction(value: unknown): value is AdminAction {
     isString(value.title) &&
     isString(value.steps) &&
     isNullableString(value.sourceUrl) &&
-    isPublish(value.status)
+    isPublish(value.status) &&
+    isNullableString(value.publishedAt)
   );
 }
 
@@ -214,7 +218,9 @@ export async function fetchActions(signal?: AbortSignal): Promise<AdminAction[]>
   return readPaginated(response.data, isAdminAction).results;
 }
 
-export async function saveAction(input: Omit<AdminAction, "id">, id?: number): Promise<void> {
+export type ActionInput = Omit<AdminAction, "id" | "publishedAt">;
+
+export async function saveAction(input: ActionInput, id?: number): Promise<void> {
   if (id === undefined) {
     await apiClient.post("/admin/guides/actions/", input);
   } else {
@@ -237,6 +243,8 @@ export type AdminReport = AdminReportRow & {
   notifiedAt: string | null;
   leakItemsText: string;
   rejectReason: string | null;
+  linkedIncidentId: number | null;
+  reviewedAt: string | null;
 };
 
 const isReportStatus = (value: unknown): value is ReportStatus =>
@@ -260,6 +268,8 @@ function isAdminReport(value: unknown): value is AdminReport {
     isNullableString(value.notifiedAt) &&
     isString(value.leakItemsText) &&
     isNullableString(value.rejectReason) &&
+    isNullableNumber(value.linkedIncidentId) &&
+    isNullableString(value.reviewedAt) &&
     isReportRow(value)
   );
 }

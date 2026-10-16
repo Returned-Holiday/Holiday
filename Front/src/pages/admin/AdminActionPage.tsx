@@ -6,6 +6,7 @@ import {
   LEAK_TYPES,
   saveAction,
   SURVEY_KEYS,
+  type ActionInput,
   type AdminAction,
   type AdminIncidentRow,
   type PublishStatus,
@@ -87,7 +88,7 @@ const FieldLabel = styled.p`
   ${textStyle("bodyMdStrong")}
 `;
 
-type Draft = Omit<AdminAction, "id">;
+type Draft = ActionInput;
 
 const EMPTY: Draft = {
   incidentId: null,
@@ -100,6 +101,12 @@ const EMPTY: Draft = {
   sourceUrl: null,
   status: "PRIVATE",
 };
+
+// 입력 필드만 (id·publishedAt은 보내지 않음)
+function toDraft(action: AdminAction): Draft {
+  const { incidentId, triggerType, leakType, surveyKey, priority, title, steps, sourceUrl, status } = action;
+  return { incidentId, triggerType, leakType, surveyKey, priority, title, steps, sourceUrl, status };
+}
 
 function triggerText(action: AdminAction, incidents: AdminIncidentRow[]): string {
   const scope =
@@ -135,7 +142,7 @@ function ActionEditor({
   incidents: AdminIncidentRow[];
   onSaved: () => void;
 }) {
-  const [draft, setDraft] = useState<Draft>(action ?? EMPTY);
+  const [draft, setDraft] = useState<Draft>(action ? toDraft(action) : EMPTY);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 

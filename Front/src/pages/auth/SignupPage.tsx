@@ -129,7 +129,7 @@ export function SignupPage() {
         <TextField
           label="닉네임"
           autoComplete="nickname"
-          placeholder={`2~${NICKNAME_MAX}자`}
+          placeholder={`한글·영문·숫자 2~${NICKNAME_MAX}자`}
           value={values.nickname}
           onChange={(event) => setters.setNickname(event.target.value)}
           onBlur={() => form.touch("nickname")}
