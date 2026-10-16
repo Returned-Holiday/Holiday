@@ -29,10 +29,12 @@
 { "data": { ... } }
 ```
 
-목록(DRF 페이지네이션):
+목록(DRF 페이지네이션, 목록도 `data`로 감싼다):
 ```json
-{ "count": 134, "next": "...", "previous": null, "results": [ ... ] }
+{ "data": { "count": 134, "next": "...", "previous": null, "results": [ ... ] } }
 ```
+
+본문 없는 성공(204)은 감싸지 않는다. 에러 응답도 감싸지 않는다.
 
 에러(`Back/config/errors.py`가 만든다):
 ```json
@@ -73,6 +75,8 @@
 | `AUTH_FAILED` | 401 | 이메일 또는 비밀번호 불일치(어느 쪽인지 구분하지 않음) | accounts |
 | `ACCOUNT_LOCKED` | 429 | 로그인 잠금(30분) | accounts |
 | `PASSWORD_EXPIRED` | 403 | 비밀번호 90일 경과, 변경 필요 | accounts |
+| `OTP_FAILED` | 400 | 관리자 OTP 불일치(실패 문구 하나) | accounts |
 | `CONFLICT` | 409 | 중복, 삭제할 수 없는 항목 | 각 앱 |
 | `FILE_TOO_LARGE` | 413 | 업로드 5MB 초과 | guides |
 | `UNSUPPORTED_FILE` | 400 | JPG·PNG 아님 | guides |
+| `OCR_UNAVAILABLE` | 503 | 외부 OCR 서비스 실패(일반 문구, 원인은 로그에만) | guides |
