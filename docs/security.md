@@ -110,7 +110,8 @@ React: 자동 이스케이프, 라우트 가드(화면 단위 인가, 편의용)
 | 보안 이벤트 | 로그인 성공·실패, 잠금, 로그아웃, 비밀번호 변경, 탈퇴, 403, 429, 제보 검수, OCR 호출(내용 제외) |
 | 관리자 접속·처리 기록 | 관리자 API 요청마다 기록(조회 포함): 시각, 관리자 ID, IP, 대상(종류·ID), 행위(조회·등록·수정·공개 전환·승인·반려). 공통 감사 로그 모듈이 남긴다. 변경 전후 값은 남기지 않는다. 구현: `common/middleware.py` `AdminAuditMiddleware` → 전용 로거 `app.audit`(1년 보관 로그 그룹). 대상은 URL 패턴과 정수 ID만 기록(경로 원문·요청 본문 X, 로그 위조 방지). 행위는 메소드 기본값(GET 조회·POST 등록·PATCH 수정·DELETE 삭제), 공개 전환·승인·반려처럼 메소드로 구분 안 되는 행위는 뷰에서 `common.audit.set_audit_action(request, "PUBLISH")` 등으로 지정(허용 값만 기록) |
 | 로그 필드 | 시각, user_id, IP, 경로, 결과. 이메일·전화번호 등은 마스킹 필터(`common/log_filters.py` `PiiMaskingFilter`, 모든 핸들러에 연결, 예외 원문 포함). 비밀번호·OCR 원문은 어떤 로그에도 없음. IP 추출은 `common/request.py` `client_ip` |
-| 저장 위치 | CloudWatch Logs (로그 그룹별 보관 기간으로 자동 삭제) |
+| 저장 위치 | CloudWatch Logs (로그 그룹별 보관 기간으로 자동 삭제). 로거별 핸들러 분리: `app`(일반 30일) / `app.security`·`axes`(보안 이벤트 90일) / `app.audit`(관리자 1년). 운영은 `/var/log/returnedholiday/{app,security,audit}.log` → CloudWatch 에이전트가 그룹별로 수집(`config/settings/prod.py`) |
+| 미들웨어 순서 | `NoStoreApi`는 SecurityMiddleware 바로 다음(잠금·만료 응답에도 no-store), `AdminAudit` → `PasswordExpiry`는 OTP 다음(만료로 막힌 관리자 요청도 기록). 순서는 `config/tests/test_security_wiring.py`로 고정 |
 | 위변조 방지 | 서버 IAM 역할에는 로그 쓰기 권한만, 삭제 권한 없음 |
 | DB 내 로그 최소화 | axes 접속 기록 테이블 끔(`AXES_DISABLE_ACCESS_LOG`), 만료 세션 매일 `clearsessions` |
 

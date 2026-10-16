@@ -24,11 +24,16 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # 맨 바깥 → 잠금·만료 응답에도 no-store
+    "common.middleware.NoStoreApiMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django_otp.middleware.OTPMiddleware",
+    # 감사 → 만료 순 (만료로 막힌 관리자 요청도 기록)
+    "common.middleware.AdminAuditMiddleware",
+    "common.middleware.PasswordExpiryMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "axes.middleware.AxesMiddleware",
 ]
@@ -117,17 +122,28 @@ USE_TZ = True
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+# 보관 기간별 분리: 일반 30일 / 보안 이벤트 90일 / 관리자 감사 1년 (docs/security.md 3-6)
+LOG_HANDLERS = ("app", "security", "audit")
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
         "plain": {"format": "%(asctime)s %(levelname)s %(name)s %(message)s"},
     },
+    # 모든 핸들러 마스킹 (Django·라이브러리 로그 포함)
+    "filters": {
+        "pii_mask": {"()": "common.log_filters.PiiMaskingFilter"},
+    },
     "handlers": {
-        "console": {"class": "logging.StreamHandler", "formatter": "plain"},
+        name: {"class": "logging.StreamHandler", "formatter": "plain", "filters": ["pii_mask"]}
+        for name in LOG_HANDLERS
     },
     "loggers": {
-        "django": {"handlers": ["console"], "level": "WARNING"},
-        "app": {"handlers": ["console"], "level": "INFO", "propagate": False},
+        "django": {"handlers": ["app"], "level": "WARNING"},
+        "app": {"handlers": ["app"], "level": "INFO", "propagate": False},
+        "app.security": {"handlers": ["security"], "level": "INFO", "propagate": False},
+        "axes": {"handlers": ["security"], "level": "INFO", "propagate": False},
+        "app.audit": {"handlers": ["audit"], "level": "INFO", "propagate": False},
     },
 }
