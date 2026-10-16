@@ -221,16 +221,17 @@
 #### GET /api/incidents/?q=&page=
 - 권한: 공개 / 요청 제한: search
 - 요청: `q` 기업명·별칭(앞뒤 공백 제거, 최대 50자). 비우면 최근 목록(메인)
-- 처리: 공개 사고만, 공지일 최신순(다른 정렬 없음)
+- 처리: 공개 사고만, 공지일 최신순(다른 정렬 없음). 기업명·별칭 모두 공백·대소문자 무시 **부분 일치**(`sk 텔레` → SK텔레콤, `sk` → 별칭 `skt`). 페이지 크기 20 고정(클라이언트 변경 X)
 - 응답 200: `{ data: { count, next, previous, results[] } }`, `results[]`: `{ id, company_name, notified_at, response_status, leaked_labels[] }`
 - `leaked_labels`: 그 사고의 "유출" 항목 이름들
 - 에러: 400 `VALIDATION_ERROR`(50자 초과)
-- 테스트: 비공개 사고 미포함, 별칭 검색
+- 테스트: 비공개 사고 미포함, 별칭 검색, 응답 필드 목록 고정, `' OR '1'='1`·`%`는 일반 문자
 
 #### GET /api/incidents/<id>/
 - 권한: 공개 / 요청 제한: 기본
 - 응답 200: `{ data: { id, company_name, notified_at, occurred_at, affected_count, summary, source_url, contact_info, response_status, active_count, leak_items[]: { id, label, is_leaked } } }`
-- `active_count`: 설문 응답 수. `leak_type`은 사용자 응답에 넣지 않음
+- `active_count`: 설문 응답 수. **guides 설문 모델 머지 후 추가**(그 전까지 응답에 없음). `leak_type`은 사용자 응답에 넣지 않음
+- `leak_items`: 유출·미유출 모두, 등록 순
 - 에러: 404(비공개·없음 구분 X)
 
 #### POST /api/reports/
