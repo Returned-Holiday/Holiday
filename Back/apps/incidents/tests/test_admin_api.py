@@ -14,6 +14,7 @@ from apps.incidents.tests.helpers import make_incident
 
 BASE = "/api/admin/incidents/"
 COMPANIES = f"{BASE}companies/"
+AUDIT_MIDDLEWARE = "common.middleware.AdminAuditMiddleware"
 
 
 def login_admin(client: Client, user: User) -> None:
@@ -153,7 +154,8 @@ class AdminIncidentApiTests(AdminApiTestBase):
         self.assertEqual(self.client.put(url, self.incident_payload(), content_type="application/json").status_code, 405)
         self.assertEqual(self.client.delete(url).status_code, 405)
 
-    @modify_settings(MIDDLEWARE={"append": "common.middleware.AdminAuditMiddleware"})
+    # 설정 연결 여부 무관 한 번만 (중복 기록 X)
+    @modify_settings(MIDDLEWARE={"remove": AUDIT_MIDDLEWARE, "append": AUDIT_MIDDLEWARE})
     def test_publish_recorded_as_publish(self) -> None:
         url = f"{BASE}{make_incident(self.company).pk}/"
         with self.assertLogs("app.audit", "INFO") as logs:
