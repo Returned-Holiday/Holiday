@@ -91,7 +91,7 @@ sudo -u returnedholiday env DJANGO_SETTINGS_MODULE=config.settings.prod AWS_REGI
 - [ ] `curl -I http://<도메인>` → 301, `https://`로
 - [ ] 응답 헤더: HSTS·CSP·nosniff·X-Frame-Options 각 1개, `Server: nginx`(버전 X)
 - [ ] `GET /api/auth/csrf/` → 204, `GET /api/auth/me/` → 401 + `Cache-Control: no-store`
-- [ ] 허용 IP 밖에서 `GET /api/admin/incidents/` → 404, 본문이 없는 경로 404와 같음
+- [ ] 404 세 가지 본문이 바이트 단위로 같음: 허용 IP 밖 `GET /api/admin/incidents/`(nginx), 없는 경로 `GET /api/nothing/`(Django), 허용 IP 안 비관리자의 `GET /api/admin/incidents/`(DRF). `curl -s ... | sha256sum`으로 비교, `Allow` 헤더 없음
 - [ ] 외부에서 8000 포트 접속 불가, RDS 퍼블릭 접속 불가
 - [ ] `/var/log/returnedholiday/*.log`와 CloudWatch 그룹에 로그 들어옴, 이메일이 마스킹됨, nginx 접근 로그에 쿼리스트링 없음
 - [ ] `/.env`, `/.git/config` → 404
