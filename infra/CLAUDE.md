@@ -1,6 +1,6 @@
 # infra — nginx·AWS
 
-담당: BE-A(구성), BE-B(검토). 근거는 기반시설 가이드 웹 서비스(WEB)·DBMS(D)·클라우드(CA) 항목과 `docs/security.md` 3-7.
+담당: FE2(서버 구성·배포), BE-B(검토), BE-A(앱 운영 설정 `config/settings/prod.py`·로그 경로, 배포 문서). 서버에서 막히면 보안 설정을 풀지 말고 BE-A·BE-B와 먼저 상의한다. 근거는 기반시설 가이드 웹 서비스(WEB)·DBMS(D)·클라우드(CA) 항목과 `docs/security.md` 3-7.
 
 ## 구성
 ```
