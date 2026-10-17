@@ -7,7 +7,7 @@ from django.utils.cache import add_never_cache_headers
 from common.audit import resolve_audit_action
 from common.passwords import is_password_expired
 from common.request import client_ip
-from config.errors import error_json
+from common.responses import error_json
 
 audit_logger = logging.getLogger("app.audit")
 
