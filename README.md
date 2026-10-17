@@ -50,7 +50,7 @@ ReturnedHoliday/
 | `docs/rules/api-response.md` | 일부 | 앱별 에러 코드 확정(각 담당, 10/14) |
 | `docs/api.md` | 일부 | 엔드포인트별 요청·응답 필드(각 담당, 10/14) |
 | `docs/features.md` | 일부 | 화면별 기능·입력·흐름·빈/에러 상태(FE2, 10/13) |
-| `infra/CLAUDE.md` | 일부 | 허용 IP·리소스 이름(BE-A, 배포 준비 시) |
+| `infra/CLAUDE.md` | 일부 | 허용 IP·리소스 이름(FE2, 배포 준비 시) |
 | `Front/CLAUDE.md` | 완료 | — |
 | CI 워크플로 | 완료(`.github/workflows/`: backend, frontend, semgrep + 금지 API 규칙 `.semgrep/rules.yml`, 마이그레이션 누락 검사), 브랜치 보호 필수 검사 등록 완료 | — |
 
