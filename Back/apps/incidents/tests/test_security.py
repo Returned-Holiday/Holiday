@@ -1,10 +1,12 @@
 import datetime
 
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import RestrictedError
 from django.http import Http404
 from django.test import SimpleTestCase, TestCase
+from rest_framework.settings import api_settings
 
 from apps.incidents.constants import (
     AFFECTED_COUNT_MAX,
@@ -12,23 +14,15 @@ from apps.incidents.constants import (
     ALIASES_MAX_COUNT,
     IncidentStatus,
     LeakType,
+    SEARCH_QUERY_MAX_LENGTH,
     ResponseStatus,
 )
 from apps.incidents.models import Company, Incident, IncidentLeakItem
 from apps.incidents.services import get_public_incident_or_404, get_public_incidents, save_company
+from apps.incidents.tests.helpers import make_incident
 from apps.incidents.validators import normalize_aliases
+from apps.incidents.views import IncidentListView
 from common.validators import SUMMARY_MAX_LENGTH
-
-
-def make_incident(company: Company, **fields: object) -> Incident:
-    values = {
-        "company": company,
-        "notified_at": datetime.date(2026, 10, 1),
-        "summary": "요약",
-        "source_url": "https://example.com/notice",
-    }
-    values.update(fields)
-    return Incident.objects.create(**values)
 
 
 class AliasNormalizeTests(SimpleTestCase):
@@ -167,3 +161,59 @@ class PublicIncidentServiceTests(TestCase):
 
     def test_public_found(self) -> None:
         self.assertEqual(get_public_incident_or_404(self.public.pk), self.public)
+
+
+class IncidentApiSecurityTests(TestCase):
+    def setUp(self) -> None:
+        cache.clear()
+        self.company = Company.objects.create(name="SK텔레콤", aliases=["skt"])
+        self.public = make_incident(self.company, status=IncidentStatus.PUBLIC)
+        self.private = make_incident(self.company)
+        IncidentLeakItem.objects.create(incident=self.public, leak_type=LeakType.CONTACT, label="휴대전화번호",
+                                        is_leaked=True)
+
+    def list_ids(self, **params: str) -> list[int]:
+        return [row["id"] for row in self.client.get("/api/incidents/", params).json()["data"]["results"]]
+
+    def test_private_hidden_in_list_and_search(self) -> None:
+        self.assertEqual(self.list_ids(), [self.public.pk])
+        self.assertEqual(self.list_ids(q="skt"), [self.public.pk])
+
+    def test_private_and_missing_detail_same_404(self) -> None:
+        bodies = []
+        for incident_id in (self.private.pk, self.private.pk + 100):
+            response = self.client.get(f"/api/incidents/{incident_id}/")
+            self.assertEqual(response.status_code, 404)
+            bodies.append(response.json())
+        self.assertEqual(bodies[0], bodies[1])
+
+    def test_only_public_fields_exposed(self) -> None:
+        row = self.client.get("/api/incidents/").json()["data"]["results"][0]
+        self.assertEqual(set(row), {"id", "company_name", "notified_at", "response_status", "leaked_labels"})
+        detail = self.client.get(f"/api/incidents/{self.public.pk}/").json()["data"]
+        self.assertEqual(set(detail), {"id", "company_name", "notified_at", "occurred_at", "affected_count", "summary",
+                                       "source_url", "contact_info", "response_status", "leak_items"})
+        self.assertEqual(set(detail["leak_items"][0]), {"id", "label", "is_leaked"})
+
+    def test_query_over_limit_rejected(self) -> None:
+        response = self.client.get("/api/incidents/", {"q": "가" * (SEARCH_QUERY_MAX_LENGTH + 1)})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["code"], "VALIDATION_ERROR")
+        self.assertIn("q", response.json()["fields"])
+
+    def test_injection_strings_are_plain_text(self) -> None:
+        for query in ("' OR '1'='1", "%", "_", "\\"):
+            with self.subTest(query=query):
+                response = self.client.get("/api/incidents/", {"q": query})
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.json()["data"]["results"], [])
+
+    def test_page_size_not_client_controlled(self) -> None:
+        for _ in range(25):
+            make_incident(self.company, status=IncidentStatus.PUBLIC)
+        data = self.client.get("/api/incidents/", {"page_size": 1000, "limit": 1000}).json()["data"]
+        self.assertEqual(len(data["results"]), 20)
+
+    def test_search_throttled(self) -> None:
+        self.assertEqual(IncidentListView.throttle_scope, "search")
+        self.assertEqual(api_settings.DEFAULT_THROTTLE_RATES["search"], "60/min")
