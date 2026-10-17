@@ -241,11 +241,11 @@
 - 응답 201: `{ data: { id } }`
 - 에러: 400 `VALIDATION_ERROR`
 - 보안 이벤트 로그: 제보 등록(user_id, report_id). 내용 기록 X
-- 테스트: http URL 거부, 카드번호 마스킹 저장, `status` 조작 무시
+- 테스트: http URL 거부, 카드번호 마스킹 저장, `status`·`reporter`·검수 필드 조작 무시, 6번째 등록 429
 
 #### GET /api/reports/
 - 권한: 회원 / 요청 제한: 기본
-- 처리: `request.user`의 제보만, 최신순
+- 처리: `request.user`의 제보만, 최신순. 상세 API 없음(`/api/reports/<id>/` 404)
 - 응답 200: `{ data: { count, next, previous, results[] } }`, `results[]`: `{ id, company_name, created_at, status: "PENDING"|"APPROVED"|"REJECTED", reject_reason, reviewed_at }`
 
 #### GET /api/mypage/
@@ -298,9 +298,9 @@
 
 #### POST /api/admin/reports/<id>/approve/
 - 요청: `{ incident_id: number|null }`
-- 처리: `PENDING`만 처리. 검수자 `request.user`, 시각 서버
-- 응답 200: 제보 상세 객체 / 에러: 404, 409 `CONFLICT`(이미 검수됨)
+- 처리: `PENDING`만 처리. 검수자 `request.user`, 시각 서버. `PENDING` 조건부 UPDATE 한 문장 → 동시 검수도 한 번만 반영. 감사 로그 행위 `APPROVE`
+- 응답 200: 제보 상세 객체 / 에러: 400(없는 `incident_id`), 404, 409 `CONFLICT`(이미 검수됨)
 
 #### POST /api/admin/reports/<id>/reject/
 - 요청: `{ reason: string(1~500) }`
-- 처리·응답·에러: approve와 같음. 사유 없으면 400
+- 처리·응답·에러: approve와 같음(감사 로그 행위 `REJECT`). 사유는 앞뒤 공백 제거 후 1~500자, 없으면 400

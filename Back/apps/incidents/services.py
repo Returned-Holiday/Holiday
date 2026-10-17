@@ -11,6 +11,11 @@ def get_public_incidents() -> QuerySet[Incident]:
     return Incident.objects.filter(status=IncidentStatus.PUBLIC)
 
 
+# 관리자 검수용 (공개 여부 무관)
+def incident_exists(incident_id: int) -> bool:
+    return Incident.objects.filter(pk=incident_id).exists()
+
+
 # 비공개·없음 모두 404 (존재 여부 숨김)
 def get_public_incident_or_404(incident_id: int) -> Incident:
     return get_object_or_404(get_public_incidents(), pk=incident_id)
