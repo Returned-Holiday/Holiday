@@ -50,7 +50,7 @@ class LoggingWiringTests(TestCase):
                 self.assertIn("pii_mask", handler["filters"])
 
     def test_retention_groups_separated(self) -> None:
-        for logger_name in ("app", "app.security", "app.audit", "axes"):
+        for logger_name in ("app", "app.security", "app.audit", "axes", "django.security"):
             with self.subTest(logger=logger_name):
                 logger = logging.getLogger(logger_name)
                 self.assertFalse(logger.propagate)
@@ -59,3 +59,10 @@ class LoggingWiringTests(TestCase):
                 )
         handlers = {id(h) for name in ("app", "app.security", "app.audit") for h in logging.getLogger(name).handlers}
         self.assertEqual(len(handlers), 3)
+        security = logging.getLogger("app.security").handlers
+        self.assertEqual(logging.getLogger("django.security").handlers, security)
+
+    def test_csrf_failure_logged_as_security_event(self) -> None:
+        client = self.client_class(enforce_csrf_checks=True)
+        with self.assertLogs("django.security", "WARNING"):
+            client.post("/api/auth/login/", {}, content_type="application/json")

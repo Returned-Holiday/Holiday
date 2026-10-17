@@ -144,6 +144,8 @@ LOGGING = {
         "app": {"handlers": ["app"], "level": "INFO", "propagate": False},
         "app.security": {"handlers": ["security"], "level": "INFO", "propagate": False},
         "axes": {"handlers": ["security"], "level": "INFO", "propagate": False},
+        # CSRF 실패·DisallowedHost → 보안 이벤트 (90일)
+        "django.security": {"handlers": ["security"], "level": "INFO", "propagate": False},
         "app.audit": {"handlers": ["audit"], "level": "INFO", "propagate": False},
     },
 }
