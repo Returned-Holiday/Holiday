@@ -72,6 +72,7 @@ sudo usermod -aG nginx cwagent             # nginx 로그 읽기
 - [ ] `/etc/nginx/returnedholiday/admin-allow.geo`: 팀원 IP만 한 줄씩 `203.0.113.10 1;` 형식(레포 X)
 - [ ] 인증서 발급 전에는 443 server 블록을 잠시 빼고 80만 띄움 → `certbot certonly --webroot -w /var/www/certbot -d <도메인>` → 443 블록 복구
 - [ ] `sudo nginx -t` 통과 후 `sudo systemctl enable --now nginx`
+- [ ] 허용 IP 밖에서 `curl -si https://<도메인>/api/admin/incidents/` → 본문이 `_error.html`이 아닌 JSON(`return 404 '본문'`이 `error_page`에 가로채이지 않는지), `Content-Type: application/json`
 - [ ] 인증서 자동 갱신 타이머 확인
 
 ## 8. 마이그레이션·앱 시작
