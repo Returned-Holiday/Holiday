@@ -1,6 +1,6 @@
 import { useCallback, useState, type KeyboardEvent } from "react";
 import styled from "styled-components";
-import { fetchCompanies, saveCompany, type Company } from "../../features/admin/api";
+import { ADMIN_LIST_LIMIT, fetchCompanies, saveCompany, type Company } from "../../features/admin/api";
 import {
   Actions,
   AdminLead,
@@ -12,6 +12,7 @@ import {
   Panel,
   StateMessage,
   TwoColumn,
+  TruncatedNote,
 } from "../../features/admin/components/AdminUi";
 import { useAdminLoad } from "../../features/admin/useAdminLoad";
 import { ApiError } from "../../shared/api/errors";
@@ -164,13 +165,14 @@ export function AdminCompanyPage() {
   const { state, reload } = useAdminLoad(loader);
   const [selectedId, setSelectedId] = useState<number | "new" | null>(null);
 
-  const companies = state.status === "success" ? state.data : [];
+  const companies = state.status === "success" ? state.data.items : [];
   const selected = typeof selectedId === "number" ? (companies.find((company) => company.id === selectedId) ?? null) : null;
 
   return (
     <AdminPage>
       <AdminTitle title="기업 관리" action={<Button onClick={() => setSelectedId("new")}>+ 기업 추가</Button>} />
       <AdminLead>별칭은 검색과 문자 캡처 인식에서 같은 기업으로 찾는 데 쓰여요.</AdminLead>
+      {state.status === "success" && state.data.truncated ? <TruncatedNote limit={ADMIN_LIST_LIMIT} /> : null}
       {state.status === "loading" ? <StateMessage role="status">불러오는 중이에요.</StateMessage> : null}
       {state.status === "error" ? <StateMessage role="alert">기업 목록을 불러오지 못했어요.</StateMessage> : null}
       {state.status === "success" ? (

@@ -69,7 +69,7 @@ type SurveyHeaderProps = {
   step: number;
   total: number;
   leakedItems: LeakItem[];
-  activeCount: number;
+  activeCount?: number;
 };
 
 export function SurveyHeader({ title, step, total, leakedItems, activeCount }: SurveyHeaderProps) {
@@ -95,7 +95,9 @@ export function SurveyHeader({ title, step, total, leakedItems, activeCount }: S
       <Summary aria-labelledby="survey-leak-summary">
         <SummaryHead>
           <h2 id="survey-leak-summary">이 사고의 유출 항목</h2>
-          <Pill tone="active">지금 {activeCount.toLocaleString("ko-KR")}명이 대응 중</Pill>
+          {activeCount !== undefined ? (
+            <Pill tone="active">지금 {activeCount.toLocaleString("ko-KR")}명이 대응 중</Pill>
+          ) : null}
         </SummaryHead>
         <Chips>
           {leakedItems.map((item) => (

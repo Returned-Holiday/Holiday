@@ -103,7 +103,7 @@ export function ChecklistPage() {
   const { state, toggle, savingId, saveError, retry } = useChecklist(incidentId);
 
   if (state.status === "notFound") {
-    // 404 = 설문 응답 없음 → 설문으로 (사고가 없으면 설문 화면이 404 표시)
+    // 404 = 설문 없음 → 설문으로
     return incidentId === null ? <NotFoundPage /> : <Navigate to={surveyPath(incidentId)} replace />;
   }
 

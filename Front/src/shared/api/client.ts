@@ -27,6 +27,24 @@ export function getLastResponseAt(): number {
   return lastResponseAt;
 }
 
+// 탭끼리 마지막 응답 시각만 공유 (다른 탭 요청으로 연장된 세션 반영, storage X)
+const activityChannel = typeof BroadcastChannel === "undefined" ? null : new BroadcastChannel("session-activity");
+
+function markResponse(): void {
+  lastResponseAt = Date.now();
+  activityChannel?.postMessage(lastResponseAt);
+}
+
+if (activityChannel !== null) {
+  activityChannel.onmessage = (event: MessageEvent<unknown>) => {
+    const time = event.data;
+    // 숫자이고 현재 이전 시각만 (미래 값으로 만료 표시 지연 X)
+    if (typeof time === "number" && time > lastResponseAt && time <= Date.now()) {
+      lastResponseAt = time;
+    }
+  };
+}
+
 // 요청 body·params 키 → snake_case
 apiClient.interceptors.request.use((config) => {
   config.data = toSnakeKeys(config.data);
@@ -37,13 +55,16 @@ apiClient.interceptors.request.use((config) => {
 // 응답·에러 body 키 → camelCase (에러 fields 키 포함)
 apiClient.interceptors.response.use(
   (response) => {
-    lastResponseAt = Date.now();
+    markResponse();
     response.data = toCamelKeys(response.data);
     return response;
   },
   (error: unknown) => {
     if (isAxiosError(error) && error.response !== undefined) {
-      lastResponseAt = Date.now();
+      // 5xx는 서버가 세션 저장 X → 연장으로 보지 않음
+      if (error.response.status < 500) {
+        markResponse();
+      }
       error.response.data = toCamelKeys(error.response.data);
     }
     const apiError = toApiError(error);

@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { Link } from "react-router";
 import styled from "styled-components";
 import { ADMIN_INCIDENTS_PATH } from "../../app/paths";
-import { fetchAdminIncidents, type PublishStatus } from "../../features/admin/api";
+import { ADMIN_LIST_LIMIT, fetchAdminIncidents, type PublishStatus } from "../../features/admin/api";
 import {
   AdminPage,
   AdminTitle,
@@ -10,6 +10,7 @@ import {
   FilterTabs,
   Note,
   StateMessage,
+  TruncatedNote,
 } from "../../features/admin/components/AdminUi";
 import { useAdminLoad } from "../../features/admin/useAdminLoad";
 import { formatFullDate, incidentTitle } from "../../features/incident/format";
@@ -148,8 +149,9 @@ export function AdminIncidentListPage() {
 
       {state.status === "loading" ? <StateMessage role="status">불러오는 중이에요.</StateMessage> : null}
       {state.status === "error" ? <StateMessage role="alert">목록을 불러오지 못했어요.</StateMessage> : null}
-      {state.status === "success" && state.data.length === 0 ? <StateMessage>조건에 맞는 사고가 없어요.</StateMessage> : null}
-      {state.status === "success" && state.data.length > 0 ? (
+      {state.status === "success" && state.data.truncated ? <TruncatedNote limit={ADMIN_LIST_LIMIT} /> : null}
+      {state.status === "success" && state.data.items.length === 0 ? <StateMessage>조건에 맞는 사고가 없어요.</StateMessage> : null}
+      {state.status === "success" && state.data.items.length > 0 ? (
         <TableWrap>
           <Table>
             <thead>
@@ -165,7 +167,7 @@ export function AdminIncidentListPage() {
               </tr>
             </thead>
             <tbody>
-              {state.data.map((row) => (
+              {state.data.items.map((row) => (
                 <tr key={row.id}>
                   <td>{incidentTitle(row.companyName)}</td>
                   <td>{formatFullDate(row.notifiedAt)}</td>

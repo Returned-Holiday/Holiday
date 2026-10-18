@@ -33,23 +33,28 @@ const isSurveyKey = (value: unknown): value is SurveyKey => SURVEY_KEYS.some((ke
 
 // 페이지 크기 20 고정 → 페이지 번호로 끝까지 순회 (응답의 next 주소는 따르지 않음, 상한 있음)
 const MAX_PAGES = 50;
+const PAGE_SIZE = 20;
+export const ADMIN_LIST_LIMIT = MAX_PAGES * PAGE_SIZE;
+
+// truncated: 상한에 걸려 일부만 받음 → 화면 안내
+export type AdminList<T> = { items: T[]; truncated: boolean };
 
 async function fetchAllPages<T>(
   url: string,
   params: Record<string, string | undefined>,
   isItem: (item: unknown) => item is T,
   signal?: AbortSignal,
-): Promise<T[]> {
+): Promise<AdminList<T>> {
   const items: T[] = [];
   for (let page = 1; page <= MAX_PAGES; page += 1) {
     const response = await apiClient.get<unknown>(url, { params: { ...params, page }, signal });
     const result = readPaginated(response.data, isItem);
     items.push(...result.results);
     if (result.next === null) {
-      break;
+      return { items, truncated: false };
     }
   }
-  return items;
+  return { items, truncated: true };
 }
 
 function readData<T>(body: unknown, guard: (value: unknown) => value is T): T {
@@ -87,7 +92,7 @@ function isIncidentRow(value: unknown): value is AdminIncidentRow {
 export async function fetchAdminIncidents(
   params: { q?: string; status?: PublishStatus },
   signal?: AbortSignal,
-): Promise<AdminIncidentRow[]> {
+): Promise<AdminList<AdminIncidentRow>> {
   return fetchAllPages("/admin/incidents/", params, isIncidentRow, signal);
 }
 
@@ -96,7 +101,8 @@ export type AdminLeakItem = {
   label: string;
   isLeaked: boolean;
   leakType: LeakType;
-  selectedByUsers: boolean;
+  // 설문 모델 머지 전에는 응답에 없음 (삭제 가능 여부는 서버 409가 최종)
+  selectedByUsers?: boolean;
 };
 
 export type AdminIncident = {
@@ -121,7 +127,7 @@ function isAdminLeakItem(value: unknown): value is AdminLeakItem {
     isString(value.label) &&
     typeof value.isLeaked === "boolean" &&
     isLeakType(value.leakType) &&
-    typeof value.selectedByUsers === "boolean"
+    (value.selectedByUsers === undefined || typeof value.selectedByUsers === "boolean")
   );
 }
 
@@ -187,7 +193,7 @@ function isCompany(value: unknown): value is Company {
   );
 }
 
-export async function fetchCompanies(signal?: AbortSignal): Promise<Company[]> {
+export async function fetchCompanies(signal?: AbortSignal): Promise<AdminList<Company>> {
   return fetchAllPages("/admin/incidents/companies/", {}, isCompany, signal);
 }
 
@@ -232,7 +238,7 @@ function isAdminAction(value: unknown): value is AdminAction {
   );
 }
 
-export async function fetchActions(signal?: AbortSignal): Promise<AdminAction[]> {
+export async function fetchActions(signal?: AbortSignal): Promise<AdminList<AdminAction>> {
   return fetchAllPages("/admin/guides/actions/", {}, isAdminAction, signal);
 }
 
@@ -292,7 +298,7 @@ function isAdminReport(value: unknown): value is AdminReport {
   );
 }
 
-export async function fetchAdminReports(status: ReportStatus, signal?: AbortSignal): Promise<AdminReportRow[]> {
+export async function fetchAdminReports(status: ReportStatus, signal?: AbortSignal): Promise<AdminList<AdminReportRow>> {
   return fetchAllPages("/admin/reports/", { status }, isReportRow, signal);
 }
 
