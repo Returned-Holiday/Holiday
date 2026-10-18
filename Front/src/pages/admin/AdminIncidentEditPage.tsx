@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router";
 import styled from "styled-components";
 import { ADMIN_INCIDENTS_PATH } from "../../app/paths";
 import {
+  ADMIN_LIST_LIMIT,
   createAdminIncident,
   fetchAdminIncident,
   fetchCompanies,
@@ -20,6 +21,7 @@ import {
   Panel,
   Select,
   StateMessage,
+  TruncatedNote,
 } from "../../features/admin/components/AdminUi";
 import { LeakItemEditor } from "../../features/admin/components/LeakItemEditor";
 import { useAdminLoad } from "../../features/admin/useAdminLoad";
@@ -250,7 +252,7 @@ export function AdminIncidentEditPage() {
         fetchCompanies(signal),
         incidentId === null ? Promise.resolve(null) : fetchAdminIncident(incidentId, signal),
       ]);
-      return { companies, incident };
+      return { companies: companies.items, truncated: companies.truncated, incident };
     },
     [incidentId],
   );
@@ -274,6 +276,7 @@ export function AdminIncidentEditPage() {
         }
       />
       {notice ? <Pill tone="positive">{notice}</Pill> : null}
+      {state.status === "success" && state.data.truncated ? <TruncatedNote limit={ADMIN_LIST_LIMIT} /> : null}
       {state.status === "loading" ? <StateMessage role="status">불러오는 중이에요.</StateMessage> : null}
       {state.status === "error" ? <StateMessage role="alert">사고 정보를 불러오지 못했어요.</StateMessage> : null}
       {state.status === "success" ? (
