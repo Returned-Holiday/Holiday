@@ -120,8 +120,8 @@ export function LeakItemEditor({ incidentId, items, onChanged }: LeakItemEditorP
               <Button
                 variant="tertiary"
                 size="sm"
-                disabled={pending || item.selectedByUsers}
-                title={item.selectedByUsers ? "사용자가 고른 항목은 지울 수 없어요" : undefined}
+                disabled={pending || item.selectedByUsers === true}
+                title={item.selectedByUsers === true ? "사용자가 고른 항목은 지울 수 없어요" : undefined}
                 onClick={() => void run(() => deleteLeakItem(incidentId, item.id))}
               >
                 삭제
