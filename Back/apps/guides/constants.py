@@ -44,3 +44,6 @@ class LeakItemsAnswer(models.TextChoices):
 class Certainty(models.TextChoices):
     CERTAIN = "CERTAIN", "확실"
     CHECK_NEEDED = "CHECK_NEEDED", "확인 필요"
+ACTION_INCIDENT_ERROR = "등록된 사고를 골라 주세요."
+TRIGGER_REQUIRED_ERROR = "선택한 트리거에 필요한 값입니다."
+TRIGGER_EMPTY_ERROR = "선택한 트리거에서는 비워 두세요."
