@@ -172,7 +172,8 @@
 - 응답 200: `{ data: { incident_id, company_name, source_url, contact_info, notice_revised, leak_items_unknown, completed_count, total_count, actions[] } }`
 - `actions[]`: `{ id, priority, title, summary, steps, source_url, reason, certainty: "CERTAIN"|"CHECK_NEEDED", is_new, completed }`. 우선순위 → 확실 순, 서버 계산
 - `summary`: ERD에 없음. 항상 `null`(프론트는 null이면 줄 생략)
-- `reason`: 서버가 만든 표시 문구(예: "설문: 결제수단 연결")
+- `reason`: 서버가 만든 표시 문구. 형식 세 가지: `"유출 항목: <유형 이름>"`(예: "유출 항목: 연락처"), `"설문: <설문 키 이름>"`(예: "설문: 결제수단 연결"), `"이 사고 안내"`(특수 조치)
+- `certainty`: 항목 선택·설문 "예"·특수 조치는 `CERTAIN`, "잘 모르겠어요"·설문 "모름"은 `CHECK_NEEDED`. 미유출 항목 유형은 "잘 모르겠어요"여도 포함하지 않음
 - 에러: 404(설문 응답 없음. 프론트는 설문 화면으로 이동)
 - 테스트: 비공개 조치·다른 사고 특수 조치 미포함, 진행률 서버 계산
 
