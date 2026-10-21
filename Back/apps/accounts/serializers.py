@@ -5,7 +5,13 @@ from rest_framework import serializers
 
 from common.passwords import is_password_expired
 
-from .constants import EMAIL_MAX_LENGTH, NICKNAME_MAX_LENGTH, NICKNAME_PATTERN, PASSWORD_INPUT_MAX_LENGTH
+from .constants import (
+    EMAIL_MAX_LENGTH,
+    NICKNAME_MAX_LENGTH,
+    NICKNAME_PATTERN,
+    OTP_CODE_PATTERN,
+    PASSWORD_INPUT_MAX_LENGTH,
+)
 from .models import User
 
 AGREEMENT_FIELDS = ("agree_terms", "agree_privacy", "confirm_age")
@@ -62,3 +68,7 @@ class MeSerializer(serializers.ModelSerializer):
     # OTP 미들웨어가 붙인 is_verified, 비관리자는 항상 False
     def get_otp_verified(self, user: User) -> bool:
         return bool(user.is_staff and user.is_verified())
+
+
+class OtpSerializer(serializers.Serializer):
+    code = serializers.RegexField(OTP_CODE_PATTERN, max_length=6)

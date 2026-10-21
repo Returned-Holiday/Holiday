@@ -11,3 +11,12 @@ class IsStaffWithOtp(BasePermission):
         if not (user and user.is_authenticated and user.is_staff and user.is_verified()):
             raise NotFound
         return True
+
+
+# OTP 인증 전 관리자 (OTP 입력 API 전용), 비관리자 → 404
+class IsStaffBeforeOtp(BasePermission):
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        user = request.user
+        if not (user and user.is_authenticated and user.is_staff):
+            raise NotFound
+        return True

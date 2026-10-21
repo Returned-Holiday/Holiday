@@ -97,5 +97,15 @@ sudo -u returnedholiday env DJANGO_SETTINGS_MODULE=config.settings.prod AWS_REGI
 - [ ] `/var/log/returnedholiday/*.log`와 CloudWatch 그룹에 로그 들어옴, 이메일이 마스킹됨, nginx 접근 로그에 쿼리스트링 없음
 - [ ] `/.env`, `/.git/config` → 404
 
-## 남은 일
-- 관리자 계정 생성·OTP 기기 등록 서버 명령(BE-A, 개발 중). 그 전까지 관리자 화면 확인은 보류
+## 10. 관리자 계정
+서버에서만 만든다(화면·API 없음). 앱 시크릿으로 실행한다.
+```bash
+cd /srv/returnedholiday/app/Back
+RUN="sudo -u returnedholiday env DJANGO_SETTINGS_MODULE=config.settings.prod AWS_REGION=<리전> AWS_SECRET_ID=<앱 시크릿> /srv/returnedholiday/venv/bin/python manage.py"
+$RUN create_admin --email <관리자 이메일> --nickname <닉네임>   # 비밀번호는 프롬프트로만 입력
+$RUN register_otp --email <관리자 이메일>                        # otpauth:// 를 인증 앱에 등록
+$RUN deactivate_admin --email <관리자 이메일>                    # 퇴출 시: 비활성화·OTP 기기 삭제·세션 종료
+```
+- [ ] `register_otp` 출력(비밀값 포함)은 인증 앱 등록 직후 화면 버퍼에서 지움(`clear` 또는 `printf '\033c'`). `history -c`는 입력 명령만 지워서 출력은 남음. tmux·screen 로그를 켜 두었으면 그 로그 파일도 확인
+- [ ] 비밀번호 90일이 지난 관리자는 OTP 전에 비밀번호부터 변경해야 함(`/api/auth/otp/`는 만료 허용 경로 아님)
+- [ ] 관리자 로그인 → `/manage/otp`에서 6자리 입력 → 관리자 화면 진입 확인
