@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.http import HttpRequest, JsonResponse
-from django.test import TestCase, modify_settings, override_settings
+from django.test import TestCase, override_settings
 from django.urls import path
 from django.utils import timezone
 from rest_framework.permissions import AllowAny
@@ -11,13 +11,6 @@ from rest_framework.views import APIView
 
 from apps.accounts.models import User
 from common.audit import set_audit_action
-
-SECURITY_MIDDLEWARE = [
-    "common.middleware.NoStoreApiMiddleware",
-    "common.middleware.AdminAuditMiddleware",
-    "common.middleware.PasswordExpiryMiddleware",
-]
-
 
 def ok_view(request: HttpRequest, **kwargs: object) -> JsonResponse:
     return JsonResponse({})
@@ -45,7 +38,6 @@ urlpatterns = [
 ]
 
 
-@modify_settings(MIDDLEWARE={"append": SECURITY_MIDDLEWARE})
 class PasswordExpiryTests(TestCase):
     def setUp(self) -> None:
         self.user = User.objects.create_user(email="member@example.com", nickname="member")
@@ -79,7 +71,6 @@ class PasswordExpiryTests(TestCase):
         self.assertNotEqual(self.client.get("/api/incidents/").status_code, 403)
 
 
-@modify_settings(MIDDLEWARE={"append": SECURITY_MIDDLEWARE})
 class NoStoreTests(TestCase):
     def test_api_response_not_cached(self) -> None:
         self.assertIn("no-store", self.client.get("/api/auth/csrf/")["Cache-Control"])
@@ -93,7 +84,6 @@ class NoStoreTests(TestCase):
 
 
 @override_settings(ROOT_URLCONF=__name__)
-@modify_settings(MIDDLEWARE={"append": SECURITY_MIDDLEWARE})
 class AdminAuditTests(TestCase):
     def setUp(self) -> None:
         self.admin = User.objects.create_user(email="admin@example.com", nickname="admin", is_staff=True)

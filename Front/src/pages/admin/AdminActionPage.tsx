@@ -1,11 +1,13 @@
 import { useCallback, useState } from "react";
 import styled from "styled-components";
 import {
+  ADMIN_LIST_LIMIT,
   fetchActions,
   fetchAdminIncidents,
   LEAK_TYPES,
   saveAction,
   SURVEY_KEYS,
+  type ActionInput,
   type AdminAction,
   type AdminIncidentRow,
   type PublishStatus,
@@ -24,6 +26,7 @@ import {
   Select,
   StateMessage,
   TwoColumn,
+  TruncatedNote,
 } from "../../features/admin/components/AdminUi";
 import { useAdminLoad } from "../../features/admin/useAdminLoad";
 import { PRIORITY_LABELS } from "../../features/checklist/types";
@@ -87,7 +90,7 @@ const FieldLabel = styled.p`
   ${textStyle("bodyMdStrong")}
 `;
 
-type Draft = Omit<AdminAction, "id">;
+type Draft = ActionInput;
 
 const EMPTY: Draft = {
   incidentId: null,
@@ -100,6 +103,12 @@ const EMPTY: Draft = {
   sourceUrl: null,
   status: "PRIVATE",
 };
+
+// 입력 필드만 (id·publishedAt은 보내지 않음)
+function toDraft(action: AdminAction): Draft {
+  const { incidentId, triggerType, leakType, surveyKey, priority, title, steps, sourceUrl, status } = action;
+  return { incidentId, triggerType, leakType, surveyKey, priority, title, steps, sourceUrl, status };
+}
 
 function triggerText(action: AdminAction, incidents: AdminIncidentRow[]): string {
   const scope =
@@ -135,7 +144,7 @@ function ActionEditor({
   incidents: AdminIncidentRow[];
   onSaved: () => void;
 }) {
-  const [draft, setDraft] = useState<Draft>(action ?? EMPTY);
+  const [draft, setDraft] = useState<Draft>(action ? toDraft(action) : EMPTY);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -320,7 +329,7 @@ function ActionEditor({
 export function AdminActionPage() {
   const loader = useCallback(async (signal?: AbortSignal) => {
     const [actions, incidents] = await Promise.all([fetchActions(signal), fetchAdminIncidents({}, signal)]);
-    return { actions, incidents: incidents.results };
+    return { actions: actions.items, incidents: incidents.items, truncated: actions.truncated || incidents.truncated };
   }, []);
   const { state, reload } = useAdminLoad(loader);
   const [selectedId, setSelectedId] = useState<number | "new" | null>(null);
@@ -331,6 +340,7 @@ export function AdminActionPage() {
   return (
     <AdminPage>
       <AdminTitle title="조치 관리" action={<Button onClick={() => setSelectedId("new")}>+ 조치 추가</Button>} />
+      {data?.truncated ? <TruncatedNote limit={ADMIN_LIST_LIMIT} /> : null}
       {state.status === "loading" ? <StateMessage role="status">불러오는 중이에요.</StateMessage> : null}
       {state.status === "error" ? <StateMessage role="alert">조치 목록을 불러오지 못했어요.</StateMessage> : null}
       {data ? (

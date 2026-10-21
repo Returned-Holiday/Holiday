@@ -58,11 +58,11 @@ export function OcrUploadPage() {
           <OcrResult
             title={incidentTitle(state.result.incident.companyName)}
             labels={state.result.matchedItems.map((item) => item.label)}
-            onStart={() =>
-              navigate(surveyPath(state.result.incident.id), {
+            onStart={() => {
+              void navigate(surveyPath(state.result.incident.id), {
                 state: { prefillItemIds: state.result.matchedItems.map((item) => item.id) },
-              })
-            }
+              });
+            }}
           />
         ) : null}
 

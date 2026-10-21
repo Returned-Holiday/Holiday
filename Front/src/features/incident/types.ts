@@ -44,7 +44,8 @@ export type IncidentDetail = IncidentBase & {
   summary: string;
   sourceUrl: string;
   contactInfo: string | null;
-  activeCount: number;
+  // 설문 모델 머지 전에는 응답에 없음
+  activeCount?: number;
   leakItems: LeakItem[];
 };
 
@@ -67,7 +68,7 @@ export function isIncidentDetail(value: unknown): value is IncidentDetail {
     typeof value.summary === "string" &&
     typeof value.sourceUrl === "string" &&
     isNullableString(value.contactInfo) &&
-    typeof value.activeCount === "number" &&
+    (value.activeCount === undefined || typeof value.activeCount === "number") &&
     Array.isArray(value.leakItems) &&
     value.leakItems.every(isLeakItem) &&
     isIncidentBase(value)

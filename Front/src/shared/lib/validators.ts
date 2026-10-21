@@ -23,12 +23,18 @@ export function toSafeHttpsUrl(value: string): URL | null {
   return url;
 }
 
-// //외부도메인 오픈 리다이렉트 차단
+// 같은 출처 경로만 허용 (오픈 리다이렉트 X)
 export function isSafeInternalPath(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    value.startsWith("/") &&
-    !value.startsWith("//") &&
-    !value.startsWith("/\\")
-  );
+  if (typeof value !== "string" || !value.startsWith("/") || /[\\\s\p{Cc}]/u.test(value)) {
+    return false;
+  }
+  const origin = window.location.origin;
+  try {
+    return new URL(value, origin).origin === origin;
+  } catch (error) {
+    if (error instanceof TypeError) {
+      return false;
+    }
+    throw error;
+  }
 }

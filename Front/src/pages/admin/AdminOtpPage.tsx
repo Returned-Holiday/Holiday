@@ -1,4 +1,4 @@
-import { useRef, useState, type ClipboardEvent, type FormEvent, type KeyboardEvent } from "react";
+import { useRef, useState, type ClipboardEvent, type SubmitEvent, type KeyboardEvent } from "react";
 import { Navigate, useNavigate } from "react-router";
 import styled from "styled-components";
 import { ADMIN_INCIDENTS_PATH } from "../../app/paths";
@@ -133,7 +133,7 @@ export function AdminOtpPage() {
     refs.current[Math.min(pasted.length, LENGTH) - 1]?.focus();
   };
 
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
+  const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
     const code = digits.join("");
     if (code.length !== LENGTH) {
@@ -148,7 +148,7 @@ export function AdminOtpPage() {
       if (user !== null) {
         setUser(user);
       }
-      navigate(ADMIN_INCIDENTS_PATH, { replace: true });
+      void navigate(ADMIN_INCIDENTS_PATH, { replace: true });
     } catch (caught) {
       if (!(caught instanceof ApiError || caught instanceof TypeError)) {
         throw caught;

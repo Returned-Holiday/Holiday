@@ -4,11 +4,19 @@ export const PASSWORD_RULE_TEXT =
   "영문 대·소문자, 숫자, 특수문자 중 2가지로 10자 이상 또는 3가지로 8자 이상";
 export const PASSWORD_PATTERN_TEXT = "1234·aaaa 같은 연속·반복 문자와 이메일 아이디는 쓸 수 없어요";
 
-const SEQUENCES = ["0123456789", "abcdefghijklmnopqrstuvwxyz", "qwertyuiop", "asdfghjkl", "zxcvbnm"];
+// 서버 검증기와 같은 기준 (특수문자 = ASCII 문장부호, 숫자 키보드 줄 1234567890 포함)
+const SEQUENCES = ["0123456789", "1234567890", "abcdefghijklmnopqrstuvwxyz", "qwertyuiop", "asdfghjkl", "zxcvbnm"];
+const PUNCTUATION = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
 const RUN_LENGTH = 4;
 
 function countKinds(password: string): number {
-  return [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z\d]/].filter((pattern) => pattern.test(password)).length;
+  const kinds = [
+    /[a-z]/.test(password),
+    /[A-Z]/.test(password),
+    /\d/.test(password),
+    [...password].some((char) => PUNCTUATION.includes(char)),
+  ];
+  return kinds.filter(Boolean).length;
 }
 
 function hasRepeat(password: string): boolean {

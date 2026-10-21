@@ -133,6 +133,10 @@ export const Note = styled.p`
   white-space: pre-line;
 `;
 
+export function TruncatedNote({ limit }: { limit: number }) {
+  return <Note role="status">목록이 많아 앞의 {limit.toLocaleString("ko-KR")}건만 보여요. 검색이나 필터로 좁혀 주세요.</Note>;
+}
+
 export const FormError = styled.p`
   ${textStyle("labelSmStrong")}
   color: ${({ theme }) => theme.colors.status.negativeDeep};

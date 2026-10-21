@@ -52,13 +52,15 @@ EC2 ─HTTPS─▶ 네이버 클로바 OCR (통지문 분석 시에만)
 - 코드·환경변수 파일·user data에 평문으로 두지 않는다
 
 ## 로그 (CloudWatch Logs)
-| 로그 그룹 | 보관 |
-|---|---|
-| 관리자 접속·처리 기록 | 365일 |
-| 사용자 보안 이벤트 | 90일 |
-| nginx 접근·에러 | 90일 |
-| RDS 에러 | 90일 |
-| 일반 앱 로그 | 30일 |
+| 로그 그룹 | 보관 | 수집 대상 |
+|---|---|---|
+| 관리자 접속·처리 기록 | 365일 | `/var/log/returnedholiday/audit.log` |
+| 사용자 보안 이벤트 | 90일 | `/var/log/returnedholiday/security.log` |
+| nginx 접근·에러 | 90일 | nginx 로그 |
+| RDS 에러 | 90일 | RDS 로그 내보내기 |
+| 일반 앱 로그 | 30일 | `/var/log/returnedholiday/app.log` |
+
+- `/var/log/returnedholiday`는 서비스 계정 소유, 디렉터리 750·파일 640. 없으면 Django 시작 실패
 
 - EC2 IAM 역할에는 로그 **쓰기 권한만**(`logs:CreateLogStream`, `logs:PutLogEvents` 등). 삭제·보관 정책 변경 권한은 주지 않는다
 - 세션 정리: `manage.py clearsessions`를 매일 실행(cron 또는 systemd timer)

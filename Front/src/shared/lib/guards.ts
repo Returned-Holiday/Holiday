@@ -9,8 +9,9 @@ export type Paginated<T> = {
   results: T[];
 };
 
-// 응답 형식 검사 후 사용 (형식 외 → 예외)
-export function readPaginated<T>(value: unknown, isItem: (item: unknown) => item is T): Paginated<T> {
+// 응답 형식 검사 후 사용 (형식 외 → 예외). 목록도 { data: { count, ... } }
+export function readPaginated<T>(body: unknown, isItem: (item: unknown) => item is T): Paginated<T> {
+  const value = isRecord(body) ? body.data : undefined;
   if (
     !isRecord(value) ||
     typeof value.count !== "number" ||

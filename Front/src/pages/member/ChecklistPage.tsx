@@ -1,4 +1,4 @@
-import { useParams } from "react-router";
+import { Navigate, useParams } from "react-router";
 import styled from "styled-components";
 import { incidentPath, surveyPath } from "../../app/paths";
 import { ActionItem } from "../../features/checklist/components/ActionItem";
@@ -103,7 +103,8 @@ export function ChecklistPage() {
   const { state, toggle, savingId, saveError, retry } = useChecklist(incidentId);
 
   if (state.status === "notFound") {
-    return <NotFoundPage />;
+    // 404 = 설문 없음 → 설문으로
+    return incidentId === null ? <NotFoundPage /> : <Navigate to={surveyPath(incidentId)} replace />;
   }
 
   return (

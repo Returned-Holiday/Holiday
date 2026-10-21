@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { fetchAdminIncidents, fetchAdminReports, type ReportStatus } from "../../features/admin/api";
+import { ADMIN_LIST_LIMIT, fetchAdminIncidents, fetchAdminReports, type ReportStatus } from "../../features/admin/api";
 import {
   AdminPage,
   AdminTitle,
@@ -9,6 +9,7 @@ import {
   ListPanel,
   StateMessage,
   TwoColumn,
+  TruncatedNote,
 } from "../../features/admin/components/AdminUi";
 import { ReportReviewPanel } from "../../features/admin/components/ReportReviewPanel";
 import { useAdminLoad } from "../../features/admin/useAdminLoad";
@@ -27,7 +28,7 @@ export function AdminReportPage() {
   const loader = useCallback(
     async (signal?: AbortSignal) => {
       const [reports, incidents] = await Promise.all([fetchAdminReports(status, signal), fetchAdminIncidents({}, signal)]);
-      return { reports, incidents: incidents.results };
+      return { reports: reports.items, incidents: incidents.items, truncated: reports.truncated || incidents.truncated };
     },
     [status],
   );
@@ -37,6 +38,7 @@ export function AdminReportPage() {
   return (
     <AdminPage>
       <AdminTitle title="제보 검수" />
+      {data?.truncated ? <TruncatedNote limit={ADMIN_LIST_LIMIT} /> : null}
       <FilterTabs>
         {TABS.map((tab) => (
           <FilterTab
@@ -50,7 +52,7 @@ export function AdminReportPage() {
             }}
           >
             {tab.label}
-            {tab.value === status && data ? ` ${data.reports.count}` : ""}
+            {tab.value === status && data ? ` ${data.reports.length}` : ""}
           </FilterTab>
         ))}
       </FilterTabs>
@@ -59,8 +61,8 @@ export function AdminReportPage() {
       {data ? (
         <TwoColumn>
           <ListPanel aria-label="제보 목록">
-            {data.reports.results.length === 0 ? <li>해당하는 제보가 없어요.</li> : null}
-            {data.reports.results.map((report) => (
+            {data.reports.length === 0 ? <li>해당하는 제보가 없어요.</li> : null}
+            {data.reports.map((report) => (
               <li key={report.id}>
                 <ListButton
                   type="button"

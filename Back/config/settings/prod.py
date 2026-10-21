@@ -1,7 +1,7 @@
 from config.secrets import get_list, get_secret
 
 from .base import *  # noqa: F403
-from .base import REST_FRAMEWORK, SILENCED_SYSTEM_CHECKS
+from .base import LOG_HANDLERS, LOGGING, REST_FRAMEWORK, SILENCED_SYSTEM_CHECKS
 
 SECRET_KEY = get_secret("DJANGO_SECRET_KEY")
 ALLOWED_HOSTS = get_list("DJANGO_ALLOWED_HOSTS")
@@ -32,3 +32,18 @@ SILENCED_SYSTEM_CHECKS = [*SILENCED_SYSTEM_CHECKS, "security.W021"]
 
 # XFF는 nginx 1단계만 신뢰
 REST_FRAMEWORK = {**REST_FRAMEWORK, "NUM_PROXIES": 1}
+
+# 로그 그룹별 파일 → CloudWatch 에이전트가 그룹·보관 기간 지정 (infra/CLAUDE.md)
+LOG_DIR = "/var/log/returnedholiday"
+LOGGING = {
+    **LOGGING,
+    "handlers": {
+        name: {
+            "class": "logging.handlers.WatchedFileHandler",
+            "filename": f"{LOG_DIR}/{name}.log",
+            "formatter": "plain",
+            "filters": ["pii_mask"],
+        }
+        for name in LOG_HANDLERS
+    },
+}

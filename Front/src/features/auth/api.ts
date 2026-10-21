@@ -1,4 +1,4 @@
-import { apiClient } from "../../shared/api/client";
+import { apiClient, prepareCsrf } from "../../shared/api/client";
 import { ApiError } from "../../shared/api/errors";
 import { isRecord } from "../../shared/lib/guards";
 import { isCurrentUser, type CurrentUser } from "./types";
@@ -25,6 +25,7 @@ export async function logout(): Promise<void> {
 }
 
 export async function login(email: string, password: string): Promise<void> {
+  await prepareCsrf();
   await apiClient.post("/auth/login/", { email, password });
 }
 
@@ -38,6 +39,7 @@ export type SignupInput = {
 };
 
 export async function signup(input: SignupInput): Promise<void> {
+  await prepareCsrf();
   await apiClient.post("/auth/signup/", input);
 }
 

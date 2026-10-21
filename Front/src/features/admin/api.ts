@@ -1,5 +1,5 @@
 import { apiClient } from "../../shared/api/client";
-import { isRecord, readPaginated, type Paginated } from "../../shared/lib/guards";
+import { isRecord, readPaginated } from "../../shared/lib/guards";
 
 // 관리자 화면 전용 (lazy 청크에만 포함)
 export type PublishStatus = "PUBLIC" | "PRIVATE";
@@ -30,6 +30,32 @@ const isNullableNumber = (value: unknown) => value === null || typeof value === 
 const isPublish = (value: unknown): value is PublishStatus => value === "PUBLIC" || value === "PRIVATE";
 const isLeakType = (value: unknown): value is LeakType => LEAK_TYPES.some((type) => type.value === value);
 const isSurveyKey = (value: unknown): value is SurveyKey => SURVEY_KEYS.some((key) => key.value === value);
+
+// 페이지 크기 20 고정 → 페이지 번호로 끝까지 순회 (응답의 next 주소는 따르지 않음, 상한 있음)
+const MAX_PAGES = 50;
+const PAGE_SIZE = 20;
+export const ADMIN_LIST_LIMIT = MAX_PAGES * PAGE_SIZE;
+
+// truncated: 상한에 걸려 일부만 받음 → 화면 안내
+export type AdminList<T> = { items: T[]; truncated: boolean };
+
+async function fetchAllPages<T>(
+  url: string,
+  params: Record<string, string | undefined>,
+  isItem: (item: unknown) => item is T,
+  signal?: AbortSignal,
+): Promise<AdminList<T>> {
+  const items: T[] = [];
+  for (let page = 1; page <= MAX_PAGES; page += 1) {
+    const response = await apiClient.get<unknown>(url, { params: { ...params, page }, signal });
+    const result = readPaginated(response.data, isItem);
+    items.push(...result.results);
+    if (result.next === null) {
+      return { items, truncated: false };
+    }
+  }
+  return { items, truncated: true };
+}
 
 function readData<T>(body: unknown, guard: (value: unknown) => value is T): T {
   if (!isRecord(body) || !guard(body.data)) {
@@ -64,11 +90,10 @@ function isIncidentRow(value: unknown): value is AdminIncidentRow {
 }
 
 export async function fetchAdminIncidents(
-  params: { q?: string; status?: PublishStatus; page?: number },
+  params: { q?: string; status?: PublishStatus },
   signal?: AbortSignal,
-): Promise<Paginated<AdminIncidentRow>> {
-  const response = await apiClient.get<unknown>("/admin/incidents/", { params, signal });
-  return readPaginated(response.data, isIncidentRow);
+): Promise<AdminList<AdminIncidentRow>> {
+  return fetchAllPages("/admin/incidents/", params, isIncidentRow, signal);
 }
 
 export type AdminLeakItem = {
@@ -76,7 +101,8 @@ export type AdminLeakItem = {
   label: string;
   isLeaked: boolean;
   leakType: LeakType;
-  selectedByUsers: boolean;
+  // 설문 모델 머지 전에는 응답에 없음 (삭제 가능 여부는 서버 409가 최종)
+  selectedByUsers?: boolean;
 };
 
 export type AdminIncident = {
@@ -90,6 +116,7 @@ export type AdminIncident = {
   summary: string;
   status: PublishStatus;
   responseStatus: ResponseStatus;
+  noticeRevisedAt: string | null;
   leakItems: AdminLeakItem[];
 };
 
@@ -100,7 +127,7 @@ function isAdminLeakItem(value: unknown): value is AdminLeakItem {
     isString(value.label) &&
     typeof value.isLeaked === "boolean" &&
     isLeakType(value.leakType) &&
-    typeof value.selectedByUsers === "boolean"
+    (value.selectedByUsers === undefined || typeof value.selectedByUsers === "boolean")
   );
 }
 
@@ -117,6 +144,7 @@ function isAdminIncident(value: unknown): value is AdminIncident {
     isString(value.summary) &&
     isPublish(value.status) &&
     (value.responseStatus === "ONGOING" || value.responseStatus === "CLOSED") &&
+    isNullableString(value.noticeRevisedAt) &&
     Array.isArray(value.leakItems) &&
     value.leakItems.every(isAdminLeakItem)
   );
@@ -127,7 +155,7 @@ export async function fetchAdminIncident(id: number, signal?: AbortSignal): Prom
   return readData(response.data, isAdminIncident);
 }
 
-export type IncidentInput = Omit<AdminIncident, "id" | "leakItems">;
+export type IncidentInput = Omit<AdminIncident, "id" | "noticeRevisedAt" | "leakItems">;
 
 export async function createAdminIncident(input: IncidentInput): Promise<AdminIncident> {
   const response = await apiClient.post<unknown>("/admin/incidents/", input);
@@ -165,9 +193,8 @@ function isCompany(value: unknown): value is Company {
   );
 }
 
-export async function fetchCompanies(signal?: AbortSignal): Promise<Company[]> {
-  const response = await apiClient.get<unknown>("/admin/incidents/companies/", { signal });
-  return readPaginated(response.data, isCompany).results;
+export async function fetchCompanies(signal?: AbortSignal): Promise<AdminList<Company>> {
+  return fetchAllPages("/admin/incidents/companies/", {}, isCompany, signal);
 }
 
 export async function saveCompany(input: Omit<Company, "id">, id?: number): Promise<void> {
@@ -191,6 +218,7 @@ export type AdminAction = {
   steps: string;
   sourceUrl: string | null;
   status: PublishStatus;
+  publishedAt: string | null;
 };
 
 function isAdminAction(value: unknown): value is AdminAction {
@@ -205,16 +233,18 @@ function isAdminAction(value: unknown): value is AdminAction {
     isString(value.title) &&
     isString(value.steps) &&
     isNullableString(value.sourceUrl) &&
-    isPublish(value.status)
+    isPublish(value.status) &&
+    isNullableString(value.publishedAt)
   );
 }
 
-export async function fetchActions(signal?: AbortSignal): Promise<AdminAction[]> {
-  const response = await apiClient.get<unknown>("/admin/guides/actions/", { signal });
-  return readPaginated(response.data, isAdminAction).results;
+export async function fetchActions(signal?: AbortSignal): Promise<AdminList<AdminAction>> {
+  return fetchAllPages("/admin/guides/actions/", {}, isAdminAction, signal);
 }
 
-export async function saveAction(input: Omit<AdminAction, "id">, id?: number): Promise<void> {
+export type ActionInput = Omit<AdminAction, "id" | "publishedAt">;
+
+export async function saveAction(input: ActionInput, id?: number): Promise<void> {
   if (id === undefined) {
     await apiClient.post("/admin/guides/actions/", input);
   } else {
@@ -237,6 +267,8 @@ export type AdminReport = AdminReportRow & {
   notifiedAt: string | null;
   leakItemsText: string;
   rejectReason: string | null;
+  linkedIncidentId: number | null;
+  reviewedAt: string | null;
 };
 
 const isReportStatus = (value: unknown): value is ReportStatus =>
@@ -260,13 +292,14 @@ function isAdminReport(value: unknown): value is AdminReport {
     isNullableString(value.notifiedAt) &&
     isString(value.leakItemsText) &&
     isNullableString(value.rejectReason) &&
+    isNullableNumber(value.linkedIncidentId) &&
+    isNullableString(value.reviewedAt) &&
     isReportRow(value)
   );
 }
 
-export async function fetchAdminReports(status: ReportStatus, signal?: AbortSignal): Promise<Paginated<AdminReportRow>> {
-  const response = await apiClient.get<unknown>("/admin/reports/", { params: { status }, signal });
-  return readPaginated(response.data, isReportRow);
+export async function fetchAdminReports(status: ReportStatus, signal?: AbortSignal): Promise<AdminList<AdminReportRow>> {
+  return fetchAllPages("/admin/reports/", { status }, isReportRow, signal);
 }
 
 export async function fetchAdminReport(id: number, signal?: AbortSignal): Promise<AdminReport> {

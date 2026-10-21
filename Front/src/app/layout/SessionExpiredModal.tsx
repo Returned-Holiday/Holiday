@@ -24,7 +24,7 @@ export function SessionExpiredModal() {
 
   const goToLogin = () => {
     clear();
-    navigate(LOGIN_PATH, { replace: true, state: { from: location.pathname } });
+    void navigate(LOGIN_PATH, { replace: true, state: { from: location.pathname } });
   };
 
   return (

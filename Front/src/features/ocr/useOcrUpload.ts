@@ -13,6 +13,7 @@ const MESSAGES: Record<string, string> = {
   FILE_TOO_LARGE: "5MB 이하 이미지만 올릴 수 있어요.",
   UNSUPPORTED_FILE: "JPG·PNG 이미지만 올릴 수 있어요.",
   RATE_LIMITED: "1시간에 10번까지 올릴 수 있어요. 잠시 후 다시 시도해 주세요.",
+  OCR_UNAVAILABLE: "지금은 이미지를 인식할 수 없어요. 잠시 후 다시 시도해 주세요.",
 };
 
 // 형식·크기 검사는 사용성용 (서버가 시그니처까지 재검증)
@@ -45,7 +46,9 @@ export function useOcrUpload() {
       setState({ status: "matched", result: { ...result, incident: result.incident } });
     } catch (error) {
       if (error instanceof ApiError) {
-        setState({ status: "error", message: MESSAGES[error.code] ?? error.message });
+        // nginx 413은 공통 에러 형식이 아님 → 상태 코드로 판단
+        const code = error.status === 413 ? "FILE_TOO_LARGE" : error.code;
+        setState({ status: "error", message: MESSAGES[code] ?? error.message });
         return;
       }
       if (error instanceof TypeError) {
