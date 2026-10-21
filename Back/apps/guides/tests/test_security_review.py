@@ -7,6 +7,7 @@ from apps.guides.models import ActionCompletion, SurveyResponse
 from apps.guides.tests import helpers
 from apps.incidents.constants import IncidentStatus, LeakType
 from apps.incidents.models import Incident
+
 SENSITIVE_LIMIT = 5
 # BigAutoField 상한 + 1
 ID_OVER_LIMIT = 2**63
