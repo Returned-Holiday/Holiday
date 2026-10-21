@@ -1,6 +1,7 @@
 import logging
 
 from django.contrib.auth import SESSION_KEY
+from django.core.cache import cache
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.http import Http404, HttpRequest, JsonResponse
 from rest_framework import exceptions, status
@@ -12,6 +13,7 @@ from common.responses import error_body, error_json
 
 logger = logging.getLogger("app.error")
 security_logger = logging.getLogger("app.security")
+DENIED_LOG_INTERVAL = 60
 
 GENERIC_MESSAGE = "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요."
 
@@ -89,13 +91,12 @@ def _log_denied(context: dict[str, object], status_code: int) -> None:
     session = getattr(getattr(request, "_request", request), "session", {})
     user_id = user.pk if user.is_authenticated else session.get(SESSION_KEY)
     match = request.resolver_match
-    security_logger.warning(
-        "api_denied status=%s user_id=%s ip=%s route=%s",
-        status_code,
-        user_id,
-        client_ip(request),
-        match.route if match else "unresolved",
-    )
+    ip = client_ip(request)
+    route = match.route if match else "unresolved"
+    # 429 반복은 (IP, 경로)당 1분에 한 줄 (로그 폭주 X)
+    if status_code == status.HTTP_429_TOO_MANY_REQUESTS and not cache.add(f"denied:{ip}:{route}", 1, DENIED_LOG_INTERVAL):
+        return
+    security_logger.warning("api_denied status=%s user_id=%s ip=%s route=%s", status_code, user_id, ip, route)
 
 
 def not_found(request: HttpRequest, exception: Exception) -> JsonResponse:

@@ -44,6 +44,13 @@ class DeniedSecurityEventTests(TestCase):
         self.assertEqual(len(lines), 1)
         self.assertIn("status=429", lines[0])
 
+    def test_repeated_throttle_logged_once_per_minute(self) -> None:
+        self.client.force_login(self.user)
+        with self.assertLogs(SECURITY_LOGGER, "WARNING") as logs:
+            for _ in range(10):
+                self.client.post(REPORTS_URL, report_payload(), content_type="application/json")
+        self.assertEqual(len(denied_lines(logs.output)), 1)
+
     def test_expired_password_block_logged(self) -> None:
         User.objects.filter(pk=self.user.pk).update(password_changed_at=timezone.now() - timedelta(days=90))
         self.client.force_login(self.user)

@@ -107,7 +107,7 @@ React: 자동 이스케이프, 라우트 가드(화면 단위 인가, 편의용)
 |---|---|
 | 상세 에러 미노출 | `DEBUG=False`, DRF 공통 예외 핸들러(`{"code","message"}`), Django 404·500 핸들러, React ErrorBoundary |
 | 예외 처리 | `except Exception`·`except: pass` 금지. 예상 가능한 예외만 구체적으로 처리 |
-| 보안 이벤트 | 로그인 성공·실패, 잠금, 로그아웃, 비밀번호 변경, 탈퇴, 403, 429, 제보 검수, OCR 호출(내용 제외). 403·429는 공통 예외 처리기(`api_denied`: 상태·user_id·IP·URL 패턴)와 만료 차단 미들웨어(`password_expired_blocked`)가 `app.security`로 남김. 로그인 잠금·CSRF 실패(`django.security`)는 기존 로그와 중복 기록 X. 테스트 `config/tests/test_security_events.py` |
+| 보안 이벤트 | 로그인 성공·실패, 잠금, 로그아웃, 비밀번호 변경, 탈퇴, 403, 429, 제보 검수, OCR 호출(내용 제외). 403·429는 공통 예외 처리기(`api_denied`: 상태·user_id·IP·URL 패턴)와 만료 차단 미들웨어(`password_expired_blocked`)가 `app.security`로 남김. 로그인 잠금·CSRF 실패(`django.security`)는 기존 로그와 중복 기록 X. 429 반복은 (IP, URL 패턴)당 1분에 한 줄(로그 폭주 방지, nginx `limit_req`와 함께). 테스트 `config/tests/test_security_events.py` |
 | 관리자 접속·처리 기록 | 관리자 API 요청마다 기록(조회 포함): 시각, 관리자 ID, IP, 대상(종류·ID), 행위(조회·등록·수정·공개 전환·승인·반려). 공통 감사 로그 모듈이 남긴다. 변경 전후 값은 남기지 않는다. 구현: `common/middleware.py` `AdminAuditMiddleware` → 전용 로거 `app.audit`(1년 보관 로그 그룹). 대상은 URL 패턴과 정수 ID만 기록(경로 원문·요청 본문 X, 로그 위조 방지). 행위는 메소드 기본값(GET 조회·POST 등록·PATCH 수정·DELETE 삭제), 공개 전환·승인·반려처럼 메소드로 구분 안 되는 행위는 뷰에서 `common.audit.set_audit_action(request, "PUBLISH")` 등으로 지정(허용 값만 기록) |
 | 로그 필드 | 시각, user_id, IP, 경로, 결과. 이메일·전화번호 등은 마스킹 필터(`common/log_filters.py` `PiiMaskingFilter`, 모든 핸들러에 연결, 예외 원문 포함). 비밀번호·OCR 원문은 어떤 로그에도 없음. IP 추출은 `common/request.py` `client_ip` |
 | 저장 위치 | CloudWatch Logs (로그 그룹별 보관 기간으로 자동 삭제). 로거별 핸들러 분리: `app`(일반 30일) / `app.security`·`axes`·`django.security`(보안 이벤트 90일, CSRF 실패·허용 외 Host 포함) / `app.audit`(관리자 1년). 운영은 `/var/log/returnedholiday/{app,security,audit}.log` → CloudWatch 에이전트가 그룹별로 수집(`config/settings/prod.py`) |
