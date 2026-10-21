@@ -29,6 +29,8 @@ from apps.incidents.services import (
     save_company_for_api,
     search_public_incidents,
     update_leak_item,
+    with_active_count,
+    with_admin_leak_items,
     with_company_and_leak_items,
 )
 from common.audit import set_audit_action
@@ -51,11 +53,11 @@ class IncidentDetailView(generics.RetrieveAPIView):
     serializer_class = IncidentDetailSerializer
 
     def get_queryset(self) -> QuerySet[Incident]:
-        return with_company_and_leak_items(get_public_incidents())
+        return with_active_count(with_company_and_leak_items(get_public_incidents()))
 
 
 def _admin_incident_data(incident_id: int) -> dict:
-    incident = get_object_or_404(with_company_and_leak_items(Incident.objects.all()), pk=incident_id)
+    incident = get_object_or_404(with_admin_leak_items(Incident.objects.all()), pk=incident_id)
     return AdminIncidentSerializer(incident).data
 
 
@@ -120,7 +122,7 @@ class AdminIncidentDetailView(generics.RetrieveUpdateAPIView):
     http_method_names = ["get", "patch", "head", "options"]
 
     def get_queryset(self) -> QuerySet[Incident]:
-        return with_company_and_leak_items(Incident.objects.all())
+        return with_admin_leak_items(Incident.objects.all())
 
     def update(self, request: Request, *args: object, **kwargs: object) -> Response:
         incident = self.get_object()

@@ -3,6 +3,9 @@ import datetime
 from django.core.cache import cache
 from django.test import TestCase
 
+from apps.accounts.models import User
+from apps.guides.constants import Answer
+from apps.guides.models import SurveyResponse
 from apps.incidents.constants import IncidentStatus, LeakType
 from apps.incidents.models import Company, IncidentLeakItem
 from apps.incidents.tests.helpers import make_incident
@@ -89,3 +92,12 @@ class IncidentDetailApiTests(TestCase):
             [("휴대전화번호", True), ("카드번호", False)],
         )
 
+    def test_active_count_is_survey_responses(self) -> None:
+        url = f"{LIST_URL}{self.incident.pk}/"
+        self.assertEqual(self.client.get(url).json()["data"]["active_count"], 0)
+        for index in range(2):
+            user = User.objects.create_user(email=f"member{index}@example.com", nickname=f"member{index}")
+            SurveyResponse.objects.create(user=user, incident=self.incident, payment_linked=Answer.NO,
+                                          reused_password=Answer.NO, impersonation_contact=Answer.NO,
+                                          damage_occurred=Answer.NO)
+        self.assertEqual(self.client.get(url).json()["data"]["active_count"], 2)

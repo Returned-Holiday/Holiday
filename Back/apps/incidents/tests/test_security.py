@@ -192,7 +192,7 @@ class IncidentApiSecurityTests(TestCase):
         self.assertEqual(set(row), {"id", "company_name", "notified_at", "response_status", "leaked_labels"})
         detail = self.client.get(f"/api/incidents/{self.public.pk}/").json()["data"]
         self.assertEqual(set(detail), {"id", "company_name", "notified_at", "occurred_at", "affected_count", "summary",
-                                       "source_url", "contact_info", "response_status", "leak_items"})
+                                       "source_url", "contact_info", "response_status", "active_count", "leak_items"})
         self.assertEqual(set(detail["leak_items"][0]), {"id", "label", "is_leaked"})
 
     def test_query_over_limit_rejected(self) -> None:

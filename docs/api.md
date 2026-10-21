@@ -231,7 +231,7 @@
 #### GET /api/incidents/<id>/
 - 권한: 공개 / 요청 제한: 기본
 - 응답 200: `{ data: { id, company_name, notified_at, occurred_at, affected_count, summary, source_url, contact_info, response_status, active_count, leak_items[]: { id, label, is_leaked } } }`
-- `active_count`: 설문 응답 수. **guides 설문 모델 머지 후 추가**(그 전까지 응답에 없음). `leak_type`은 사용자 응답에 넣지 않음
+- `active_count`: 이 사고의 설문 응답 수("N명이 대응 중", 개인 식별 정보 X). `leak_type`은 사용자 응답에 넣지 않음
 - `leak_items`: 유출·미유출 모두, 등록 순
 - 에러: 404(비공개·없음 구분 X)
 
@@ -278,7 +278,7 @@
 - POST 요청: `{ company_id, occurred_at: date|null, notified_at: date, affected_count: number|null(0 ~ 2,147,483,647), source_url, contact_info: string|null(최대 500), summary: string(최대 2,000), response_status }`
 - 처리: 신규는 `PRIVATE`(요청 값 무시), `response_status` 기본 `ONGOING`
 - 응답 201: 관리자 사고 객체 `{ id, company_id, occurred_at, notified_at, affected_count, source_url, contact_info, summary, status, response_status, notice_revised_at, leak_items[]: { id, label, is_leaked, leak_type, selected_by_users } }`
-- `selected_by_users`: guides 설문 모델 머지 후 추가(그 전까지 응답에 없음)
+- `selected_by_users`: 사용자가 설문에서 고른 적 있는 항목이면 `true` → 삭제 불가(409), 수정으로 정정
 - 에러: 400 `VALIDATION_ERROR`(없는 기업 포함)
 
 #### GET·PATCH /api/admin/incidents/<id>/

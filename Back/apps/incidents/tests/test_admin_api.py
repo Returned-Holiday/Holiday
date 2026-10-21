@@ -1,13 +1,12 @@
-from unittest import mock
-
 from django.core.cache import cache
-from django.db.models import RestrictedError
 from django.test import TestCase, modify_settings
 from django.test.client import Client
 from django_otp import DEVICE_ID_SESSION_KEY
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
 from apps.accounts.models import User
+from apps.guides.constants import Answer
+from apps.guides.models import SurveyResponse, SurveySelectedItem
 from apps.incidents.constants import IncidentStatus, LeakType
 from apps.incidents.models import Company, Incident, IncidentLeakItem
 from apps.incidents.tests.helpers import make_incident
@@ -172,7 +171,7 @@ class AdminIncidentApiTests(AdminApiTestBase):
         self.assertEqual(set(data), {"id", "company_id", "occurred_at", "notified_at", "affected_count", "source_url",
                                      "contact_info", "summary", "status", "response_status", "notice_revised_at",
                                      "leak_items"})
-        self.assertEqual(set(data["leak_items"][0]), {"id", "label", "is_leaked", "leak_type"})
+        self.assertEqual(set(data["leak_items"][0]), {"id", "label", "is_leaked", "leak_type", "selected_by_users"})
 
 
 class AdminLeakItemApiTests(AdminApiTestBase):
@@ -218,9 +217,25 @@ class AdminLeakItemApiTests(AdminApiTestBase):
         self.assertEqual(response.status_code, 400)
         self.assertIsNone(self.revised_at())
 
+    def select_item_as_user(self) -> None:
+        user = User.objects.create_user(email="member@example.com", nickname="member")
+        response = SurveyResponse.objects.create(user=user, incident=self.incident, payment_linked=Answer.NO,
+                                                 reused_password=Answer.NO, impersonation_contact=Answer.NO,
+                                                 damage_occurred=Answer.NO)
+        SurveySelectedItem.objects.create(survey_response=response, leak_item=self.item)
+
+    # 실제 guides RESTRICT FK → 409, 항목 유지
     def test_selected_item_delete_conflict(self) -> None:
-        with mock.patch.object(IncidentLeakItem, "delete", side_effect=RestrictedError("restricted", set())):
-            response = self.client.delete(f"{self.url}{self.item.pk}/")
+        self.select_item_as_user()
+        response = self.client.delete(f"{self.url}{self.item.pk}/")
         self.assertEqual(response.status_code, 409)
         self.assertEqual(response.json()["code"], "CONFLICT")
+        self.assertTrue(IncidentLeakItem.objects.filter(pk=self.item.pk).exists())
         self.assertIsNone(self.revised_at())
+
+    def test_selected_by_users_flag(self) -> None:
+        other = IncidentLeakItem.objects.create(incident=self.incident, leak_type=LeakType.FINANCIAL, label="카드번호",
+                                                is_leaked=True)
+        self.select_item_as_user()
+        items = self.client.get(f"{BASE}{self.incident.pk}/").json()["data"]["leak_items"]
+        self.assertEqual({item["id"]: item["selected_by_users"] for item in items}, {self.item.pk: True, other.pk: False})

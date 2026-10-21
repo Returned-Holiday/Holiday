@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError, transaction
-from django.db.models import Prefetch, ProtectedError, QuerySet, RestrictedError
+from django.db.models import Count, Prefetch, ProtectedError, QuerySet, RestrictedError
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import serializers
@@ -32,6 +32,17 @@ def with_company_and_leak_items(incidents: QuerySet[Incident]) -> QuerySet[Incid
     return incidents.select_related("company").prefetch_related(
         Prefetch("leak_items", queryset=IncidentLeakItem.objects.order_by("id"))
     )
+
+
+# 대응 중 인원 = 설문 응답 수 (역참조 집계, guides import X)
+def with_active_count(incidents: QuerySet[Incident]) -> QuerySet[Incident]:
+    return incidents.annotate(active_count=Count("survey_responses"))
+
+
+# 사용자가 고른 항목 표시 (삭제 불가 미리 안내)
+def with_admin_leak_items(incidents: QuerySet[Incident]) -> QuerySet[Incident]:
+    leak_items = IncidentLeakItem.objects.annotate(selection_count=Count("survey_responses")).order_by("id")
+    return incidents.select_related("company").prefetch_related(Prefetch("leak_items", queryset=leak_items))
 
 
 # 기업 수 적음 → 파이썬 비교 (공백·대소문자 무시, DB별 JSON 검색 차이 X)
