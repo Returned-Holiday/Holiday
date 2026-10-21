@@ -1,3 +1,4 @@
+import json
 import secrets
 from datetime import date
 from io import BytesIO
@@ -82,6 +83,7 @@ class OcrApiTests(OcrTestCase):
         self.assertNotIn("안내".encode(), response.content)
         self.assertEqual(post.call_args.kwargs["allow_redirects"], False)
         self.assertEqual(post.call_args.kwargs["timeout"], 10)
+        self.assertEqual(json.loads(post.call_args.kwargs["data"]["message"])["lang"], "ko")
 
     def test_fullwidth_company_name(self) -> None:
         response, _ = self.upload(image_file(), clova_response("ＳＫＴ 개인정보 안내"))

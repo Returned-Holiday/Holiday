@@ -45,6 +45,8 @@ def extract_text(image: bytes, image_format: str) -> str:
     url, key = _endpoint()
     message = {
         "version": "V2",
+        # 한글 인식 힌트
+        "lang": "ko",
         "requestId": uuid.uuid4().hex,
         "timestamp": int(time.time() * 1000),
         "images": [{"format": image_format, "name": "notice"}],
