@@ -16,7 +16,7 @@
 | 내 데이터는 URL에 소유자 ID를 받지 않음 | 설문·체크리스트·제보·마이페이지는 `request.user`로 찾는다 | 기반 IN |
 | 존재 여부 비노출 | 비공개 사고, 다른 사용자 리소스, 없는 리소스, 관리자가 아닌 사용자의 관리자 API 요청은 모두 **404** | 기반 IN·IL·AE |
 | CSRF | 상태를 바꾸는 요청(POST·PUT·PATCH·DELETE)은 `X-CSRFToken` 헤더 필수. 앱 시작 시 `GET /api/auth/csrf/`로 쿠키 발급 | 진단 SR1-6 |
-| 허용 메소드 | 엔드포인트마다 필요한 메소드만. 그 외 405 | 기반 WM |
+| 허용 메소드 | 엔드포인트마다 필요한 메소드만. 그 외 405. `OPTIONS`도 405(DRF 메타데이터 끔, `DEFAULT_METADATA_CLASS = None`) | 기반 WM |
 | 목록 크기 | 페이지 크기 20 고정. 클라이언트가 크기를 바꿀 수 없다 | 자원 고갈 방지 |
 | 요청 제한 | `docs/api.md`의 범위별 제한. 초과 시 429 | 기반 AU |
 | 캐시 | 회원 API 응답은 `Cache-Control: no-store` | 진단 SR2-7 |

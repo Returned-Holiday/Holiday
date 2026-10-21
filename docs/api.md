@@ -47,7 +47,7 @@
 | `POST /api/admin/incidents/<id>/leak-items/` | 유출 항목 추가 | 유출 유형(`leakType`) 필수. `notice_revised_at` 갱신 | BE-B |
 | `PATCH·DELETE /api/admin/incidents/<id>/leak-items/<item_id>/` | 유출 항목 수정·삭제 | 사용자가 고른 항목 삭제는 409(수정으로 정정). 수정 시 `notice_revised_at` 갱신 | BE-B |
 | `GET·POST /api/admin/guides/actions/` | 조치 목록·등록(공통·특수) | 트리거별 필수값 검증 | BE-A |
-| `GET·PATCH /api/admin/guides/actions/<id>/` | 조치 수정·공개 전환 | 처음 공개 시 `published_at` 기록 | BE-A |
+| `GET·PATCH /api/admin/guides/actions/<id>/` | 조치 수정·공개 전환 | 처음 공개 시 `published_at` 기록. 완료 기록이 있으면 `incident_id`·`trigger_type` 변경 409(새 조치 등록 후 기존 조치 비공개) | BE-A |
 | `GET /api/admin/reports/?status=` | 제보 목록 | | BE-B |
 | `GET /api/admin/reports/<id>/` | 제보 상세 | 자유 텍스트는 이미 마스킹된 값 | BE-B |
 | `POST /api/admin/reports/<id>/approve/` | 승인, 반영한 사고 연결(선택) | 검수자·시각 기록 | BE-B |

@@ -92,6 +92,8 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_RENDERER_CLASSES": ["config.renderers.DataEnvelopeJSONRenderer"],
+    # OPTIONS 메타데이터(입력 필드 정보) 노출 X → 405
+    "DEFAULT_METADATA_CLASS": None,
     "DEFAULT_PARSER_CLASSES": [
         "rest_framework.parsers.JSONParser",
         "rest_framework.parsers.MultiPartParser",
