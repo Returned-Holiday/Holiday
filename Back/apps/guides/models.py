@@ -66,6 +66,11 @@ class Action(TimeStampedModel):
                 ),
                 name="ck_actions_trigger_fields",
             ),
+            # 공개 = 공개 시각 있음 ("새 조치" 판단 기준)
+            models.CheckConstraint(
+                condition=Q(status=PublishStatus.PRIVATE) | Q(published_at__isnull=False),
+                name="ck_actions_published_at",
+            ),
         ]
 
 

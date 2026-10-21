@@ -1,4 +1,6 @@
-from datetime import date
+from datetime import date, timedelta
+
+from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.guides.constants import Answer, PublishStatus, TriggerType
@@ -30,6 +32,9 @@ def make_item(incident: Incident, leak_type: str = LeakType.CONTACT, is_leaked: 
 def make_action(title: str, priority: int, **fields: object) -> Action:
     fields.setdefault("trigger_type", TriggerType.LEAK_TYPE)
     fields.setdefault("status", PublishStatus.PUBLIC)
+    # 공개 조치는 공개 시각 필수, 설문보다 이전 → "새 조치" 아님
+    if fields["status"] == PublishStatus.PUBLIC:
+        fields.setdefault("published_at", timezone.now() - timedelta(days=1))
     return Action.objects.create(title=title, priority=priority, steps="단계", **fields)
 
 
