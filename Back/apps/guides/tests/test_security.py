@@ -5,12 +5,14 @@ from django.db.models import RestrictedError
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework import status
+from rest_framework.exceptions import ValidationError as DrfValidationError
 from rest_framework.response import Response
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import User
 from apps.guides.constants import Answer, PublishStatus, SurveyKey, TriggerType
 from apps.guides.models import Action, ActionCompletion, SurveyResponse, SurveySelectedItem
+from apps.guides.services.survey import save_survey
 from apps.guides.tests import helpers
 from apps.incidents.constants import IncidentStatus, LeakType
 from apps.incidents.models import Company, Incident, IncidentLeakItem
@@ -248,3 +250,28 @@ class CompletionSecurityTests(APITestCase):
         client = self.client_class(enforce_csrf_checks=True)
         client.force_login(self.user)
         self.assertEqual(client.put(self.url(self.common.pk)).status_code, status.HTTP_403_FORBIDDEN)
+
+
+class SaveSurveyRaceTests(TestCase):
+    def setUp(self) -> None:
+        self.user = helpers.make_user()
+        self.incident = helpers.make_incident()
+        self.item = helpers.make_item(self.incident)
+
+    def data(self) -> dict[str, object]:
+        return helpers.survey_payload(leak_items_answer="SELECTED", selected_item_ids=[self.item.pk])
+
+    # 검증 통과 뒤 관리자가 항목 삭제·미유출로 변경 → 500 X, 400 + 저장 X
+    def test_item_changed_after_validation(self) -> None:
+        for change in ("delete", "not_leaked"):
+            with self.subTest(change=change):
+                self.item = helpers.make_item(self.incident)
+                data = self.data()
+                if change == "delete":
+                    self.item.delete()
+                else:
+                    self.item.is_leaked = False
+                    self.item.save()
+                with self.assertRaises(DrfValidationError):
+                    save_survey(self.user, self.incident, data)
+                self.assertFalse(SurveyResponse.objects.exists())

@@ -15,6 +15,7 @@ from apps.guides.services.survey import (
     save_survey,
     to_answers,
 )
+from common.queries import filter_owned
 
 
 # 내 응답만 (URL에 소유자 ID X, request.user로)
@@ -60,5 +61,5 @@ class CompletionView(APIView):
     def delete(self, request: Request, pk: int, action_id: int) -> Response:
         incident = get_incident_for_user_or_404(pk)
         action = get_completable_action_or_404(request.user, incident, action_id)
-        ActionCompletion.objects.filter(user=request.user, incident=incident, action=action).delete()
+        filter_owned(ActionCompletion.objects.all(), request.user).filter(incident=incident, action=action).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

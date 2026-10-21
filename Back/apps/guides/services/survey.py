@@ -1,10 +1,12 @@
 from django.db import transaction
 from django.db.models import Model
 from django.shortcuts import get_object_or_404
+from rest_framework.exceptions import ValidationError
 
-from apps.guides.constants import LeakItemsAnswer
+from apps.guides.constants import SELECTION_ERROR, LeakItemsAnswer
 from apps.guides.models import ANSWER_FIELDS, ActionCompletion, SurveyResponse, SurveySelectedItem
 from apps.incidents.services import get_public_incidents, with_company_and_leak_items
+from common.queries import filter_owned
 
 
 # 비공개·없음 모두 404 (공개 필터는 incidents 서비스)
@@ -17,7 +19,7 @@ def leaked_item_ids(incident: Model) -> frozenset[int]:
 
 
 def find_response(user: Model, incident: Model) -> SurveyResponse | None:
-    return SurveyResponse.objects.filter(user=user, incident=incident).prefetch_related("selected_items").first()
+    return filter_owned(SurveyResponse.objects.prefetch_related("selected_items"), user).filter(incident=incident).first()
 
 
 def to_answers(response: SurveyResponse) -> dict[str, object]:
@@ -37,7 +39,12 @@ def to_answers(response: SurveyResponse) -> dict[str, object]:
 
 # 유일 제약 (사용자, 사고) → update_or_create로 한 행만 (TOCTOU X)
 def save_survey(user: Model, incident: Model, data: dict) -> SurveyResponse:
+    ids = data["selected_item_ids"]
     with transaction.atomic():
+        # 검증 뒤 관리자 삭제·변경 대비 → 행 잠그고 재확인 (FK 오류 500 X)
+        locked = incident.leak_items.select_for_update().filter(pk__in=ids, is_leaked=True)
+        if len(list(locked.values_list("pk", flat=True))) != len(ids):
+            raise ValidationError({"selected_item_ids": [SELECTION_ERROR]})
         response, _ = SurveyResponse.objects.update_or_create(
             user=user,
             incident=incident,
@@ -49,7 +56,7 @@ def save_survey(user: Model, incident: Model, data: dict) -> SurveyResponse:
         SurveySelectedItem.objects.filter(survey_response=response).delete()
         SurveySelectedItem.objects.bulk_create(
             SurveySelectedItem(survey_response=response, leak_item_id=item_id)
-            for item_id in data["selected_item_ids"]
+            for item_id in ids
         )
     return response
 
@@ -57,9 +64,9 @@ def save_survey(user: Model, incident: Model, data: dict) -> SurveyResponse:
 # 내 응답·선택 항목·그 사고 완료 기록 함께 삭제, 사고 공개 여부 무관
 def delete_survey(user: Model, incident_id: int) -> bool:
     with transaction.atomic():
-        responses = SurveyResponse.objects.select_for_update().filter(user=user, incident_id=incident_id)
+        responses = filter_owned(SurveyResponse.objects.select_for_update(), user).filter(incident_id=incident_id)
         if not responses.exists():
             return False
-        ActionCompletion.objects.filter(user=user, incident_id=incident_id).delete()
+        filter_owned(ActionCompletion.objects.all(), user).filter(incident_id=incident_id).delete()
         responses.delete()
     return True

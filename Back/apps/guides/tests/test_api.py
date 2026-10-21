@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.utils import timezone
 from rest_framework import status
@@ -134,3 +134,16 @@ class ChecklistApiTests(APITestCase):
         titles = [a["title"] for a in self.checklist()["actions"]]
         for excluded in ("비공개", "다른 사고 특수", "다른 사고 유형"):
             self.assertNotIn(excluded, titles)
+
+
+class ProgressOrderTests(APITestCase):
+    def test_latest_notice_first(self) -> None:
+        user = make_user()
+        self.client.force_login(user)
+        older = make_incident("오래된사")
+        newer = make_incident("최근사")
+        newer.notified_at = date(2026, 10, 20)
+        newer.save()
+        for incident in (older, newer):
+            self.client.put(survey_url(incident.pk), survey_payload(), format="json")
+        self.assertEqual([row["company_name"] for row in get_progress(user)], ["최근사", "오래된사"])

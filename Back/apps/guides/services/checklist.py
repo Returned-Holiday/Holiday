@@ -7,7 +7,7 @@ from apps.guides.constants import URGENT_PRIORITY_MAX, Answer, Certainty, Publis
 from apps.guides.models import Action, ActionCompletion, SurveyResponse
 from apps.incidents.constants import LeakType
 from apps.incidents.services import get_public_incidents, with_company_and_leak_items
-from common.queries import get_owned_or_404
+from common.queries import filter_owned, get_owned_or_404
 
 SURVEY_FIELD_KEYS = {
     "payment_linked": SurveyKey.PAYMENT_LINKED,
@@ -87,9 +87,9 @@ def build_checklist(user: Model, incident: Model, response: SurveyResponse) -> C
     )
     actions = list(Action.objects.filter(available_actions(incident) & trigger))
     completed = set(
-        ActionCompletion.objects.filter(user=user, incident=incident, action__in=actions).values_list(
-            "action_id", flat=True
-        )
+        filter_owned(ActionCompletion.objects.all(), user)
+        .filter(incident=incident, action__in=actions)
+        .values_list("action_id", flat=True)
     )
     items = []
     for action in actions:
@@ -111,11 +111,13 @@ def get_completable_action_or_404(user: Model, incident: Model, action_id: int) 
 
 
 def get_progress(user: Model) -> list[dict[str, object]]:
-    incidents = with_company_and_leak_items(get_public_incidents().filter(survey_responses__user=user))
     responses = {
         response.incident_id: response
-        for response in SurveyResponse.objects.filter(user=user).prefetch_related("selected_items")
+        for response in filter_owned(SurveyResponse.objects.prefetch_related("selected_items"), user)
     }
+    # 공지일 최신순 고정 (마이페이지 순서)
+    public = get_public_incidents().filter(pk__in=responses).order_by("-notified_at", "-pk")
+    incidents = with_company_and_leak_items(public)
     progress = []
     for incident in incidents:
         checklist = build_checklist(user, incident, responses[incident.pk])

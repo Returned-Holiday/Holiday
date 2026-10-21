@@ -30,6 +30,7 @@ class PublishStatus(models.TextChoices):
 
 
 SELECTED_ITEMS_MAX = 50
+SELECTION_ERROR = "이 사고의 유출 항목에서 골라 주세요."
 # 1~3순위 = "지금 바로 하세요"
 URGENT_PRIORITY_MAX = 3
 

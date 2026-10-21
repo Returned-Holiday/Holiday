@@ -1,10 +1,9 @@
 from rest_framework import serializers
 
-from apps.guides.constants import SELECTED_ITEMS_MAX, Answer, Certainty, LeakItemsAnswer
+from apps.guides.constants import SELECTED_ITEMS_MAX, SELECTION_ERROR, Answer, Certainty, LeakItemsAnswer
 
 # 선택지 에러에 입력값 X (DRF 기본 문구는 입력값 포함)
 CHOICE_ERRORS = {"invalid_choice": "선택지에서 골라 주세요."}
-SELECTION_ERROR = "이 사고의 유출 항목에서 골라 주세요."
 
 
 def _answer_field() -> serializers.ChoiceField:
