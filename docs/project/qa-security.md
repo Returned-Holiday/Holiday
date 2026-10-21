@@ -44,7 +44,7 @@ QA1 보안 점검의 기준표와 실행 목록이다. 10/21에 코드 기준 �
 ### 2-2. 보안기능 (16)
 | # | 약점 | 상태 | 근거 |
 |---|---|---|---|
-| 1 | 인증 없는 중요기능 | 미구현 일부 | 기본 `IsAuthenticated`, 관리자 OTP 적용. 비밀번호 변경·탈퇴(현재 비밀번호 확인) API 미구현(BE-A) |
+| 1 | 인증 없는 중요기능 | 미구현 일부 | 기본 `IsAuthenticated`, 관리자 API는 `IsStaffWithOtp`(OTP 인증 세션만). OTP 등록·검증 API, 비밀번호 변경·탈퇴(현재 비밀번호 확인) API 미구현(BE-A) |
 | 2 | 부적절한 인가 | 적용 | 소유 필터 `common.queries`, 공개 필터, `IsStaffWithOtp`, 404 통일. guides 뷰 3개 권한 클래스 미명시(F3, 기본값이라 동작은 안전) |
 | 3 | 자원 권한 설정 | 스테이징 | 전용 계정·`UMask=0027`·로그 디렉터리 750(`infra/systemd`) |
 | 4 | 취약한 암호 알고리즘 | 적용 | `rh-weak-hash`, Bandit |
@@ -59,7 +59,7 @@ QA1 보안 점검의 기준표와 실행 목록이다. 10/21에 코드 기준 �
 | 13 | 주석 속 시스템 주요정보 | 적용 | 인프라 값은 `<...>` 자리표시자, 10/21 검색 0건 |
 | 14 | 솔트 없는 일방향 해시 | 적용 | Django 해셔만 |
 | 15 | 무결성 검사 없는 코드 다운로드 | 적용 | pip 해시 고정, `npm ci`, Actions 커밋 해시·Semgrep 이미지 digest 고정. 의존성 변경은 해시를 PyPI와 대조(#25) |
-| 16 | 반복 인증시도 제한 | 적용 | axes 5회 30분(대소문자 우회 테스트), 로그인 10/분, OTP 5/분, 제보 5/일 |
+| 16 | 반복 인증시도 제한 | 미구현 일부 | axes 5회 30분(대소문자 우회 테스트), 로그인 10/분, 제보 5/일 적용. OTP 5/분은 설정만 있고 OTP API 미구현(BE-A) |
 
 ### 2-3. 시간 및 상태 (2)
 | # | 약점 | 상태 | 근거 |
@@ -104,25 +104,30 @@ QA1 보안 점검의 기준표와 실행 목록이다. 10/21에 코드 기준 �
 
 | # | 내용 | 심각도 | 담당 | 상태 |
 |---|---|---|---|---|
-| F1 | 403·429가 `django.request` → 일반 로그(30일)로만 감. `security.md` 3-6은 보안 이벤트(90일) | 중 | BE-B | 조치 예정 |
+| F1 | 403·429가 `django.request` → 일반 로그(30일)로만 감. `security.md` 3-6은 보안 이벤트(90일) | 중 | BE-B | 조치 PR(`fix/security-log-denied`) |
 | F2 | 미구현 기능 점검 대기: 비밀번호 변경·탈퇴·OTP, OCR, 조치 관리자 API(BE-A), 마이페이지(BE-B) | – | 각 담당 | 구현 PR 리뷰 때 점검 |
 | F3 | guides 뷰 3개 `permission_classes` 미명시(#28) | 낮음 | BE-A | #28 코멘트 |
 | F4 | 정수 입력 `max_value` 미지정: 제보 승인 `incident_id`(BE-B), 설문 `selected_item_ids`(BE-A) | 낮음 | BE-B·BE-A | 권고 |
 | F5 | `secure-python.md` 시간 및 상태 2번 "페이지 50" → 실제 20 | 문서 | BE-B | 정정 완료 |
 | F6 | 설문 저장 시 검증 후 유출 항목 삭제 경합 → FK 오류 500 가능 | 낮음 | BE-A | 조치 완료(#28 `16e29d7`, 잠금 후 재확인 → 400) |
 | F7 | `SurveyKey.REUSED_PASSWORD` 같은 이름이 진단 도구에 "하드코드 비밀번호"로 오탐될 수 있음(실제 값은 선택지 키) | 관찰 | BE-A | QA1에서 도구 결과 확인 |
+| F8 | `OPTIONS` 요청에 DRF 기본 메타데이터가 200 + 입력 필드 정보로 응답(정보 누출). 운영은 nginx가 `OPTIONS` 405로 막지만 앱에서도 차단 필요 | 중 | BE-A | `DEFAULT_METADATA_CLASS=None` 별도 PR |
 
 ## 4. 웹 21개 항목 공격 테스트 (스테이징, QA1 당일)
 
-준비: 테스트 계정 2개(회원 A·B), OTP 등록된 관리자 1개, 공개·비공개 사고 각 1개, B의 제보 1개. 계정 정보는 문서·채팅에 적지 않는다.
+준비: 테스트 계정 2개(회원 A·B), OTP 등록된 관리자 1개(OTP API 머지 후), 공개·비공개 사고 각 1개, B의 제보 1개. 계정 정보는 문서·채팅에 적지 않는다.
 
 ```bash
 BASE=https://<도메인>
 curl -s -c jar -b jar "$BASE/api/auth/csrf/" -o /dev/null
 CSRF=$(awk '/csrftoken/{print $7}' jar)
 H=(-b jar -c jar -H "X-CSRFToken: $CSRF" -H "Referer: $BASE/" -H "Content-Type: application/json")
-# 로그인: 비밀번호는 셸 변수로만 입력 (기록 X)
-read -rs PW; curl -s "${H[@]}" -d "{\"email\":\"<회원A>\",\"password\":\"$PW\"}" "$BASE/api/auth/login/"
+# 로그인: 비밀번호는 표준입력으로만 (명령 기록·프로세스 목록 X). 테스트 계정 비밀번호에 " \ 없게
+read -rs PW
+printf '{"email":"<회원A>","password":"%s"}' "$PW" | curl -s "${H[@]}" --data-binary @- "$BASE/api/auth/login/"
+unset PW
+# 테스트 끝나면
+rm -f jar
 ```
 
 | 코드 | 항목 | 요청 | 기대 결과 | 자동 테스트 근거 | 결과 |
@@ -136,7 +141,7 @@ read -rs PW; curl -s "${H[@]}" -d "{\"email\":\"<회원A>\",\"password\":\"$PW\"
 | CF | CSRF | 토큰 없이·변조해서 로그인·제보 POST | 403 | `test_requires_csrf*` | |
 | SF | SSRF | 제보 `source_url`에 `https://127.0.0.1/`, `https://169.254.169.254/`, `file:///etc/passwd` | 400 | `common/tests/test_validators.py` | |
 | BF | 약한 비밀번호 | `abc12345`로 가입, 6회 연속 로그인 실패 | 400 / 429 잠금 | `test_rejects_weak_password`, `test_locks_after_five_failures` | |
-| IA | 불충분한 인증 | 쿠키 없이 `/api/reports/`·`/api/mypage/`, 현재 비밀번호 없이 탈퇴·비밀번호 변경 | 401 / 400 | `test_anonymous_rejected` | |
+| IA | 불충분한 인증 | 쿠키 없이 `/api/reports/`·`/api/mypage/`, 현재 비밀번호 없이 탈퇴·비밀번호 변경 | 401 / 400 (마이페이지·탈퇴·비밀번호 변경은 구현 후, 지금은 404) | `test_anonymous_rejected` | |
 | IN | 불충분한 권한 검증 | A로 B의 제보·설문 접근, 다른 사고의 조치 ID로 완료, 비공개 사고 ID | 404 | `test_only_own_reports_and_no_detail_api`, guides `OwnershipSecurityTests` | |
 | PR | 비밀번호 복구 | – | 기능 없음 | – | 해당 없음 |
 | PV | 프로세스 검증 | 설문 없이 `PUT .../completions/<id>/`, 만료 계정으로 `/api/incidents/` | 404 / 403 `PASSWORD_EXPIRED` | `test_requires_survey`, `test_expired_user_blocked` | |
@@ -146,5 +151,5 @@ read -rs PW; curl -s "${H[@]}" -d "{\"email\":\"<회원A>\",\"password\":\"$PW\"
 | SN | 평문 전송 | `http://` 접속, `openssl s_client -tls1_1` | 301 https / 연결 거부 | nginx TLS 1.2+ | |
 | CC | 쿠키 변조 | `sessionid` 임의 값·다른 계정 값 일부 변경 | 401 | 서버 세션 | |
 | AE | 관리자 페이지 노출 | `/admin/`, 허용 외 IP에서 `/api/admin/incidents/`, OTP 없이 관리자 API, 회원으로 `/manage` | `/admin/`·`/manage`는 프론트 404 화면(Django admin 없음), 관리자 API는 404(없는 경로와 본문 동일) | `test_not_found.py`, `AdminAccessTests` | |
-| AU | 자동화 공격 | 로그인 11회/분, 제보 6회/일, 검색 61회/분 | 429 | `test_create_limited_per_day` | |
-| WM | 불필요한 메소드 | 읽기 API에 `PUT`·`DELETE`, 아무 경로에 `TRACE`·`OPTIONS` | 405 | `test_put_and_delete_not_allowed` | |
+| AU | 자동화 공격 | 로그인 11회/분(**없는 이메일로**, 실제 계정은 5회에서 axes 잠금이 먼저 걸림), 제보 6회/일, 검색 61회/분 | 429 | `test_create_limited_per_day` | |
+| WM | 불필요한 메소드 | 읽기 API에 `PUT`·`DELETE`, 아무 경로에 `TRACE`·`OPTIONS` | 405 (`OPTIONS`는 F8 조치 후 앱에서도 405) | `test_put_and_delete_not_allowed` | |
