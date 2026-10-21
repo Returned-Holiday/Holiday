@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ApiError, GENERIC_ERROR_MESSAGE } from "../../shared/api/errors";
+import { ApiError, errorText, GENERIC_ERROR_MESSAGE } from "../../shared/api/errors";
 import { saveSurvey } from "./api";
 import { TOTAL_STEPS, YES_NO_QUESTIONS } from "./questions";
 import type { Answer, LeakItemsAnswer, SurveyAnswers, YesNoKey } from "./types";
@@ -110,7 +110,12 @@ export function useSurveyForm(
       if (!(caught instanceof ApiError)) {
         throw caught;
       }
-      setError(caught.message || GENERIC_ERROR_MESSAGE);
+      // 선택 항목 거부 = 저장 중 공지 변경 → 새 목록으로 다시 고르기
+      setError(
+        caught.fields.selectedItemIds?.[0] !== undefined
+          ? `${caught.fields.selectedItemIds[0]} 공지가 바뀌었을 수 있어요. 새로고침한 뒤 다시 골라 주세요.`
+          : errorText(caught) || GENERIC_ERROR_MESSAGE,
+      );
     } finally {
       setPending(false);
     }

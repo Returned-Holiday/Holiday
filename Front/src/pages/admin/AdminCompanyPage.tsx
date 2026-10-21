@@ -15,7 +15,7 @@ import {
   TruncatedNote,
 } from "../../features/admin/components/AdminUi";
 import { useAdminLoad } from "../../features/admin/useAdminLoad";
-import { ApiError } from "../../shared/api/errors";
+import { ApiError, errorText } from "../../shared/api/errors";
 import { Button } from "../../shared/ui/Button";
 import { TextField } from "../../shared/ui/TextField";
 import { textStyle } from "../../styles/typography";
@@ -51,8 +51,11 @@ const SmallAliases = styled.span`
   }
 `;
 
-// 저장 규칙과 동일 (공백 제거·소문자) → 중복 미리 안내
-const normalize = (value: string) => value.replace(/\s+/g, "").toLowerCase();
+// 저장 규칙과 동일 (NFKC·공백 제거·소문자) → 중복 미리 안내
+const normalize = (value: string) => value.normalize("NFKC").replace(/\s+/g, "").toLowerCase();
+// 서버 상한과 같음 (기업당 20개, 정규화 후 1~50자)
+const ALIASES_MAX = 20;
+const ALIAS_MAX_LENGTH = 50;
 
 function CompanyEditor({
   company,
@@ -83,7 +86,15 @@ function CompanyEditor({
       setError(`다른 기업(${owner.name})에 이미 있는 이름이라 별칭으로 쓸 수 없어요`);
       return;
     }
+    if (normalize(alias).length > ALIAS_MAX_LENGTH) {
+      setError(`별칭은 ${ALIAS_MAX_LENGTH}자까지 쓸 수 있어요.`);
+      return;
+    }
     if (!aliases.some((item) => normalize(item) === normalize(alias))) {
+      if (aliases.length >= ALIASES_MAX) {
+        setError(`별칭은 ${ALIASES_MAX}개까지 넣을 수 있어요.`);
+        return;
+      }
       setAliases([...aliases, alias]);
     }
     setAliasInput("");
@@ -111,7 +122,7 @@ function CompanyEditor({
       if (!(caught instanceof ApiError)) {
         throw caught;
       }
-      setError(caught.fields.aliases?.[0] ?? caught.fields.name?.[0] ?? caught.message);
+      setError(errorText(caught));
     } finally {
       setPending(false);
     }
@@ -141,7 +152,7 @@ function CompanyEditor({
         label="별칭 추가"
         placeholder="입력 후 Enter"
         value={aliasInput}
-        maxLength={50}
+        maxLength={ALIAS_MAX_LENGTH}
         onChange={(event) => setAliasInput(event.target.value)}
         onKeyDown={handleKey}
         error={error ?? undefined}

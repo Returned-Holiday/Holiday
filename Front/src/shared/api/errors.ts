@@ -20,6 +20,17 @@ export class ApiError extends Error {
   }
 }
 
+// 입력 검증 에러 → 첫 칸의 서버 문구, 그 외 → 공통 문구
+export function errorText(error: ApiError): string {
+  for (const messages of Object.values(error.fields)) {
+    const first = messages[0];
+    if (first !== undefined) {
+      return first;
+    }
+  }
+  return error.message;
+}
+
 function readFieldErrors(value: unknown): FieldErrors {
   if (!isRecord(value)) {
     return {};
