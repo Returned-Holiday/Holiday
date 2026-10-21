@@ -4,6 +4,7 @@ from django_otp import DEVICE_ID_SESSION_KEY
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
 from apps.accounts.models import User
+from config.tests.test_not_found import fingerprint
 
 MEMBER_URLS = ("/api/auth/signup/", "/api/auth/login/", "/api/auth/me/", "/api/incidents/", "/api/guides/incidents/1/survey/")
 
@@ -27,6 +28,9 @@ class OptionsMetadataTests(TestCase):
 
     def test_admin_api(self) -> None:
         self.assert_no_metadata("/api/admin/incidents/", 404)
+        # 없는 경로 404와 상태·본문·헤더 동일 (OPTIONS로 관리자 API 존재 노출 X)
+        missing = fingerprint(self.client.get("/api/no-such-path/"))
+        self.assertEqual(fingerprint(self.client.options("/api/admin/incidents/")), missing)
         admin = User.objects.create_user(email="admin@example.com", nickname="admin", is_staff=True)
         self.client.force_login(admin)
         device = TOTPDevice.objects.create(user=admin, name="test", confirmed=True)
