@@ -72,3 +72,12 @@ class MeSerializer(serializers.ModelSerializer):
 
 class OtpSerializer(serializers.Serializer):
     code = serializers.RegexField(OTP_CODE_PATTERN, max_length=6)
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    current_password = serializers.CharField(max_length=PASSWORD_INPUT_MAX_LENGTH, trim_whitespace=False, write_only=True)
+    new_password = serializers.CharField(max_length=PASSWORD_INPUT_MAX_LENGTH, trim_whitespace=False, write_only=True)
+
+
+class WithdrawSerializer(serializers.Serializer):
+    current_password = serializers.CharField(max_length=PASSWORD_INPUT_MAX_LENGTH, trim_whitespace=False, write_only=True)
