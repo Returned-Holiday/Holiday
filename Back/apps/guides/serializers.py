@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from apps.guides.constants import (
     ACTION_INCIDENT_ERROR,
+    DB_ID_MAX,
     SELECTED_ITEMS_MAX,
     SELECTION_ERROR,
     TRIGGER_EMPTY_ERROR,
@@ -26,7 +27,9 @@ def _answer_field() -> serializers.ChoiceField:
 class SurveyInputSerializer(serializers.Serializer):
     leak_items_answer = serializers.ChoiceField(choices=LeakItemsAnswer.choices, error_messages=CHOICE_ERRORS)
     selected_item_ids = serializers.ListField(
-        child=serializers.IntegerField(min_value=1), max_length=SELECTED_ITEMS_MAX, allow_empty=True
+        child=serializers.IntegerField(min_value=1, max_value=DB_ID_MAX),
+        max_length=SELECTED_ITEMS_MAX,
+        allow_empty=True,
     )
     payment_linked = _answer_field()
     reused_password = _answer_field()
@@ -89,7 +92,7 @@ ACTION_FIELDS = ("trigger_type", "leak_type", "survey_key", "priority", "title",
 
 class AdminActionQuerySerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=PublishStatus.choices, required=False, error_messages=CHOICE_ERRORS)
-    incident_id = serializers.IntegerField(min_value=1, required=False)
+    incident_id = serializers.IntegerField(min_value=1, max_value=DB_ID_MAX, required=False)
 
 
 class AdminActionSerializer(serializers.ModelSerializer):
@@ -102,7 +105,7 @@ class AdminActionSerializer(serializers.ModelSerializer):
 
 
 class AdminActionInputSerializer(serializers.ModelSerializer):
-    incident_id = serializers.IntegerField(min_value=1, allow_null=True, required=False)
+    incident_id = serializers.IntegerField(min_value=1, max_value=DB_ID_MAX, allow_null=True, required=False)
 
     class Meta:
         model = Action

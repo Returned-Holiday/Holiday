@@ -140,3 +140,7 @@ class AdminActionSecurityTests(AdminActionTestCase):
                 self.assertEqual(self.client.get(LIST_URL).status_code, status.HTTP_404_NOT_FOUND)
                 self.assertEqual(self.client.post(LIST_URL, payload(), format="json").status_code, 404)
         self.assertFalse(Action.objects.exists())
+
+    def test_id_over_db_range_rejected(self) -> None:
+        self.assert_rejected("incident_id", trigger_type="ALWAYS", leak_type=None, incident_id=10**19)
+        self.assertEqual(self.client.get(LIST_URL, {"incident_id": 10**19}).status_code, status.HTTP_400_BAD_REQUEST)
