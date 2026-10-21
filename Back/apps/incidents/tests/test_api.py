@@ -92,7 +92,6 @@ class IncidentDetailApiTests(TestCase):
             [("휴대전화번호", True), ("카드번호", False)],
         )
 
-
     def test_active_count_is_survey_responses(self) -> None:
         url = f"{LIST_URL}{self.incident.pk}/"
         self.assertEqual(self.client.get(url).json()["data"]["active_count"], 0)

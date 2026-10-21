@@ -105,6 +105,7 @@ class AdminIncidentListSerializer(serializers.ModelSerializer):
         fields = ["id", "company_name", "notified_at", "leak_item_count", "status", "response_status"]
 
 
+# with_admin_leak_items 필수 (selection_count 주석값)
 class AdminLeakItemSerializer(serializers.ModelSerializer):
     selected_by_users = serializers.SerializerMethodField()
 
