@@ -36,7 +36,7 @@ QA1 보안 점검의 기준표와 실행 목록이다. 10/21에 코드 기준 �
 | 11 | CSRF | 적용 | `rh-csrf-disabled`, 비로그인 POST `csrf_protect`. 테스트 `accounts`·`guides`의 `test_requires_csrf*` |
 | 12 | SSRF | 적용 | `validate_https_url`(IP·localhost·계정정보 거부), 서버는 URL에 접속 X. OCR 외부 주소 고정은 구현 시 확인 |
 | 13 | HTTP 응답분할 | 적용 | 헤더·쿠키에 입력값을 넣는 코드 0건 |
-| 14 | 정수형 오버플로 | 적용 | `10**30` 입력 시 SQLite·MySQL 모두 404/400(500 없음). ID 입력은 `max_value=DB_ID_MAX`(`common/validators.py`, F4) |
+| 14 | 정수형 오버플로 | 적용 | `10**30` 입력 시 SQLite·MySQL 모두 404/400(500 없음). ID 입력은 `max_value=DB_ID_MAX`(`common/validators.py`, F4) 또는 ORM 범위 처리(관리자 사고 `company_id` 등 `PrimaryKeyRelatedField`는 범위 초과 → 조회 결과 없음 → 400) |
 | 15 | 보안기능 결정에 쓰는 입력값 | 적용 | 역할·상태·제보자·신규 사고 비공개를 서버가 결정. `test_ignores_client_role`, `test_server_fields_not_client_controlled`, `test_create_always_private` |
 | 16 | 메모리 버퍼 오버플로 | 해당 없음 | Python |
 | 17 | 포맷 스트링 삽입 | 적용 | `rh-log-format`(로그 f-string·format·`%` 결합 금지) |
@@ -107,7 +107,7 @@ QA1 보안 점검의 기준표와 실행 목록이다. 10/21에 코드 기준 �
 | F1 | 403·429가 `django.request` → 일반 로그(30일)로만 감. `security.md` 3-6은 보안 이벤트(90일) | 중 | BE-B | 조치 완료(#34, 429 반복은 IP·경로당 1분 1줄) |
 | F2 | 미구현 기능 점검: OTP(#32)·조치 관리자 API(#33)는 리뷰·머지 완료. 남은 것: 비밀번호 변경·탈퇴, OCR(BE-A), 마이페이지(BE-B) | – | 각 담당 | 구현 PR 리뷰 때 점검 |
 | F3 | guides 뷰 3개 `permission_classes` 미명시(#28) | 낮음 | BE-A | 조치 완료(#35) |
-| F4 | 정수 입력 `max_value` 미지정: 제보 승인 `incident_id`(BE-B), 설문 `selected_item_ids`·조치 `incident_id`(BE-A) | 낮음 | BE-B·BE-A | 조치 완료(#35, `fix/f4-id-limit-qa-status`). 상한 상수는 `common/validators.py`로 일원화 |
+| F4 | 정수 입력 `max_value` 미지정: 제보 승인 `incident_id`(BE-B), 설문 `selected_item_ids`·조치 `incident_id`(BE-A) | 낮음 | BE-B·BE-A | 조치 완료(#35·#36). 상한 상수는 `common/validators.py`로 일원화 |
 | F5 | `secure-python.md` 시간 및 상태 2번 "페이지 50" → 실제 20 | 문서 | BE-B | 정정 완료 |
 | F6 | 설문 저장 시 검증 후 유출 항목 삭제 경합 → FK 오류 500 가능 | 낮음 | BE-A | 조치 완료(#28 `16e29d7`, 잠금 후 재확인 → 400) |
 | F7 | `SurveyKey.REUSED_PASSWORD` 같은 이름이 진단 도구에 "하드코드 비밀번호"로 오탐될 수 있음(실제 값은 선택지 키) | 관찰 | BE-A | QA1에서 도구 결과 확인 |
