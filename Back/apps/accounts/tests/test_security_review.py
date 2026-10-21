@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.conf import settings
+from django.contrib.sessions.models import Session
 from django.core.cache import cache
 from django.test import TestCase
 from django.test.client import Client
@@ -55,6 +56,14 @@ class AccountSessionReviewTests(TestCase):
         replay = Client()
         replay.cookies[settings.SESSION_COOKIE_NAME] = stolen
         self.assertEqual(replay.get(ME_URL).status_code, 401)
+
+    # 사용자 행 삭제만으로도 401 → 세션 행 자체 파기 확인 (docs/security.md 3-9)
+    def test_withdraw_deletes_all_device_sessions(self) -> None:
+        current, other = self.login(self.password), self.login(self.password)
+        keys = [self.session_id(current), self.session_id(other)]
+        self.assertEqual(Session.objects.filter(session_key__in=keys).count(), 2)
+        current.post("/api/auth/withdraw/", {"current_password": self.password}, content_type="application/json")
+        self.assertFalse(Session.objects.filter(session_key__in=keys).exists())
 
     def test_withdrawn_account_cannot_login(self) -> None:
         client = self.login(self.password)
