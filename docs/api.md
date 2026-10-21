@@ -255,6 +255,9 @@
 - 처리: 내가 설문에 응답한 공개 사고만(비공개 전환된 사고는 숨김). 진행률은 `guides` 서비스 함수로 계산
 - 응답 200: `{ data: { incidents[]: { incident_id, company_name, completed_count, total_count, urgent_remaining, next_urgent_title } } }`
 - `urgent_remaining`: 1~3순위 중 남은 조치 수, `next_urgent_title`: 그중 가장 높은 순위 조치 제목(없으면 `null`)
+- 순서: 공지일 최신순. 페이지 나눔 없음(내가 설문한 사고만)
+- 사용자는 `request.user`로만(쿼리의 사용자 값 무시). 내 제보 목록은 `GET /api/reports/`(화면이 따로 호출)
+- 테스트: 비로그인 401, 남의 진행률 X, 비공개 전환 사고 제외, GET 외 405
 
 ### 사고·기업·제보 관리자 API (BE-B)
 
