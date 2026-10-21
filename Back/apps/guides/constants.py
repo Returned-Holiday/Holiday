@@ -30,8 +30,6 @@ class PublishStatus(models.TextChoices):
 
 
 SELECTED_ITEMS_MAX = 50
-# BigAutoField 상한 (정수 범위 초과 입력 X)
-DB_ID_MAX = 9_223_372_036_854_775_807
 SELECTION_ERROR = "이 사고의 유출 항목에서 골라 주세요."
 # 1~3순위 = "지금 바로 하세요"
 URGENT_PRIORITY_MAX = 3

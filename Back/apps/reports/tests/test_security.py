@@ -13,7 +13,7 @@ from apps.incidents.models import Company, Incident
 from apps.reports.constants import ReportStatus
 from apps.reports.models import Report
 from apps.reports.tests.helpers import ADMIN_REPORTS_URL, REPORTS_URL, login_admin, report_payload
-from common.validators import LEAK_ITEMS_TEXT_MAX_LENGTH, REJECT_REASON_MAX_LENGTH
+from common.validators import DB_ID_MAX, LEAK_ITEMS_TEXT_MAX_LENGTH, REJECT_REASON_MAX_LENGTH
 
 AUDIT_MIDDLEWARE = "common.middleware.AdminAuditMiddleware"
 
@@ -215,6 +215,7 @@ class AdminReportSecurityTests(TestCase):
             ("reject", {"reason": "가" * (REJECT_REASON_MAX_LENGTH + 1)}, "reason"),
             ("approve", {"incident_id": 999}, "incident_id"),
             ("approve", {"incident_id": "1 OR 1=1"}, "incident_id"),
+            ("approve", {"incident_id": DB_ID_MAX + 1}, "incident_id"),
         )
         for action, data, field in cases:
             with self.subTest(action=action, data=data):

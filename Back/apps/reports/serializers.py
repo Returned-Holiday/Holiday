@@ -3,7 +3,7 @@ from rest_framework import serializers
 from apps.incidents.services import incident_exists
 from apps.reports.constants import ReportStatus
 from apps.reports.models import Report
-from common.validators import REJECT_REASON_MAX_LENGTH
+from common.validators import DB_ID_MAX, REJECT_REASON_MAX_LENGTH
 
 UNKNOWN_INCIDENT_MESSAGE = "존재하지 않는 사고예요."
 
@@ -50,7 +50,7 @@ class AdminReportDetailSerializer(AdminReportListSerializer):
 
 
 class ApproveInputSerializer(serializers.Serializer):
-    incident_id = serializers.IntegerField(required=False, allow_null=True, min_value=1)
+    incident_id = serializers.IntegerField(required=False, allow_null=True, min_value=1, max_value=DB_ID_MAX)
 
     def validate_incident_id(self, value: int | None) -> int | None:
         if value is not None and not incident_exists(value):

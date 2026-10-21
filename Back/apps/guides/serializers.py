@@ -2,7 +2,6 @@ from rest_framework import serializers
 
 from apps.guides.constants import (
     ACTION_INCIDENT_ERROR,
-    DB_ID_MAX,
     SELECTED_ITEMS_MAX,
     SELECTION_ERROR,
     TRIGGER_EMPTY_ERROR,
@@ -15,6 +14,7 @@ from apps.guides.constants import (
 )
 from apps.guides.models import Action
 from apps.incidents.services import incident_exists
+from common.validators import DB_ID_MAX
 
 # 선택지 에러에 입력값 X (DRF 기본 문구는 입력값 포함)
 CHOICE_ERRORS = {"invalid_choice": "선택지에서 골라 주세요."}
