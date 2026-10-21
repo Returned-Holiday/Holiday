@@ -54,7 +54,7 @@
 | | QA1 (10/23–24) | QA2 (10/26 오후) |
 |---|---|---|
 | 기능 | FE2 주관. `docs/features.md` 기준 테스트케이스, 전원 교차 테스트 | QA1 수정 확인 + 회귀 |
-| 보안 | BE-B 주관. Semgrep·Bandit·audit 전수, 진단가이드 49개 기준 수동 점검, `docs/security.md` 5장 웹 21개 항목 공격 테스트 | 잔여 약점 0 확인 |
+| 보안 | BE-B 주관. Semgrep·Bandit·audit 전수, 진단가이드 49개 기준 수동 점검, `docs/security.md` 5장 웹 21개 항목 공격 테스트. 기준표·실행 목록: `docs/project/qa-security.md` | 잔여 약점 0 확인 |
 | 환경 | **스테이징(AWS)** — 쿠키·CSRF·nginx 문제는 배포 환경에서만 드러난다 | 스테이징 |
 
 ## 제출물을 위해 개발 중에 남길 것
