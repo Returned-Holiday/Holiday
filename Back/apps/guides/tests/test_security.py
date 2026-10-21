@@ -3,6 +3,7 @@ from datetime import date
 from django.db import IntegrityError, transaction
 from django.db.models import RestrictedError
 from django.test import TestCase
+from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.guides.constants import Answer, PublishStatus, SurveyKey, TriggerType
@@ -65,6 +66,10 @@ class ActionConstraintTests(TestCase):
         self.assert_rejected(trigger_type=TriggerType.SURVEY, leak_type=None)
         # 항상 트리거는 특수 조치 전용
         self.assert_rejected(trigger_type=TriggerType.ALWAYS, leak_type=None)
+
+    def test_public_requires_published_at(self) -> None:
+        self.assert_rejected(status=PublishStatus.PUBLIC)
+        Action.objects.create(**action_fields(status=PublishStatus.PUBLIC, published_at=timezone.now()))
 
     def test_rejects_invalid_values(self) -> None:
         for overrides in ({"priority": 0}, {"priority": 6}, {"status": "DRAFT"}, {"leak_type": "UNKNOWN_TYPE"}):

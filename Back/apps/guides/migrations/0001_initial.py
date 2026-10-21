@@ -107,6 +107,10 @@ class Migration(migrations.Migration):
             constraint=models.CheckConstraint(condition=models.Q(models.Q(('leak_type__isnull', False), ('survey_key__isnull', True), ('trigger_type', 'LEAK_TYPE')), models.Q(('leak_type__isnull', True), ('survey_key__isnull', False), ('trigger_type', 'SURVEY')), models.Q(('incident__isnull', False), ('leak_type__isnull', True), ('survey_key__isnull', True), ('trigger_type', 'ALWAYS')), _connector='OR'), name='ck_actions_trigger_fields'),
         ),
         migrations.AddConstraint(
+            model_name='action',
+            constraint=models.CheckConstraint(condition=models.Q(('status', 'PRIVATE'), ('published_at__isnull', False), _connector='OR'), name='ck_actions_published_at'),
+        ),
+        migrations.AddConstraint(
             model_name='actioncompletion',
             constraint=models.UniqueConstraint(fields=('user', 'incident', 'action'), name='uq_completion'),
         ),
