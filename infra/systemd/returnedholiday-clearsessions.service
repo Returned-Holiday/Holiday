@@ -1,0 +1,20 @@
+# /etc/systemd/system/returnedholiday-clearsessions.service
+[Unit]
+Description=ReturnedHoliday expired session cleanup
+
+[Service]
+Type=oneshot
+User=returnedholiday
+Group=returnedholiday
+WorkingDirectory=/srv/returnedholiday/app/Back
+Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=AWS_REGION=<리전>
+Environment=AWS_SECRET_ID=<앱용 시크릿 이름>
+ExecStart=/srv/returnedholiday/venv/bin/python manage.py clearsessions
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log/returnedholiday
