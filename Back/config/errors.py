@@ -38,7 +38,7 @@ class Conflict(CodedAPIException):
 
 # 원문·스택은 로그로만, 응답은 코드 + 일반 문구
 def api_exception_handler(exc: Exception, context: dict[str, object]) -> Response:
-    # DRF 내부에서만 바뀌는 Django 예외 → 아래 코드 매핑에 걸리게 (get_object_or_404 → NOT_FOUND)
+    # Django 예외도 코드 매핑 (get_object_or_404 → NOT_FOUND)
     if isinstance(exc, Http404):
         exc = exceptions.NotFound()
     elif isinstance(exc, DjangoPermissionDenied):
@@ -51,7 +51,7 @@ def api_exception_handler(exc: Exception, context: dict[str, object]) -> Respons
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
-    # 404에 Allow X (있는 경로·메소드 노출 X, 없는 경로 404와 같게)
+    # 404에 Allow X (있는 경로·메소드 노출 X)
     if response.status_code == status.HTTP_404_NOT_FOUND:
         context["view"].headers.pop("Allow", None)
 

@@ -20,7 +20,7 @@ def fingerprint(response: HttpResponse) -> tuple[int, bytes, dict[str, str]]:
     return response.status_code, response.content, headers
 
 
-# 404 응답만으로 경로·리소스 존재 구분 X (관리자 API 존재 숨김, 비공개 사고 숨김)
+# 404만으로 경로·리소스 존재 구분 X
 class UniformNotFoundTests(TestCase):
     def setUp(self) -> None:
         cache.clear()
@@ -72,7 +72,7 @@ class UniformNotFoundTests(TestCase):
         self.assertEqual(response.status_code, 405)
         self.assertIn("Allow", response.headers)
 
-    # nginx 허용 IP 차단 본문도 같은 바이트 (한쪽만 바뀌면 실패)
+    # nginx 차단 본문도 같은 바이트
     def test_nginx_admin_block_matches(self) -> None:
         conf = NGINX_CONF.read_text(encoding="utf-8")
         admin_block = conf[conf.index("location /api/admin/"):]
