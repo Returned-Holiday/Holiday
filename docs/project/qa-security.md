@@ -3,7 +3,7 @@
 QA1 보안 점검의 기준표와 실행 목록이다. 10/21에 코드 기준 사전 점검을 마쳤고(아래 1·2절), QA1 당일에는 미구현 기능 점검과 스테이징 공격 테스트(3절)만 하면 된다. 결과는 각 표의 "결과" 칸에 적고, 조치는 PR로 남긴다. 이 문서가 서비스 개요서 보안 부분의 원본이다.
 
 - 기준: 진단가이드 구현 단계 49개(`docs/rules/secure-python.md`, `secure-ts.md`), 기반시설 웹 21개(`docs/security.md` 5장)
-- 사전 점검 범위: dev(`2f494fb`) + guides 모델·API(#26·#28). 10/21 저녁 머지분(#32~#35)까지 상태 갱신(`1709585` 기준)
+- 사전 점검 범위: dev(`2f494fb`) + guides 모델·API(#26·#28). 10/21 밤 머지분(#32~#40)까지 상태 갱신(`c585360` 기준)
 - 상태 표기: **적용**(근거 있음) / **조치**(고칠 것) / **미구현**(기능이 아직 없음, 구현 PR에서 점검) / **스테이징**(서버에서만 확인 가능) / **해당 없음**
 
 ## 1. 자동 점검 (CI와 같은 명령, QA1 첫날 전체 1회)
@@ -14,7 +14,7 @@ QA1 보안 점검의 기준표와 실행 목록이다. 10/21에 코드 기준 �
 | Bandit | `bandit -q -r . -x ./requirements,./.venv` | 0건 |
 | pip-audit | `pip-audit -r requirements/base.txt -r requirements/prod.txt` | 0건 |
 | npm audit | `npm audit --omit=dev` | 0건 |
-| 테스트 | `DJANGO_SETTINGS_MODULE=config.settings.test python manage.py test` | 239개 통과(dev `1709585`) |
+| 테스트 | `DJANGO_SETTINGS_MODULE=config.settings.test python manage.py test` | 265개 통과(dev `c585360`) |
 | 마이그레이션 누락 | `python manage.py makemigrations --check --dry-run` | 변경 없음 |
 | 운영 설정 | `python manage.py check --deploy --settings=config.settings.prod` | 스테이징에서 실행 |
 
@@ -44,7 +44,7 @@ QA1 보안 점검의 기준표와 실행 목록이다. 10/21에 코드 기준 �
 ### 2-2. 보안기능 (16)
 | # | 약점 | 상태 | 근거 |
 |---|---|---|---|
-| 1 | 인증 없는 중요기능 | 미구현 일부 | 기본 `IsAuthenticated`, 관리자 API는 `IsStaffWithOtp`(OTP 인증 세션만), 관리자 OTP 인증 API(#32: 실패 응답 통일, 성공 시 세션 재발급). 비밀번호 변경·탈퇴(현재 비밀번호 확인) API 미구현(BE-A, 예비안대로 후순위) |
+| 1 | 인증 없는 중요기능 | 적용 | 기본 `IsAuthenticated`, 관리자 API는 `IsStaffWithOtp`(OTP 인증 세션만), 관리자 OTP 인증 API(#32: 실패 응답 통일, 성공 시 세션 재발급). 비밀번호 변경·탈퇴는 현재 비밀번호 확인(#38). 테스트 `accounts/tests/test_security_review.py`(다른 기기 세션 종료, 탈퇴 후 옛 쿠키 401) |
 | 2 | 부적절한 인가 | 적용 | 소유 필터 `common.queries`, 공개 필터, `IsStaffWithOtp`, 404 통일. 모든 뷰 권한 클래스 명시(#35). 조치 대상 변경은 완료 기록 있으면 409(#33) |
 | 3 | 자원 권한 설정 | 스테이징 | 전용 계정·`UMask=0027`·로그 디렉터리 750(`infra/systemd`) |
 | 4 | 취약한 암호 알고리즘 | 적용 | `rh-weak-hash`, Bandit |
@@ -52,7 +52,7 @@ QA1 보안 점검의 기준표와 실행 목록이다. 10/21에 코드 기준 �
 | 6 | 하드코드된 중요정보 | 적용 | `p/secrets`, 테스트 비밀번호는 실행마다 랜덤, 비밀값은 Secrets Manager. 10/21 IP·키 검색 0건 |
 | 7 | 키 길이 | 해당 없음 | 직접 암호화 없음(TLS는 nginx) |
 | 8 | 적절하지 않은 난수 | 적용 | `rh-insecure-random`, 프론트 `Math.random` 0건 |
-| 9 | 취약한 비밀번호 허용 | 미구현 일부 | KISA 검증기 가입 적용(테스트 있음). 비밀번호 변경 API 미구현 |
+| 9 | 취약한 비밀번호 허용 | 적용 | KISA 검증기를 가입·변경 모두 적용, 변경은 최소 1일·현재+최근 4개 재사용 금지(#38) |
 | 10 | 전자서명 확인 | 해당 없음 | |
 | 11 | 인증서 유효성 검증 | 적용 | `rh-tls-verify-disabled`. OCR 외부 호출 구현 시 재확인 |
 | 12 | 하드디스크에 저장되는 쿠키 | 적용 | 세션 15분·요청마다 갱신·브라우저 종료 시 만료, HttpOnly·SameSite=Lax, 세션에 민감정보 없음 |
@@ -105,7 +105,7 @@ QA1 보안 점검의 기준표와 실행 목록이다. 10/21에 코드 기준 �
 | # | 내용 | 심각도 | 담당 | 상태 |
 |---|---|---|---|---|
 | F1 | 403·429가 `django.request` → 일반 로그(30일)로만 감. `security.md` 3-6은 보안 이벤트(90일) | 중 | BE-B | 조치 완료(#34, 429 반복은 IP·경로당 1분 1줄) |
-| F2 | 미구현 기능 점검: OTP(#32)·조치 관리자 API(#33)는 리뷰·머지 완료. 남은 것: 비밀번호 변경·탈퇴, OCR(BE-A), 마이페이지(BE-B) | – | 각 담당 | 구현 PR 리뷰 때 점검 |
+| F2 | 미구현 기능 점검: OTP(#32)·조치 관리자 API(#33)·비밀번호 변경·탈퇴(#38)·마이페이지(#37) 리뷰·머지 완료. 남은 것: OCR(#41, BE-B 리뷰 반영 완료·보강 중) | – | 각 담당 | 구현 PR 리뷰 때 점검 |
 | F3 | guides 뷰 3개 `permission_classes` 미명시(#28) | 낮음 | BE-A | 조치 완료(#35) |
 | F4 | 정수 입력 `max_value` 미지정: 제보 승인 `incident_id`(BE-B), 설문 `selected_item_ids`·조치 `incident_id`(BE-A) | 낮음 | BE-B·BE-A | 조치 완료(#35·#36). 상한 상수는 `common/validators.py`로 일원화 |
 | F5 | `secure-python.md` 시간 및 상태 2번 "페이지 50" → 실제 20 | 문서 | BE-B | 정정 완료 |
@@ -141,7 +141,7 @@ rm -f jar
 | CF | CSRF | 토큰 없이·변조해서 로그인·제보 POST | 403 | `test_requires_csrf*` | |
 | SF | SSRF | 제보 `source_url`에 `https://127.0.0.1/`, `https://169.254.169.254/`, `file:///etc/passwd` | 400 | `common/tests/test_validators.py` | |
 | BF | 약한 비밀번호 | `abc12345`로 가입, 6회 연속 로그인 실패 | 400 / 429 잠금 | `test_rejects_weak_password`, `test_locks_after_five_failures` | |
-| IA | 불충분한 인증 | 쿠키 없이 `/api/reports/`·`/api/mypage/`, 현재 비밀번호 없이 탈퇴·비밀번호 변경 | 401 / 400 (마이페이지·탈퇴·비밀번호 변경은 구현 후, 지금은 404) | `test_anonymous_rejected` | |
+| IA | 불충분한 인증 | 쿠키 없이 `/api/reports/`·`/api/mypage/`, 현재 비밀번호 없이 탈퇴·비밀번호 변경 | 401 / 400 | `test_anonymous_rejected`, mypage `test_requires_login`, `test_wrong_or_missing_current` | |
 | IN | 불충분한 권한 검증 | A로 B의 제보·설문 접근, 다른 사고의 조치 ID로 완료, 비공개 사고 ID | 404 | `test_only_own_reports_and_no_detail_api`, guides `OwnershipSecurityTests` | |
 | PR | 비밀번호 복구 | – | 기능 없음 | – | 해당 없음 |
 | PV | 프로세스 검증 | 설문 없이 `PUT .../completions/<id>/`, 만료 계정으로 `/api/incidents/` | 404 / 403 `PASSWORD_EXPIRED` | `test_requires_survey`, `test_expired_user_blocked` | |
