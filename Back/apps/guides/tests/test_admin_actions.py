@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.accounts.models import User
-from apps.guides.models import Action
+from apps.guides.models import Action, ActionCompletion
 from apps.guides.tests.helpers import make_incident, make_item, make_user, survey_payload
 from apps.incidents.constants import IncidentStatus
 
@@ -144,3 +144,20 @@ class AdminActionSecurityTests(AdminActionTestCase):
     def test_id_over_db_range_rejected(self) -> None:
         self.assert_rejected("incident_id", trigger_type="ALWAYS", leak_type=None, incident_id=10**19)
         self.assertEqual(self.client.get(LIST_URL, {"incident_id": 10**19}).status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_scope_locked_after_completion(self) -> None:
+        incident = make_incident()
+        action_id = self.create(trigger_type="ALWAYS", leak_type=None, incident_id=incident.pk)["id"]
+        action = Action.objects.get(pk=action_id)
+        ActionCompletion.objects.create(user=make_user(), incident=incident, action=action)
+        for change in ({"incident_id": None, "trigger_type": "LEAK_TYPE", "leak_type": "CONTACT"},
+                       {"incident_id": make_incident("다른사").pk}):
+            with self.subTest(change=list(change)):
+                response = self.client.patch(detail_url(action_id), change, format="json")
+                self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
+                self.assertEqual(response.json()["code"], "CONFLICT")
+        action.refresh_from_db()
+        self.assertEqual((action.incident_id, action.trigger_type), (incident.pk, "ALWAYS"))
+        # 내용·공개 상태 변경은 허용
+        response = self.client.patch(detail_url(action_id), {"title": "수정", "status": "PUBLIC"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)

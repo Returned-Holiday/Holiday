@@ -2,7 +2,10 @@ from django.db.models import QuerySet
 from django.utils import timezone
 
 from apps.guides.constants import PublishStatus
+from apps.guides.exceptions import ActionScopeLocked
 from apps.guides.models import Action
+
+SCOPE_FIELDS = ("incident_id", "trigger_type")
 
 
 def admin_actions(status: str | None, incident_id: int | None) -> QuerySet[Action]:
@@ -21,6 +24,9 @@ def create_action(data: dict) -> Action:
 
 # 처음 공개될 때만 공개 시각 기록 (서버 시각, "새 조치" 기준)
 def update_action(action: Action, data: dict) -> Action:
+    changes_scope = any(field in data and data[field] != getattr(action, field) for field in SCOPE_FIELDS)
+    if changes_scope and action.completions.exists():
+        raise ActionScopeLocked
     for field, value in data.items():
         setattr(action, field, value)
     if action.status == PublishStatus.PUBLIC and action.published_at is None:
