@@ -64,6 +64,8 @@ AXES_RESET_ON_SUCCESS = True
 AXES_DISABLE_ACCESS_LOG = True
 # 기본 잠금 응답은 이메일 노출 → 공통 에러 형식
 AXES_LOCKOUT_CALLABLE = "apps.accounts.exceptions.lockout_response"
+
+OTP_TOTP_ISSUER = "ReturnedHoliday"
 # nginx 뒤라 axes는 실제 IP 모름 → IP 제한은 DRF login throttle
 SILENCED_SYSTEM_CHECKS = ["axes.W006"]
 

@@ -29,3 +29,10 @@ class EmailTaken(CodedAPIException):
 # axes 기본 잠금 응답은 이메일 노출 → 공통 형식으로 교체
 def lockout_response(request: HttpRequest, original_response: HttpResponse | None, credentials: dict | None) -> HttpResponse:
     return error_json(AccountLocked.error_code, LOCKED_MESSAGE, status.HTTP_429_TOO_MANY_REQUESTS)
+
+
+# 형식 오류·코드 불일치·기기 없음 모두 같은 응답
+class OtpFailed(CodedAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    error_code = "OTP_FAILED"
+    default_detail = "인증 코드가 올바르지 않습니다."

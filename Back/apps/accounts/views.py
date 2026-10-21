@@ -1,6 +1,8 @@
 from django.contrib.auth import authenticate, login, logout
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
+from django_otp import login as otp_login
+from django_otp import match_token
 from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
@@ -8,10 +10,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from common.passwords import is_password_expired
+from common.permissions import IsStaffBeforeOtp
 from common.request import client_ip
 
-from .exceptions import AccountLocked, LoginFailed
-from .serializers import LoginSerializer, MeSerializer, SignupSerializer
+from .exceptions import AccountLocked, LoginFailed, OtpFailed
+from .serializers import LoginSerializer, MeSerializer, OtpSerializer, SignupSerializer
 from .services import create_member, security_logger
 
 
@@ -76,3 +79,21 @@ class MeView(APIView):
 
     def get(self, request: Request) -> Response:
         return Response(MeSerializer(request.user).data)
+
+
+class OtpView(APIView):
+    permission_classes = [IsStaffBeforeOtp]
+    throttle_scope = "otp"
+
+    def post(self, request: Request) -> Response:
+        serializer = OtpSerializer(data=request.data)
+        # 형식 오류도 같은 실패 응답 (입력 형식 단서 X)
+        device = match_token(request.user, serializer.validated_data["code"]) if serializer.is_valid() else None
+        if device is None:
+            security_logger.warning("otp failed user_id=%s ip=%s", request.user.pk, client_ip(request))
+            raise OtpFailed
+        # 권한 상승 → 세션 ID 재발급 (세션 고정 방지)
+        request.session.cycle_key()
+        otp_login(request, device)
+        security_logger.info("otp verified user_id=%s ip=%s", request.user.pk, client_ip(request))
+        return Response(status=status.HTTP_204_NO_CONTENT)
