@@ -108,3 +108,29 @@ def delete_leak_item(item: IncidentLeakItem) -> None:
             _mark_notice_revised(item.incident_id)
     except (ProtectedError, RestrictedError) as error:
         raise LeakItemInUse from error
+
+
+# OCR 매칭: 기업명·별칭이 텍스트에 포함된 기업의 최신 공개 사고 + 그 사고 "유출" 항목 이름 포함 여부 (공백·대소문자·전각 무시)
+def match_public_incident_text(text: str) -> tuple[Incident | None, list[IncidentLeakItem]]:
+    key = normalize_company_key(text)
+    if not key:
+        return None, []
+    # 한 글자 별칭은 오탐 많음 → 2자 이상만
+    company_ids = [
+        company_id
+        for company_id, name, aliases in Company.objects.values_list("id", "name", "aliases")
+        if any(len(term) >= 2 and term in key for term in (normalize_company_key(name), *aliases))
+    ]
+    incident = (
+        with_company_and_leak_items(get_public_incidents().filter(company_id__in=company_ids))
+        .order_by("-notified_at", "-pk")
+        .first()
+    )
+    if incident is None:
+        return None, []
+    items = [
+        item
+        for item in incident.leak_items.all()
+        if item.is_leaked and normalize_company_key(item.label) and normalize_company_key(item.label) in key
+    ]
+    return incident, items
