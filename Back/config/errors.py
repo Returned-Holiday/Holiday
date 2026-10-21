@@ -1,14 +1,17 @@
 import logging
 
+from django.contrib.auth import SESSION_KEY
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.http import Http404, HttpRequest, JsonResponse
 from rest_framework import exceptions, status
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
 
+from common.request import client_ip
 from common.responses import error_body, error_json
 
 logger = logging.getLogger("app.error")
+security_logger = logging.getLogger("app.security")
 
 GENERIC_MESSAGE = "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요."
 
@@ -51,6 +54,10 @@ def api_exception_handler(exc: Exception, context: dict[str, object]) -> Respons
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
+    # 403·429 보안 이벤트 (401 변환 전 → 예외 종류로)
+    if isinstance(exc, (exceptions.PermissionDenied, exceptions.Throttled)):
+        _log_denied(context, response.status_code)
+
     # 404에 Allow X (있는 경로·메소드 노출 X)
     if response.status_code == status.HTTP_404_NOT_FOUND:
         context["view"].headers.pop("Allow", None)
@@ -72,6 +79,23 @@ def api_exception_handler(exc: Exception, context: dict[str, object]) -> Respons
 
     response.data = error_body("REQUEST_ERROR", GENERIC_MESSAGE)
     return response
+
+
+# 경로 원문 X → URL 패턴만 (로그 위조 방지)
+def _log_denied(context: dict[str, object], status_code: int) -> None:
+    request = context["request"]
+    user = request.user
+    # CSRF 실패 시 DRF가 익명 처리 → 세션의 사용자 ID
+    session = getattr(getattr(request, "_request", request), "session", {})
+    user_id = user.pk if user.is_authenticated else session.get(SESSION_KEY)
+    match = request.resolver_match
+    security_logger.warning(
+        "api_denied status=%s user_id=%s ip=%s route=%s",
+        status_code,
+        user_id,
+        client_ip(request),
+        match.route if match else "unresolved",
+    )
 
 
 def not_found(request: HttpRequest, exception: Exception) -> JsonResponse:

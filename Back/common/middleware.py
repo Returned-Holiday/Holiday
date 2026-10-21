@@ -10,6 +10,7 @@ from common.request import client_ip
 from common.responses import error_json
 
 audit_logger = logging.getLogger("app.audit")
+security_logger = logging.getLogger("app.security")
 
 API_PREFIX = "/api/"
 ADMIN_API_PREFIX = "/api/admin/"
@@ -39,6 +40,7 @@ class PasswordExpiryMiddleware:
         if path.startswith(API_PREFIX) and path not in PASSWORD_EXPIRY_ALLOWED_PATHS:
             user = request.user
             if user.is_authenticated and is_password_expired(user):
+                security_logger.warning("password_expired_blocked user_id=%s ip=%s", user.pk, client_ip(request))
                 return error_json("PASSWORD_EXPIRED", EXPIRY_NOTICE, 403)
         return self.get_response(request)
 
