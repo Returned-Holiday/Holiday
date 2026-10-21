@@ -142,7 +142,7 @@ apps/guides/services/
 |---|---|---|
 | `incidents` (BE-B) | `services.get_public_incidents()`, `services.get_public_incident_or_404(incident_id)`, 유출 유형 상수 `constants.LeakType` | guides, reports |
 | `guides` (BE-A) | `services.get_progress(user)` | mypage |
-| `common` (BE-B) | `masking.mask_pii()`, `validators.validate_https_url()`, `queries.get_owned_or_404()`, `request.client_ip()`, `passwords.is_password_expired()` | 전체 |
+| `common` (BE-B) | `masking.mask_pii()`, `validators.validate_https_url()`, `queries.get_owned_or_404(qs, user, owner_field=..., **lookup)`·`queries.filter_owned()`(소유자 조건 먼저 고정, 남의 것·없음 모두 404, 비로그인 빈 결과), `request.client_ip()`, `passwords.is_password_expired()` | 전체 |
 
 `common/permissions.py`의 `IsStaffWithOtp`(관리자 API 권한)는 정책이 확정되어 구현까지 해 두었다.
 
