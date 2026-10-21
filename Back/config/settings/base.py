@@ -39,6 +39,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "config.urls"
+# 301로 경로 존재 노출 X (모든 API는 / 로 끝남)
+APPEND_SLASH = False
 WSGI_APPLICATION = "config.wsgi.application"
 
 AUTH_USER_MODEL = "accounts.User"
