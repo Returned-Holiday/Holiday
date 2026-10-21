@@ -1,5 +1,6 @@
 from rest_framework import status
 from rest_framework.exceptions import NotFound
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -20,6 +21,8 @@ from common.queries import filter_owned
 
 # 내 응답만 (URL에 소유자 ID X, request.user로)
 class SurveyView(APIView):
+    permission_classes = [IsAuthenticated]
+
     # 삭제만 sensitive 제한
     @property
     def throttle_scope(self) -> str | None:
@@ -44,6 +47,8 @@ class SurveyView(APIView):
 
 
 class ChecklistView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request: Request, pk: int) -> Response:
         incident = get_incident_for_user_or_404(pk)
         response = get_response_or_404(request.user, incident)
@@ -51,6 +56,8 @@ class ChecklistView(APIView):
 
 
 class CompletionView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def put(self, request: Request, pk: int, action_id: int) -> Response:
         incident = get_incident_for_user_or_404(pk)
         action = get_completable_action_or_404(request.user, incident, action_id)

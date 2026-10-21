@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.guides.constants import SELECTED_ITEMS_MAX, SELECTION_ERROR, Answer, Certainty, LeakItemsAnswer
+from apps.guides.constants import DB_ID_MAX, SELECTED_ITEMS_MAX, SELECTION_ERROR, Answer, Certainty, LeakItemsAnswer
 
 # 선택지 에러에 입력값 X (DRF 기본 문구는 입력값 포함)
 CHOICE_ERRORS = {"invalid_choice": "선택지에서 골라 주세요."}
@@ -13,7 +13,9 @@ def _answer_field() -> serializers.ChoiceField:
 class SurveyInputSerializer(serializers.Serializer):
     leak_items_answer = serializers.ChoiceField(choices=LeakItemsAnswer.choices, error_messages=CHOICE_ERRORS)
     selected_item_ids = serializers.ListField(
-        child=serializers.IntegerField(min_value=1), max_length=SELECTED_ITEMS_MAX, allow_empty=True
+        child=serializers.IntegerField(min_value=1, max_value=DB_ID_MAX),
+        max_length=SELECTED_ITEMS_MAX,
+        allow_empty=True,
     )
     payment_linked = _answer_field()
     reused_password = _answer_field()
