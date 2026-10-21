@@ -106,5 +106,6 @@ $RUN create_admin --email <관리자 이메일> --nickname <닉네임>   # 비�
 $RUN register_otp --email <관리자 이메일>                        # otpauth:// 를 인증 앱에 등록
 $RUN deactivate_admin --email <관리자 이메일>                    # 퇴출 시: 비활성화·OTP 기기 삭제·세션 종료
 ```
-- [ ] `register_otp` 출력(비밀값 포함)은 인증 앱 등록 직후 터미널 기록에서 지움(`history -c`)
+- [ ] `register_otp` 출력(비밀값 포함)은 인증 앱 등록 직후 화면 버퍼에서 지움(`clear` 또는 `printf '\033c'`). `history -c`는 입력 명령만 지워서 출력은 남음. tmux·screen 로그를 켜 두었으면 그 로그 파일도 확인
+- [ ] 비밀번호 90일이 지난 관리자는 OTP 전에 비밀번호부터 변경해야 함(`/api/auth/otp/`는 만료 허용 경로 아님)
 - [ ] 관리자 로그인 → `/manage/otp`에서 6자리 입력 → 관리자 화면 진입 확인
