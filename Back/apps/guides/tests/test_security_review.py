@@ -7,10 +7,10 @@ from apps.guides.models import ActionCompletion, SurveyResponse
 from apps.guides.tests import helpers
 from apps.incidents.constants import IncidentStatus, LeakType
 from apps.incidents.models import Incident
+from common.validators import DB_ID_MAX
 
 SENSITIVE_LIMIT = 5
-# BigAutoField 상한 + 1
-ID_OVER_LIMIT = 2**63
+ID_OVER_LIMIT = DB_ID_MAX + 1
 
 
 # BE-B 보안 리뷰 보강 (기본 케이스는 test_security.py)
