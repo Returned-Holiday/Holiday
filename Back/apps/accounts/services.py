@@ -1,14 +1,20 @@
 import logging
 
+from axes.models import AccessAttempt, AccessFailureLog
 from django.contrib.auth import SESSION_KEY
+from django.contrib.auth.hashers import check_password
 from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.contrib.sessions.models import Session
 from django.db import IntegrityError, transaction
 from django.http import HttpRequest
 from django.utils import timezone
 from django_otp.plugins.otp_totp.models import TOTPDevice
+from rest_framework.exceptions import PermissionDenied, ValidationError
 
-from .constants import OTP_DEVICE_NAME
+from common.passwords import PASSWORD_HISTORY_SIZE, is_password_expired, is_within_min_age
+
+from .constants import CURRENT_MISMATCH_ERROR, MIN_AGE_ERROR, OTP_DEVICE_NAME, REUSE_ERROR
 from .exceptions import EmailTaken
 from .models import PasswordHistory, User
 
@@ -64,6 +70,53 @@ def deactivate_admin(user: User) -> None:
         user.is_active = False
         user.save(update_fields=["is_active"])
         TOTPDevice.objects.filter(user=user).delete()
-        for session in Session.objects.filter(expire_date__gt=timezone.now()):
-            if session.get_decoded().get(SESSION_KEY) == str(user.pk):
-                session.delete()
+        end_user_sessions(user)
+
+
+def end_user_sessions(user: User) -> None:
+    for session in Session.objects.filter(expire_date__gt=timezone.now()):
+        if session.get_decoded().get(SESSION_KEY) == str(user.pk):
+            session.delete()
+
+
+def _recent_hashes(user: User) -> list[str]:
+    histories = PasswordHistory.objects.filter(user=user).order_by("-created_at", "-id")
+    return list(histories.values_list("password", flat=True)[:PASSWORD_HISTORY_SIZE])
+
+
+# 현재 비밀번호 → 최소 1일(만료 강제 변경 예외) → 규칙 → 현재·최근 4개 재사용 → 저장 (docs/security.md 3-1)
+def change_password(user: User, current: str, new: str) -> User:
+    with transaction.atomic():
+        # 동시 변경 요청 직렬화 (TOCTOU X)
+        locked = User.objects.select_for_update().get(pk=user.pk)
+        if not locked.check_password(current):
+            raise ValidationError({"current_password": [CURRENT_MISMATCH_ERROR]})
+        if not is_password_expired(locked) and is_within_min_age(locked):
+            raise ValidationError({"new_password": [MIN_AGE_ERROR]})
+        try:
+            validate_password(new, locked)
+        except DjangoValidationError as error:
+            raise ValidationError({"new_password": list(error.messages)}) from error
+        if locked.check_password(new) or any(check_password(new, hashed) for hashed in _recent_hashes(locked)):
+            raise ValidationError({"new_password": [REUSE_ERROR]})
+        locked.set_password(new)
+        locked.password_changed_at = timezone.now()
+        locked.save(update_fields=["password", "password_changed_at"])
+        PasswordHistory.objects.create(user=locked, password=locked.password)
+        stale = PasswordHistory.objects.filter(user=locked).order_by("-created_at", "-id")[PASSWORD_HISTORY_SIZE:]
+        PasswordHistory.objects.filter(pk__in=list(stale.values_list("pk", flat=True))).delete()
+    return locked
+
+
+# 관리자 X (비활성화만), 개인 데이터 CASCADE + 로그인 실패 기록(이메일·IP)도 즉시 파기
+def withdraw(user: User, current: str) -> None:
+    with transaction.atomic():
+        locked = User.objects.select_for_update().get(pk=user.pk)
+        if not locked.check_password(current):
+            raise ValidationError({"current_password": [CURRENT_MISMATCH_ERROR]})
+        if locked.is_staff:
+            raise PermissionDenied
+        AccessAttempt.objects.filter(username=locked.email).delete()
+        AccessFailureLog.objects.filter(username=locked.email).delete()
+        end_user_sessions(locked)
+        locked.delete()

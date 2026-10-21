@@ -1,9 +1,10 @@
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django_otp import login as otp_login
 from django_otp import match_token
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,8 +15,15 @@ from common.permissions import IsStaffBeforeOtp
 from common.request import client_ip
 
 from .exceptions import AccountLocked, LoginFailed, OtpFailed
-from .serializers import LoginSerializer, MeSerializer, OtpSerializer, SignupSerializer
-from .services import create_member, security_logger
+from .serializers import (
+    LoginSerializer,
+    MeSerializer,
+    OtpSerializer,
+    PasswordChangeSerializer,
+    SignupSerializer,
+    WithdrawSerializer,
+)
+from .services import change_password, create_member, security_logger, withdraw
 
 
 @method_decorator(ensure_csrf_cookie, name="dispatch")
@@ -96,4 +104,42 @@ class OtpView(APIView):
         request.session.cycle_key()
         otp_login(request, device)
         security_logger.info("otp verified user_id=%s ip=%s", request.user.pk, client_ip(request))
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# 만료 상태 허용 경로 (common.middleware)
+class PasswordChangeView(APIView):
+    permission_classes = [IsAuthenticated]
+    throttle_scope = "sensitive"
+
+    def post(self, request: Request) -> Response:
+        serializer = PasswordChangeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        try:
+            user = change_password(request.user, data["current_password"], data["new_password"])
+        except ValidationError:
+            security_logger.warning("password change failed user_id=%s ip=%s", request.user.pk, client_ip(request))
+            raise
+        # 현재 세션 유지 + ID 재발급, 다른 기기 세션은 해시 불일치로 무효
+        update_session_auth_hash(request, user)
+        security_logger.info("password changed user_id=%s ip=%s", user.pk, client_ip(request))
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class WithdrawView(APIView):
+    permission_classes = [IsAuthenticated]
+    throttle_scope = "sensitive"
+
+    def post(self, request: Request) -> Response:
+        serializer = WithdrawSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user_id = request.user.pk
+        try:
+            withdraw(request.user, serializer.validated_data["current_password"])
+        except ValidationError:
+            security_logger.warning("withdraw failed user_id=%s ip=%s", user_id, client_ip(request))
+            raise
+        logout(request)
+        security_logger.info("withdrawn user_id=%s ip=%s", user_id, client_ip(request))
         return Response(status=status.HTTP_204_NO_CONTENT)
