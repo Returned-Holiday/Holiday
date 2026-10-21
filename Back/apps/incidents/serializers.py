@@ -35,6 +35,7 @@ class PublicLeakItemSerializer(serializers.ModelSerializer):
 
 class IncidentDetailSerializer(serializers.ModelSerializer):
     company_name = serializers.CharField(source="company.name", read_only=True)
+    active_count = serializers.IntegerField(read_only=True)
     leak_items = PublicLeakItemSerializer(many=True, read_only=True)
 
     class Meta:
@@ -49,6 +50,7 @@ class IncidentDetailSerializer(serializers.ModelSerializer):
             "source_url",
             "contact_info",
             "response_status",
+            "active_count",
             "leak_items",
         ]
 
@@ -104,9 +106,14 @@ class AdminIncidentListSerializer(serializers.ModelSerializer):
 
 
 class AdminLeakItemSerializer(serializers.ModelSerializer):
+    selected_by_users = serializers.SerializerMethodField()
+
     class Meta:
         model = IncidentLeakItem
-        fields = ["id", "label", "is_leaked", "leak_type"]
+        fields = ["id", "label", "is_leaked", "leak_type", "selected_by_users"]
+
+    def get_selected_by_users(self, item: IncidentLeakItem) -> bool:
+        return item.selection_count > 0
 
 
 class AdminIncidentSerializer(serializers.ModelSerializer):
