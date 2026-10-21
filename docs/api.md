@@ -258,12 +258,12 @@
 
 ### 사고·기업·제보 관리자 API (BE-B)
 
-**(BE-B 확인 필요)** 권한: `IsStaffWithOtp`(아니면 404) / 요청 제한: admin. 사고·기업 삭제 API 없음(405).
+권한: `IsStaffWithOtp`(비로그인·회원·OTP 미인증 관리자 모두 404) / 요청 제한: admin. 사고·기업 삭제 API 없음(405). 입력 serializer에 서버 결정 값(신규 `status`, `notice_revised_at`) 없음.
 
 #### GET·POST /api/admin/incidents/companies/
 - GET 응답 200: `{ data: { count, next, previous, results[]: { id, name, aliases[] } } }`
 - POST 요청: `{ name: string(최대 100), aliases: string[] }` (별칭 기업당 20개까지, 각 1~50자. 정규화 후 기준)
-- 처리: 별칭 공백 제거·소문자 정규화, 같은 별칭은 하나로
+- 처리: 별칭 NFKC·공백 제거·소문자 정규화, 같은 별칭은 하나로. 저장은 `services.save_company()`(기업 행 잠금 후 검증)
 - 응답 201: 기업 객체
 - 에러: 400 `VALIDATION_ERROR`, 409 `CONFLICT`(기업명 중복, 다른 기업의 이름·별칭과 중복. 공백·대소문자만 다른 경우 포함)
 
@@ -275,11 +275,14 @@
 - POST 요청: `{ company_id, occurred_at: date|null, notified_at: date, affected_count: number|null(0 ~ 2,147,483,647), source_url, contact_info: string|null(최대 500), summary: string(최대 2,000), response_status }`
 - 처리: 신규는 `PRIVATE`(요청 값 무시), `response_status` 기본 `ONGOING`
 - 응답 201: 관리자 사고 객체 `{ id, company_id, occurred_at, notified_at, affected_count, source_url, contact_info, summary, status, response_status, notice_revised_at, leak_items[]: { id, label, is_leaked, leak_type, selected_by_users } }`
+- `selected_by_users`: guides 설문 모델 머지 후 추가(그 전까지 응답에 없음)
 - 에러: 400 `VALIDATION_ERROR`(없는 기업 포함)
 
 #### GET·PATCH /api/admin/incidents/<id>/
 - PATCH 요청: POST 필드 일부 + `status`, `response_status: "ONGOING"|"CLOSED"`
 - "공지 갱신" 수동 표시 없음. `notice_revised_at`은 유출 항목 추가·수정·삭제 때만 자동 갱신
+- 감사 로그 행위: `status` 변경이면 `PUBLISH`/`UNPUBLISH`, 그 외 `UPDATE`
+- PUT·DELETE 405
 - 응답 200: 관리자 사고 객체 / 에러: 400, 404
 
 #### POST /api/admin/incidents/<id>/leak-items/
@@ -290,7 +293,8 @@
 #### PATCH·DELETE /api/admin/incidents/<id>/leak-items/<item_id>/
 - 항목이 그 사고 소속이 아니면 404
 - PATCH: 요청 POST 필드 일부, `notice_revised_at` 갱신, 응답 200 관리자 사고 객체
-- DELETE: 응답 204, `notice_revised_at` 갱신. 사용자가 고른 항목이면 409 `CONFLICT`(수정으로 정정)
+- DELETE: 응답 204, `notice_revised_at` 갱신. 사용자가 고른 항목이면 409 `CONFLICT`(수정으로 정정). guides의 `RESTRICT` FK가 막은 삭제를 409로 변환
+- 항목 변경과 `notice_revised_at` 갱신은 한 트랜잭션
 
 #### GET /api/admin/reports/?status=
 - `results[]`: `{ id, company_name, reporter_nickname, created_at, status }`. 제보자 이메일 미포함

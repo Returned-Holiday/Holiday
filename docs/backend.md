@@ -33,7 +33,7 @@
 ## 주차별 일정
 
 기획서 5-5의 주차별 작업을 두 사람이 같은 주에 나눠 맡아 서로 기다리는 구간을 줄인다. 팀 전체 일정(10/23 역할 완료, QA, 10/28 제출)은 `docs/project/team.md`.
-- BE-A의 2주차(배포 + 체크리스트)가 가장 무겁다. 밀리면 **비밀번호 변경을 3주차 뒤로 미룬다.**
+- BE-A의 2주차(체크리스트 + 운영 설정)가 가장 무겁다. 서버 구성·배포는 FE2. 밀리면 **비밀번호 변경을 3주차 뒤로 미룬다.**
 
 ## 디렉토리 구조
 
@@ -142,7 +142,7 @@ apps/guides/services/
 |---|---|---|
 | `incidents` (BE-B) | `services.get_public_incidents()`, `services.get_public_incident_or_404(incident_id)`, 유출 유형 상수 `constants.LeakType` | guides, reports |
 | `guides` (BE-A) | `services.get_progress(user)` | mypage |
-| `common` (BE-B) | `masking.mask_pii()`, `validators.validate_https_url()`, `queries.get_owned_or_404()`, `request.client_ip()`, `passwords.is_password_expired()` | 전체 |
+| `common` (BE-B) | `masking.mask_pii()`, `validators.validate_https_url()`, `queries.get_owned_or_404(qs, user, owner_field=..., **lookup)`·`queries.filter_owned()`(소유자 조건 먼저 고정, 남의 것·없음 모두 404, 비로그인 빈 결과), `request.client_ip()`, `passwords.is_password_expired()` | 전체 |
 
 `common/permissions.py`의 `IsStaffWithOtp`(관리자 API 권한)는 정책이 확정되어 구현까지 해 두었다.
 
