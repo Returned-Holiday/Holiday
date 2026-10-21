@@ -3,7 +3,7 @@
 QA1 보안 점검의 기준표와 실행 목록이다. 10/21에 코드 기준 사전 점검을 마쳤고(아래 1·2절), QA1 당일에는 미구현 기능 점검과 스테이징 공격 테스트(3절)만 하면 된다. 결과는 각 표의 "결과" 칸에 적고, 조치는 PR로 남긴다. 이 문서가 서비스 개요서 보안 부분의 원본이다.
 
 - 기준: 진단가이드 구현 단계 49개(`docs/rules/secure-python.md`, `secure-ts.md`), 기반시설 웹 21개(`docs/security.md` 5장)
-- 사전 점검 범위: dev(`2f494fb`) + guides 모델·API(#26·#28)
+- 사전 점검 범위: dev(`2f494fb`) + guides 모델·API(#26·#28). 10/21 저녁 머지분(#32~#35)까지 상태 갱신(`1709585` 기준)
 - 상태 표기: **적용**(근거 있음) / **조치**(고칠 것) / **미구현**(기능이 아직 없음, 구현 PR에서 점검) / **스테이징**(서버에서만 확인 가능) / **해당 없음**
 
 ## 1. 자동 점검 (CI와 같은 명령, QA1 첫날 전체 1회)
@@ -14,7 +14,7 @@ QA1 보안 점검의 기준표와 실행 목록이다. 10/21에 코드 기준 �
 | Bandit | `bandit -q -r . -x ./requirements,./.venv` | 0건 |
 | pip-audit | `pip-audit -r requirements/base.txt -r requirements/prod.txt` | 0건 |
 | npm audit | `npm audit --omit=dev` | 0건 |
-| 테스트 | `DJANGO_SETTINGS_MODULE=config.settings.test python manage.py test` | 203개 통과(#26·#28 포함) |
+| 테스트 | `DJANGO_SETTINGS_MODULE=config.settings.test python manage.py test` | 239개 통과(dev `1709585`) |
 | 마이그레이션 누락 | `python manage.py makemigrations --check --dry-run` | 변경 없음 |
 | 운영 설정 | `python manage.py check --deploy --settings=config.settings.prod` | 스테이징에서 실행 |
 
@@ -36,7 +36,7 @@ QA1 보안 점검의 기준표와 실행 목록이다. 10/21에 코드 기준 �
 | 11 | CSRF | 적용 | `rh-csrf-disabled`, 비로그인 POST `csrf_protect`. 테스트 `accounts`·`guides`의 `test_requires_csrf*` |
 | 12 | SSRF | 적용 | `validate_https_url`(IP·localhost·계정정보 거부), 서버는 URL에 접속 X. OCR 외부 주소 고정은 구현 시 확인 |
 | 13 | HTTP 응답분할 | 적용 | 헤더·쿠키에 입력값을 넣는 코드 0건 |
-| 14 | 정수형 오버플로 | 적용 | `10**30` 입력 시 SQLite·MySQL 모두 404/400(500 없음). **권고**: `max_value` 미지정 2곳(F4) |
+| 14 | 정수형 오버플로 | 적용 | `10**30` 입력 시 SQLite·MySQL 모두 404/400(500 없음). ID 입력은 `max_value=DB_ID_MAX`(`common/validators.py`, F4) 또는 ORM 범위 처리(관리자 사고 `company_id` 등 `PrimaryKeyRelatedField`는 범위 초과 → 조회 결과 없음 → 400) |
 | 15 | 보안기능 결정에 쓰는 입력값 | 적용 | 역할·상태·제보자·신규 사고 비공개를 서버가 결정. `test_ignores_client_role`, `test_server_fields_not_client_controlled`, `test_create_always_private` |
 | 16 | 메모리 버퍼 오버플로 | 해당 없음 | Python |
 | 17 | 포맷 스트링 삽입 | 적용 | `rh-log-format`(로그 f-string·format·`%` 결합 금지) |
@@ -44,8 +44,8 @@ QA1 보안 점검의 기준표와 실행 목록이다. 10/21에 코드 기준 �
 ### 2-2. 보안기능 (16)
 | # | 약점 | 상태 | 근거 |
 |---|---|---|---|
-| 1 | 인증 없는 중요기능 | 미구현 일부 | 기본 `IsAuthenticated`, 관리자 API는 `IsStaffWithOtp`(OTP 인증 세션만). OTP 등록·검증 API, 비밀번호 변경·탈퇴(현재 비밀번호 확인) API 미구현(BE-A) |
-| 2 | 부적절한 인가 | 적용 | 소유 필터 `common.queries`, 공개 필터, `IsStaffWithOtp`, 404 통일. guides 뷰 3개 권한 클래스 미명시(F3, 기본값이라 동작은 안전) |
+| 1 | 인증 없는 중요기능 | 미구현 일부 | 기본 `IsAuthenticated`, 관리자 API는 `IsStaffWithOtp`(OTP 인증 세션만), 관리자 OTP 인증 API(#32: 실패 응답 통일, 성공 시 세션 재발급). 비밀번호 변경·탈퇴(현재 비밀번호 확인) API 미구현(BE-A, 예비안대로 후순위) |
+| 2 | 부적절한 인가 | 적용 | 소유 필터 `common.queries`, 공개 필터, `IsStaffWithOtp`, 404 통일. 모든 뷰 권한 클래스 명시(#35). 조치 대상 변경은 완료 기록 있으면 409(#33) |
 | 3 | 자원 권한 설정 | 스테이징 | 전용 계정·`UMask=0027`·로그 디렉터리 750(`infra/systemd`) |
 | 4 | 취약한 암호 알고리즘 | 적용 | `rh-weak-hash`, Bandit |
 | 5 | 암호화되지 않은 중요정보 | 적용·스테이징 | PBKDF2, 운영 `Secure` 쿠키·HSTS·SSL 리다이렉트. TLS는 서버에서 확인 |
@@ -59,7 +59,7 @@ QA1 보안 점검의 기준표와 실행 목록이다. 10/21에 코드 기준 �
 | 13 | 주석 속 시스템 주요정보 | 적용 | 인프라 값은 `<...>` 자리표시자, 10/21 검색 0건 |
 | 14 | 솔트 없는 일방향 해시 | 적용 | Django 해셔만 |
 | 15 | 무결성 검사 없는 코드 다운로드 | 적용 | pip 해시 고정, `npm ci`, Actions 커밋 해시·Semgrep 이미지 digest 고정. 의존성 변경은 해시를 PyPI와 대조(#25) |
-| 16 | 반복 인증시도 제한 | 미구현 일부 | axes 5회 30분(대소문자 우회 테스트), 로그인 10/분, 제보 5/일 적용. OTP 5/분은 설정만 있고 OTP API 미구현(BE-A) |
+| 16 | 반복 인증시도 제한 | 적용 | axes 5회 30분(대소문자 우회 테스트), 로그인 10/분, OTP 5/분 + django-otp 실패 지연(#32), 제보 5/일 |
 
 ### 2-3. 시간 및 상태 (2)
 | # | 약점 | 상태 | 근거 |
@@ -104,18 +104,18 @@ QA1 보안 점검의 기준표와 실행 목록이다. 10/21에 코드 기준 �
 
 | # | 내용 | 심각도 | 담당 | 상태 |
 |---|---|---|---|---|
-| F1 | 403·429가 `django.request` → 일반 로그(30일)로만 감. `security.md` 3-6은 보안 이벤트(90일) | 중 | BE-B | 조치 PR(`fix/security-log-denied`) |
-| F2 | 미구현 기능 점검 대기: 비밀번호 변경·탈퇴·OTP, OCR, 조치 관리자 API(BE-A), 마이페이지(BE-B) | – | 각 담당 | 구현 PR 리뷰 때 점검 |
-| F3 | guides 뷰 3개 `permission_classes` 미명시(#28) | 낮음 | BE-A | #28 코멘트 |
-| F4 | 정수 입력 `max_value` 미지정: 제보 승인 `incident_id`(BE-B), 설문 `selected_item_ids`(BE-A) | 낮음 | BE-B·BE-A | 권고 |
+| F1 | 403·429가 `django.request` → 일반 로그(30일)로만 감. `security.md` 3-6은 보안 이벤트(90일) | 중 | BE-B | 조치 완료(#34, 429 반복은 IP·경로당 1분 1줄) |
+| F2 | 미구현 기능 점검: OTP(#32)·조치 관리자 API(#33)는 리뷰·머지 완료. 남은 것: 비밀번호 변경·탈퇴, OCR(BE-A), 마이페이지(BE-B) | – | 각 담당 | 구현 PR 리뷰 때 점검 |
+| F3 | guides 뷰 3개 `permission_classes` 미명시(#28) | 낮음 | BE-A | 조치 완료(#35) |
+| F4 | 정수 입력 `max_value` 미지정: 제보 승인 `incident_id`(BE-B), 설문 `selected_item_ids`·조치 `incident_id`(BE-A) | 낮음 | BE-B·BE-A | 조치 완료(#35·#36). 상한 상수는 `common/validators.py`로 일원화 |
 | F5 | `secure-python.md` 시간 및 상태 2번 "페이지 50" → 실제 20 | 문서 | BE-B | 정정 완료 |
 | F6 | 설문 저장 시 검증 후 유출 항목 삭제 경합 → FK 오류 500 가능 | 낮음 | BE-A | 조치 완료(#28 `16e29d7`, 잠금 후 재확인 → 400) |
 | F7 | `SurveyKey.REUSED_PASSWORD` 같은 이름이 진단 도구에 "하드코드 비밀번호"로 오탐될 수 있음(실제 값은 선택지 키) | 관찰 | BE-A | QA1에서 도구 결과 확인 |
-| F8 | `OPTIONS` 요청에 DRF 기본 메타데이터가 200 + 입력 필드 정보로 응답(정보 누출). 운영은 nginx가 `OPTIONS` 405로 막지만 앱에서도 차단 필요 | 중 | BE-A | `DEFAULT_METADATA_CLASS=None` 별도 PR |
+| F8 | `OPTIONS` 요청에 DRF 기본 메타데이터가 200 + 입력 필드 정보로 응답(정보 누출) | 중 | BE-A | 조치 완료(#35, 405. 비관리자의 관리자 API는 없는 경로 404와 동일) |
 
 ## 4. 웹 21개 항목 공격 테스트 (스테이징, QA1 당일)
 
-준비: 테스트 계정 2개(회원 A·B), OTP 등록된 관리자 1개(OTP API 머지 후), 공개·비공개 사고 각 1개, B의 제보 1개. 계정 정보는 문서·채팅에 적지 않는다.
+준비: 테스트 계정 2개(회원 A·B), OTP 등록된 관리자 1개(서버 명령 `create_admin`·`register_otp`, `infra/deploy.md` 10단계), 공개·비공개 사고 각 1개, B의 제보 1개. 계정 정보는 문서·채팅에 적지 않는다.
 
 ```bash
 BASE=https://<도메인>
@@ -152,4 +152,4 @@ rm -f jar
 | CC | 쿠키 변조 | `sessionid` 임의 값·다른 계정 값 일부 변경 | 401 | 서버 세션 | |
 | AE | 관리자 페이지 노출 | `/admin/`, 허용 외 IP에서 `/api/admin/incidents/`, OTP 없이 관리자 API, 회원으로 `/manage` | `/admin/`·`/manage`는 프론트 404 화면(Django admin 없음), 관리자 API는 404(없는 경로와 본문 동일) | `test_not_found.py`, `AdminAccessTests` | |
 | AU | 자동화 공격 | 로그인 11회/분(**없는 이메일로**, 실제 계정은 5회에서 axes 잠금이 먼저 걸림), 제보 6회/일, 검색 61회/분 | 429 | `test_create_limited_per_day` | |
-| WM | 불필요한 메소드 | 읽기 API에 `PUT`·`DELETE`, 아무 경로에 `TRACE`·`OPTIONS` | 405 (`OPTIONS`는 F8 조치 후 앱에서도 405) | `test_put_and_delete_not_allowed` | |
+| WM | 불필요한 메소드 | 읽기 API에 `PUT`·`DELETE`, 아무 경로에 `TRACE`·`OPTIONS` | 405 (앱에서도 `OPTIONS` 405, #35) | `test_put_and_delete_not_allowed` | |
