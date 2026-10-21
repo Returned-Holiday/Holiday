@@ -41,3 +41,14 @@ class NginxRateLimitTests(TestCase):
         for block in re.findall(r"location [^{]*?/api/[^{]*\{(.*?)\n    \}", self.conf, re.S):
             with self.subTest(block=block.strip()[:40]):
                 self.assertIn("limit_req zone=rh_api", block)
+
+    # 업로드·외부 과금 경로는 본문 받기 전에 엄격 제한
+    def test_ocr_strictly_limited(self) -> None:
+        block = re.search(r"location = /api/guides/ocr/ \{(.*?)
+    \}", self.conf, re.S).group(1)
+        self.assertIn("limit_req zone=rh_auth", block)
+        resolve("/api/guides/ocr/")
+
+    # 거부 로그에 쿼리스트링 X (에러 로그는 요청 줄 전체를 남김)
+    def test_limit_log_not_in_error_log(self) -> None:
+        self.assertIn("limit_req_log_level info;", self.conf)
