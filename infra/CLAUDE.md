@@ -31,6 +31,7 @@ EC2 ─HTTPS─▶ 네이버 클로바 OCR (통지문 분석 시에만)
 | SSI | `ssi off;` | WEB-19 |
 | 심볼릭 링크 | `disable_symlinks on;` | WEB-12 |
 | 업로드 크기 | `client_max_body_size 5M;` | WEB-08 |
+| 요청 제한 | `/api/` IP당 10r/s(burst 20), 로그인·가입·비밀번호·탈퇴·OTP 1r/s(burst 5). 초과 시 앱과 같은 429 JSON. DRF 제한은 그대로(앞단 폭주 차단용) | 기반 AU, 로그 폭주 방지 |
 | 실행 계정 | root가 아닌 전용 계정 | WEB-09 |
 | TLS | `ssl_protocols TLSv1.2 TLSv1.3;` | WEB-20, 기반 SN |
 | HTTP | 80 → `return 301 https://$host$request_uri;` | WEB-21 |

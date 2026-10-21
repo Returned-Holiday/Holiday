@@ -93,6 +93,8 @@ sudo -u returnedholiday env DJANGO_SETTINGS_MODULE=config.settings.prod AWS_REGI
 - [ ] `curl -I http://<도메인>` → 301, `https://`로
 - [ ] 응답 헤더: HSTS·CSP·nosniff·X-Frame-Options 각 1개, `Server: nginx`(버전 X)
 - [ ] `GET /api/auth/csrf/` → 204, `GET /api/auth/me/` → 401 + `Cache-Control: no-store`
+- [ ] 병렬 요청으로 nginx 제한 확인(순서대로 보내면 TLS 연결 시간 때문에 안 걸릴 수 있음): `seq 60 | xargs -P 30 -I{} curl -s -o /dev/null -w "%{http_code}\n" https://<도메인>/api/incidents/ | sort | uniq -c` → 200과 429가 같이 보이면 정상. 429 본문은 `{"code":"RATE_LIMITED",...}` JSON(nginx 기본 화면 X), nginx에서 막혔는지는 접근 로그로 확인
+- [ ] 앱(DRF) 제한을 시험할 때는 nginx가 먼저 막지 않게 1초 간격으로 보냄(QA1 AU 항목)
 - [ ] 404 세 가지 본문이 바이트 단위로 같음: 허용 IP 밖 `GET /api/admin/incidents/`(nginx), 없는 경로 `GET /api/nothing/`(Django), 허용 IP 안 비관리자의 `GET /api/admin/incidents/`(DRF). `curl -s ... | sha256sum`으로 비교, `Allow` 헤더 없음
 - [ ] 외부에서 8000 포트 접속 불가, RDS 퍼블릭 접속 불가
 - [ ] `/var/log/returnedholiday/*.log`와 CloudWatch 그룹에 로그 들어옴, 이메일이 마스킹됨, nginx 접근 로그에 쿼리스트링 없음
