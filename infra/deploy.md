@@ -37,7 +37,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, DROP, INDEX, REFERENCES ON 
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | `https://<도메인>` |
 | `DB_NAME`, `DB_HOST`, `DB_PORT` | `returnedholiday`, RDS 엔드포인트, `3306` |
 | `DB_USER`, `DB_PASSWORD` | 앱 시크릿은 `rh_app`, 마이그레이션 시크릿은 `rh_migrate` |
-| `OCR_API_URL`, `OCR_SECRET_KEY` | 클로바 일반 OCR Invoke URL(`https://...apigw.ntruss.com/...`)·Secret Key. 앱 시크릿에만 |
+| `CLOVA_OCR_URL`, `CLOVA_OCR_SECRET` | 클로바 일반 OCR Invoke URL(`https://...apigw.ntruss.com/...`)·Secret Key. 앱 시크릿에만 |
 
 ## 4. IAM 역할(EC2)
 - [ ] `secretsmanager:GetSecretValue`: 시크릿 2개 ARN만

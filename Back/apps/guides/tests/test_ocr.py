@@ -1,16 +1,18 @@
 import secrets
+from datetime import date
 from io import BytesIO
 from unittest import mock
 
 import requests
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
-from PIL import Image
+from PIL import Image, TiffImagePlugin
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.guides.tests.helpers import make_incident, make_item, make_user
 from apps.incidents.constants import IncidentStatus, LeakType
+from config.secrets import MissingSecretError
 
 OCR_URL = "/api/guides/ocr/"
 TEST_ENDPOINT = "https://test.apigw.ntruss.com/custom/v1/0/general"
@@ -38,7 +40,7 @@ def clova_response(*texts: str, status_code: int = 200) -> mock.Mock:
 
 # 실행마다 랜덤 키 (고정 비밀값 X)
 def fake_secrets(endpoint: str = TEST_ENDPOINT) -> mock.Mock:
-    values = {"OCR_API_URL": endpoint, "OCR_SECRET_KEY": secrets.token_hex(16)}
+    values = {"CLOVA_OCR_URL": endpoint, "CLOVA_OCR_SECRET": secrets.token_hex(16)}
     return mock.Mock(side_effect=lambda name: values[name])
 
 
@@ -152,8 +154,10 @@ class OcrSecurityTests(OcrTestCase):
                 result, _ = self.upload(image_file(), response)
                 self.assert_code(result, status.HTTP_503_SERVICE_UNAVAILABLE, "OCR_UNAVAILABLE")
 
+    # 개발자 .env와 무관하게 키 없는 상황 고정
     def test_not_configured_is_503(self) -> None:
-        with mock.patch(POST_PATCH) as post:
+        missing = mock.Mock(side_effect=MissingSecretError("missing"))
+        with mock.patch(CONFIG_PATCH, missing), mock.patch(POST_PATCH) as post:
             response = self.client.post(OCR_URL, {"image": image_file()}, format="multipart")
         self.assert_code(response, status.HTTP_503_SERVICE_UNAVAILABLE, "OCR_UNAVAILABLE")
         post.assert_not_called()
@@ -182,3 +186,23 @@ class OcrSecurityTests(OcrTestCase):
         self.client.logout()
         response, _ = self.upload(image_file(), clova_response("SKT"))
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    # 허용 외 해석기는 실행조차 X (TIFF를 .png로 위장)
+    def test_other_parsers_never_run(self) -> None:
+        buffer = BytesIO()
+        Image.new("RGB", (40, 20), "white").save(buffer, format="TIFF")
+        disguised = SimpleUploadedFile("notice.png", buffer.getvalue(), content_type="image/png")
+        with mock.patch.object(TiffImagePlugin.TiffImageFile, "_open", side_effect=AssertionError("tiff parsed")):
+            response, post = self.upload(disguised, clova_response("SKT"))
+        self.assert_code(response, status.HTTP_400_BAD_REQUEST, "UNSUPPORTED_FILE")
+        post.assert_not_called()
+
+    # "SKT" 안의 "KT" → 더 길게 일치한 SKT 우선 (KT 공지가 더 최신이어도)
+    def test_longest_company_match_wins(self) -> None:
+        kt = make_incident("KT")
+        kt.notified_at = date(2026, 10, 20)
+        kt.save()
+        response, _ = self.upload(image_file(), clova_response("[SKT] 고객님의 개인정보 유출 안내"))
+        self.assertEqual(response.json()["data"]["incident"]["id"], self.incident.pk)
+        response, _ = self.upload(image_file(), clova_response("[KT] 고객님의 개인정보 유출 안내"))
+        self.assertEqual(response.json()["data"]["incident"]["id"], kt.pk)

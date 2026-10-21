@@ -115,16 +115,16 @@ def match_public_incident_text(text: str) -> tuple[Incident | None, list[Inciden
     key = normalize_company_key(text)
     if not key:
         return None, []
-    # 한 글자 별칭은 오탐 많음 → 2자 이상만
-    company_ids = [
-        company_id
-        for company_id, name, aliases in Company.objects.values_list("id", "name", "aliases")
-        if any(len(term) >= 2 and term in key for term in (normalize_company_key(name), *aliases))
-    ]
-    incident = (
-        with_company_and_leak_items(get_public_incidents().filter(company_id__in=company_ids))
-        .order_by("-notified_at", "-pk")
-        .first()
+    # 기업별 가장 길게 일치한 이름·별칭 길이 ("SKT" 안의 "KT" 오탐 방지), 한 글자는 제외
+    scores: dict[int, int] = {}
+    for company_id, name, aliases in Company.objects.values_list("id", "name", "aliases"):
+        matched = [len(term) for term in (normalize_company_key(name), *aliases) if len(term) >= 2 and term in key]
+        if matched:
+            scores[company_id] = max(matched)
+    candidates = with_company_and_leak_items(get_public_incidents().filter(company_id__in=scores))
+    # 긴 일치 우선, 동률이면 공지일 최신
+    incident = min(
+        candidates, key=lambda found: (-scores[found.company_id], -found.notified_at.toordinal(), -found.pk), default=None
     )
     if incident is None:
         return None, []

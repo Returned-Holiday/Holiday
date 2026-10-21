@@ -7,6 +7,8 @@ from PIL import Image
 from apps.guides.constants import OCR_FORMATS, OCR_MAX_BYTES, OCR_MAX_PIXELS, OCR_MAX_SIDE
 from apps.guides.exceptions import FileTooLarge, UnsupportedFile
 
+# 허용 형식 해석기만 (TIFF 등 다른 해석기가 공격자 파일을 처리하기 전에 거부)
+PARSE_FORMATS = tuple(OCR_FORMATS)
 # 손상·형식 위장·압축 폭탄 → 모두 형식 오류로
 IMAGE_ERRORS = (OSError, SyntaxError, ValueError, Image.DecompressionBombError)
 
@@ -25,7 +27,7 @@ def prepare_image(upload: UploadedFile) -> tuple[bytes, str]:
     data = _read_limited(upload)
     extension = PurePath(upload.name or "").suffix.lower()
     try:
-        with Image.open(BytesIO(data)) as probe:
+        with Image.open(BytesIO(data), formats=PARSE_FORMATS) as probe:
             image_format = probe.format or ""
             width, height = probe.size
             if extension not in OCR_FORMATS.get(image_format, ()):
@@ -33,7 +35,7 @@ def prepare_image(upload: UploadedFile) -> tuple[bytes, str]:
             if width * height > OCR_MAX_PIXELS or max(width, height) > OCR_MAX_SIDE:
                 raise UnsupportedFile
             probe.verify()
-        with Image.open(BytesIO(data)) as image:
+        with Image.open(BytesIO(data), formats=PARSE_FORMATS) as image:
             pixels = image.convert("RGB")
         output = BytesIO()
         pixels.save(output, format=image_format)

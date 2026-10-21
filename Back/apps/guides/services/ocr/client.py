@@ -16,7 +16,7 @@ MIME_TYPES = {"jpeg": "image/jpeg", "png": "image/png"}
 
 def _endpoint() -> tuple[str, str]:
     try:
-        url, key = get_secret("OCR_API_URL"), get_secret("OCR_SECRET_KEY")
+        url, key = get_secret("CLOVA_OCR_URL"), get_secret("CLOVA_OCR_SECRET")
     except MissingSecretError as error:
         logger.warning("ocr not configured")
         raise OcrUnavailable from error
