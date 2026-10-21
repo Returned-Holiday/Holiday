@@ -152,3 +152,18 @@ def trigger_field_errors(
         if other != field and other_value is not None:
             errors[other] = [TRIGGER_EMPTY_ERROR]
     return errors
+
+
+class OcrIncidentSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    company_name = serializers.CharField()
+
+
+class OcrItemSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    label = serializers.CharField()
+
+
+class OcrMatchSerializer(serializers.Serializer):
+    incident = OcrIncidentSerializer(allow_null=True)
+    matched_items = OcrItemSerializer(many=True)

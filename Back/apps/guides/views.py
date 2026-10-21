@@ -1,23 +1,31 @@
+import logging
+
 from django.db.models import QuerySet
 from rest_framework import generics, status
 from rest_framework.exceptions import NotFound
+from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.guides.constants import PublishStatus
+from apps.guides.constants import OCR_MAX_BYTES, PublishStatus
+from apps.guides.exceptions import FileTooLarge, UnsupportedFile
 from apps.guides.models import Action, ActionCompletion
 from apps.guides.serializers import (
     AdminActionInputSerializer,
     AdminActionQuerySerializer,
     AdminActionSerializer,
     ChecklistSerializer,
+    OcrMatchSerializer,
     SurveyInputSerializer,
     SurveyOutputSerializer,
 )
 from apps.guides.services.actions import admin_actions, create_action, update_action
 from apps.guides.services.checklist import build_checklist, get_completable_action_or_404, get_response_or_404
+from apps.guides.services.ocr.client import extract_text
+from apps.guides.services.ocr.image_check import prepare_image
+from apps.guides.services.ocr.matching import match_notice
 from apps.guides.services.survey import (
     delete_survey,
     find_response,
@@ -29,6 +37,9 @@ from apps.guides.services.survey import (
 from common.audit import set_audit_action
 from common.permissions import IsStaffWithOtp
 from common.queries import filter_owned
+from common.request import client_ip
+
+security_logger = logging.getLogger("app.security")
 
 
 # 내 응답만 (URL에 소유자 ID X, request.user로)
@@ -117,3 +128,24 @@ class AdminActionDetailView(generics.RetrieveUpdateAPIView):
         if new_status != action.status:
             set_audit_action(request, "PUBLISH" if new_status == PublishStatus.PUBLIC else "UNPUBLISH")
         return Response(AdminActionSerializer(update_action(action, serializer.validated_data)).data)
+
+
+# 이미지·인식 원문은 메모리에서만, 저장·로그·응답 X
+class OcrView(APIView):
+    permission_classes = [IsAuthenticated]
+    throttle_scope = "ocr"
+    parser_classes = [MultiPartParser]
+
+    def post(self, request: Request) -> Response:
+        upload = request.FILES.get("image")
+        if upload is None:
+            # 메모리 핸들러는 상한 초과 파일을 조용히 버림 → 요청 크기로 구분
+            if int(request.META.get("CONTENT_LENGTH") or 0) > OCR_MAX_BYTES:
+                raise FileTooLarge
+            raise UnsupportedFile
+        image, image_format = prepare_image(upload)
+        result = match_notice(extract_text(image, image_format))
+        security_logger.info(
+            "ocr user_id=%s ip=%s matched=%s", request.user.pk, client_ip(request), result["incident"] is not None
+        )
+        return Response(OcrMatchSerializer(result).data)
