@@ -7,6 +7,7 @@ from django.utils import timezone
 from apps.reports.constants import ReportStatus
 from apps.reports.exceptions import ReportAlreadyReviewed
 from apps.reports.models import Report
+from common.queries import filter_owned
 
 security_logger = logging.getLogger("app.security")
 
@@ -20,7 +21,7 @@ def create_report(reporter: AbstractBaseUser, data: dict[str, object]) -> Report
 
 
 def get_my_reports(user: AbstractBaseUser) -> QuerySet[Report]:
-    return Report.objects.filter(reporter=user).order_by("-created_at", "-id")
+    return filter_owned(Report.objects.all(), user, owner_field="reporter").order_by("-created_at", "-id")
 
 
 # PENDING 행만 조건부 UPDATE 한 문장 → 동시 검수도 한 번만 반영 (TOCTOU X)
