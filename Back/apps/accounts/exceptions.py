@@ -1,7 +1,8 @@
 from django.http import HttpRequest, HttpResponse
 from rest_framework import status
 
-from config.errors import CodedAPIException, error_json
+from common.responses import error_json
+from config.errors import CodedAPIException
 
 LOCKED_MESSAGE = "로그인 시도가 너무 많습니다. 30분 후 다시 시도해 주세요."
 
