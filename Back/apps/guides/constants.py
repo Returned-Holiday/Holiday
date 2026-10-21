@@ -27,3 +27,20 @@ class Answer(models.TextChoices):
 class PublishStatus(models.TextChoices):
     PUBLIC = "PUBLIC", "공개"
     PRIVATE = "PRIVATE", "비공개"
+
+
+SELECTED_ITEMS_MAX = 50
+SELECTION_ERROR = "이 사고의 유출 항목에서 골라 주세요."
+# 1~3순위 = "지금 바로 하세요"
+URGENT_PRIORITY_MAX = 3
+
+
+class LeakItemsAnswer(models.TextChoices):
+    SELECTED = "SELECTED", "항목 선택"
+    UNKNOWN = "UNKNOWN", "잘 모르겠어요"
+    NONE = "NONE", "해당 없음"
+
+
+class Certainty(models.TextChoices):
+    CERTAIN = "CERTAIN", "확실"
+    CHECK_NEEDED = "CHECK_NEEDED", "확인 필요"
