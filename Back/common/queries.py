@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404
 ModelT = TypeVar("ModelT", bound=Model)
 
 
-# 소유자 조건 먼저 고정 → lookup으로 덮어쓰기 X (IDOR X), 비로그인은 빈 결과
+# 소유자 조건 먼저 고정 (lookup 덮어쓰기 X, IDOR X)
 def filter_owned(
     queryset: QuerySet[ModelT], user: AbstractBaseUser | AnonymousUser, *, owner_field: str = "user"
 ) -> QuerySet[ModelT]:
