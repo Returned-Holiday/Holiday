@@ -39,6 +39,8 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "config.urls"
+# 슬래시 붙인 경로가 있을 때만 301 → 경로 존재 노출, 모든 API는 / 로 끝남 (docs/api.md)
+APPEND_SLASH = False
 WSGI_APPLICATION = "config.wsgi.application"
 
 AUTH_USER_MODEL = "accounts.User"
