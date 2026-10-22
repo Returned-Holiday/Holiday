@@ -224,15 +224,25 @@ export function MyPage() {
             </dl>
             <Hint>비밀번호는 90일마다 바꿔야 해요. 다른 사이트와 같은 비밀번호는 쓰지 마세요.</Hint>
           </AccountCard>
-          <WithdrawCard>
-            <div>
-              <strong>회원 탈퇴</strong>
-              <span>탈퇴하면 진행 기록과 제보 내역이 바로 삭제돼요.</span>
-            </div>
-            <Button variant="tertiary" onClick={() => setWithdrawOpen(true)}>
-              탈퇴하기
-            </Button>
-          </WithdrawCard>
+          {/* 관리자는 탈퇴 X (서버도 403), 비활성화는 서버 명령으로만 */}
+          {user.isStaff ? (
+            <WithdrawCard>
+              <div>
+                <strong>회원 탈퇴</strong>
+                <span>관리자 계정은 탈퇴할 수 없어요. 계정을 정리하려면 팀에 비활성화를 요청해 주세요.</span>
+              </div>
+            </WithdrawCard>
+          ) : (
+            <WithdrawCard>
+              <div>
+                <strong>회원 탈퇴</strong>
+                <span>탈퇴하면 진행 기록과 제보 내역이 바로 삭제돼요.</span>
+              </div>
+              <Button variant="tertiary" onClick={() => setWithdrawOpen(true)}>
+                탈퇴하기
+              </Button>
+            </WithdrawCard>
+          )}
         </SideNavContent>
       </SideNavLayout>
 
@@ -244,7 +254,7 @@ export function MyPage() {
           reload();
         }}
       />
-      <WithdrawModal open={withdrawOpen} onClose={() => setWithdrawOpen(false)} />
+      {user.isStaff ? null : <WithdrawModal open={withdrawOpen} onClose={() => setWithdrawOpen(false)} />}
     </PageContainer>
   );
 }
