@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import styled from "styled-components";
-import { ApiError } from "../../../shared/api/errors";
+import { ApiError, errorText } from "../../../shared/api/errors";
 import { toSafeHttpsUrl } from "../../../shared/lib/validators";
 import { Button } from "../../../shared/ui/Button";
 import { Checkbox } from "../../../shared/ui/Checkbox";
@@ -71,7 +71,7 @@ type ReportReviewPanelProps = {
 
 export function ReportReviewPanel({ reportId, incidents, onReviewed }: ReportReviewPanelProps) {
   const loader = useCallback((signal?: AbortSignal) => fetchAdminReport(reportId, signal), [reportId]);
-  const { state } = useAdminLoad(loader);
+  const { state, reload } = useAdminLoad(loader);
   const [checked, setChecked] = useState<boolean[]>(CHECKS.map(() => false));
   const [linkMode, setLinkMode] = useState<"NEW" | "EXISTING">("NEW");
   const [linkedId, setLinkedId] = useState<number | null>(incidents[0]?.id ?? null);
@@ -89,7 +89,12 @@ export function ReportReviewPanel({ reportId, incidents, onReviewed }: ReportRev
       if (!(caught instanceof ApiError)) {
         throw caught;
       }
-      setError(caught.message);
+      // 다른 관리자가 먼저 검수 → 409, 상세를 다시 불러와 검수 결과 표시
+      if (caught.status === 409) {
+        reload();
+        return;
+      }
+      setError(errorText(caught));
     } finally {
       setPending(false);
     }

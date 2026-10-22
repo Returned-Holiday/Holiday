@@ -26,7 +26,7 @@ import {
 import { LeakItemEditor } from "../../features/admin/components/LeakItemEditor";
 import { useAdminLoad } from "../../features/admin/useAdminLoad";
 import { parseIncidentId } from "../../features/incident/useIncidentDetail";
-import { ApiError } from "../../shared/api/errors";
+import { ApiError, errorText } from "../../shared/api/errors";
 import { toSafeHttpsUrl } from "../../shared/lib/validators";
 import { Button } from "../../shared/ui/Button";
 import { Pill } from "../../shared/ui/Tag";
@@ -135,7 +135,7 @@ function IncidentForm({ incident, companies, onSaved }: {
       if (!(caught instanceof ApiError || caught instanceof TypeError)) {
         throw caught;
       }
-      setError(caught instanceof ApiError ? caught.message : "저장하지 못했어요.");
+      setError(caught instanceof ApiError ? errorText(caught) : "저장하지 못했어요.");
     } finally {
       setPending(false);
     }

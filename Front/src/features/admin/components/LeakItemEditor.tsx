@@ -1,6 +1,6 @@
 import { useState } from "react";
 import styled from "styled-components";
-import { ApiError } from "../../../shared/api/errors";
+import { ApiError, errorText } from "../../../shared/api/errors";
 import { Button } from "../../../shared/ui/Button";
 import { TextField } from "../../../shared/ui/TextField";
 import { textStyle } from "../../../styles/typography";
@@ -79,7 +79,7 @@ export function LeakItemEditor({ incidentId, items, onChanged }: LeakItemEditorP
         throw caught;
       }
       // 사용자가 고른 항목 삭제 → 409
-      setError(caught.status === 409 ? "사용자가 이미 고른 항목은 지울 수 없어요. 수정으로 정정해 주세요." : caught.message);
+      setError(caught.status === 409 ? "사용자가 이미 고른 항목은 지울 수 없어요. 수정으로 정정해 주세요." : errorText(caught));
     } finally {
       setPending(false);
     }
