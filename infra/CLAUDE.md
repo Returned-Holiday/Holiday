@@ -50,7 +50,7 @@ EC2 ─HTTPS─▶ 네이버 클로바 OCR (통지문 분석 시에만)
 ## 보안그룹
 | 그룹 | 인바운드 |
 |---|---|
-| SG-web (EC2) | 443, 80(리다이렉트용) 전체 / SSH는 팀원 IP만 |
+| SG-web (EC2) | 443, 80(리다이렉트용) 전체만. **22번(SSH) 없음** → 서버 접속은 Session Manager |
 | SG-db (RDS) | 3306은 SG-web에서만 (IP가 아니라 보안그룹 참조) |
 
 ## DB
@@ -78,6 +78,12 @@ EC2 ─HTTPS─▶ 네이버 클로바 OCR (통지문 분석 시에만)
 - 세션 정리: `manage.py clearsessions`를 매일 실행(cron 또는 systemd timer)
 
 ## AWS 계정
-- 루트 계정은 일상 작업에 쓰지 않는다. 팀원별 IAM 사용자 + MFA (CA-01~04)
-- 최소 권한 정책, 쓰지 않는 계정·키 삭제
-- 리소스 이름·리전: TODO(BE-A)
+- 프로젝트 계정(소셜 로그인, 무료 플랜). **리전 시드니 `ap-southeast-2` 고정**(서울 선택 불가)
+- 팀원은 각자 계정으로 초대 + MFA, 공용 로그인 X. 지금은 FE2만, 필요할 때 초대 (CA-01~04)
+- 서버 접속은 Session Manager만(EC2 역할에 `AmazonSSMManagedInstanceCore`). SSH 키·22번 포트 없음
+- 도메인: 이 계정은 Route 53 도메인 구매 불가 → 외부 등록업체에서 사서 Route 53 호스팅 영역으로 네임서버 연결
+- 서버: t3.micro, 디스크 20GB, 스왑 2GB, CPU 크레딧 Standard(추가 요금 X). 프론트는 서버에서 빌드
+- 코드는 읽기 전용 Deploy key로 받음(개인 토큰 X)
+- 최소 권한 정책, 쓰지 않는 계정·키 삭제, NAT 게이트웨이 만들지 않음
+- 결제 알림 설정(크레딧 소진 대비)
+- 사용자 데이터가 호주에 저장됨 → 처리방침 국외 이전 고지(`Front/src/features/policy/privacy.ts`)
