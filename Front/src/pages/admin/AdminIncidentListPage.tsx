@@ -36,7 +36,9 @@ const Toolbar = styled.div`
   }
 `;
 
+// relative: 숨김 라벨(절대 위치)이 스크롤 영역 밖으로 나가 페이지가 넓어지지 않게
 const TableWrap = styled.div`
+  position: relative;
   overflow-x: auto;
   border-radius: ${({ theme }) => theme.radius.xl};
   background: ${({ theme }) => theme.colors.surface.card};

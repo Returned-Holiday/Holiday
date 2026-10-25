@@ -77,9 +77,11 @@ declare module "styled-components" {
       contentWidth: string;
       gutter: string;
       mobileGutter: string;
+      desktopGutter: string;
     };
     breakpoints: {
       mobile: string;
+      narrow: string;
     };
   }
 }

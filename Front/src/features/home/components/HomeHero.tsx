@@ -3,7 +3,7 @@ import styled from "styled-components";
 import { incidentPath } from "../../../app/paths";
 import bubbleTail from "../../../assets/main/bubble-tail.svg";
 import { Illustration } from "../../../shared/ui/Illustration";
-import { mobileMedia, textStyle } from "../../../styles/typography";
+import { mobileMedia, narrowMedia, textStyle } from "../../../styles/typography";
 import { IncidentSearchForm } from "../../incident/components/IncidentSearchForm";
 import type { IncidentListItem } from "../../incident/types";
 
@@ -76,6 +76,7 @@ const RecentChip = styled(Link)`
   text-decoration: none;
 `;
 
+// 좁은 창에서는 제목·설명과 겹침 → 숨김
 const Character = styled.div`
   position: absolute;
   top: 77px;
@@ -86,7 +87,7 @@ const Character = styled.div`
   width: 234px;
   pointer-events: none;
 
-  ${mobileMedia} {
+  ${narrowMedia} {
     display: none;
   }
 `;

@@ -6,7 +6,7 @@ import menuChecklist from "../../../assets/main/menu-checklist.svg";
 import menuPhone from "../../../assets/main/menu-phone.svg";
 import menuReport from "../../../assets/main/menu-report.svg";
 import menuSearch from "../../../assets/main/menu-search.svg";
-import { mobileMedia, textStyle } from "../../../styles/typography";
+import { mobileMedia, narrowMedia, textStyle } from "../../../styles/typography";
 
 const MENU = [
   { label: "사고 조회", to: INCIDENTS_PATH, icon: menuSearch },
@@ -29,10 +29,17 @@ const Box = styled.nav`
   }
 `;
 
+// 좁은 창: 아이콘 축소 + 줄바꿈 (마지막 항목 잘림 X)
 const List = styled.ul`
   display: flex;
   justify-content: space-between;
   gap: 8px;
+
+  ${narrowMedia} {
+    flex-wrap: wrap;
+    justify-content: space-around;
+    row-gap: 20px;
+  }
 
   ${mobileMedia} {
     flex-wrap: wrap;
@@ -50,6 +57,11 @@ const Item = styled(Link)`
   color: ${({ theme }) => theme.colors.text.ink};
   text-decoration: none;
   white-space: nowrap;
+
+  ${narrowMedia} {
+    gap: 10px;
+    ${textStyle("labelSmStrong")}
+  }
 `;
 
 const IconCircle = styled.span`
@@ -60,6 +72,11 @@ const IconCircle = styled.span`
   height: 88px;
   border-radius: ${({ theme }) => theme.radius.pill};
   background: ${({ theme }) => theme.colors.accent.skyPale};
+
+  ${narrowMedia} {
+    width: 72px;
+    height: 72px;
+  }
 
   ${mobileMedia} {
     width: 64px;
