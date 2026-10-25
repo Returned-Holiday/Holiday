@@ -77,6 +77,8 @@ export function ReportReviewPanel({ reportId, incidents, onReviewed }: ReportRev
   const [linkedId, setLinkedId] = useState<number | null>(incidents[0]?.id ?? null);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // 사유 미입력은 사유 칸 아래 (쓰기 시작하면 지움)
+  const [reasonError, setReasonError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   const run = async (task: () => Promise<void>) => {
@@ -185,7 +187,11 @@ export function ReportReviewPanel({ reportId, incidents, onReviewed }: ReportRev
             placeholder="예: 공식 출처를 확인할 수 없어요"
             value={reason}
             maxLength={500}
-            onChange={(event) => setReason(event.target.value)}
+            onChange={(event) => {
+              setReason(event.target.value);
+              setReasonError(null);
+            }}
+            error={reasonError ?? undefined}
           />
           {error ? <FormError role="alert">{error}</FormError> : null}
           <Actions>
@@ -194,7 +200,7 @@ export function ReportReviewPanel({ reportId, incidents, onReviewed }: ReportRev
               disabled={pending}
               onClick={() => {
                 if (reason.trim() === "") {
-                  setError("반려 사유를 입력해 주세요.");
+                  setReasonError("반려 사유를 입력해 주세요.");
                   return;
                 }
                 void run(() => rejectReport(report.id, reason.trim()));

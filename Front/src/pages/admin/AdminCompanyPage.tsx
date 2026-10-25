@@ -16,6 +16,7 @@ import {
 } from "../../features/admin/components/AdminUi";
 import { useAdminLoad } from "../../features/admin/useAdminLoad";
 import { ApiError, errorText } from "../../shared/api/errors";
+import { useDocumentTitle } from "../../shared/lib/useDocumentTitle";
 import { Button } from "../../shared/ui/Button";
 import { TextField } from "../../shared/ui/TextField";
 import { textStyle } from "../../styles/typography";
@@ -71,7 +72,10 @@ function CompanyEditor({
   const [name, setName] = useState(company?.name ?? "");
   const [aliases, setAliases] = useState<string[]>(company?.aliases ?? []);
   const [aliasInput, setAliasInput] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  // 칸별 문구는 그 칸 아래, 칸 없는 서버 문구만 아래쪽에
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [aliasError, setAliasError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   const addAlias = () => {
@@ -83,22 +87,22 @@ function CompanyEditor({
       (other) => normalize(other.name) === normalize(alias) || other.aliases.some((item) => normalize(item) === normalize(alias)),
     );
     if (owner) {
-      setError(`다른 기업(${owner.name})에 이미 있는 이름이라 별칭으로 쓸 수 없어요`);
+      setAliasError(`다른 기업(${owner.name})에 이미 있는 이름이라 별칭으로 쓸 수 없어요`);
       return;
     }
     if (normalize(alias).length > ALIAS_MAX_LENGTH) {
-      setError(`별칭은 ${ALIAS_MAX_LENGTH}자까지 쓸 수 있어요.`);
+      setAliasError(`별칭은 ${ALIAS_MAX_LENGTH}자까지 쓸 수 있어요.`);
       return;
     }
     if (!aliases.some((item) => normalize(item) === normalize(alias))) {
       if (aliases.length >= ALIASES_MAX) {
-        setError(`별칭은 ${ALIASES_MAX}개까지 넣을 수 있어요.`);
+        setAliasError(`별칭은 ${ALIASES_MAX}개까지 넣을 수 있어요.`);
         return;
       }
       setAliases([...aliases, alias]);
     }
     setAliasInput("");
-    setError(null);
+    setAliasError(null);
   };
 
   const handleKey = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -110,11 +114,13 @@ function CompanyEditor({
 
   const save = async () => {
     if (name.trim() === "") {
-      setError("기업명을 입력해 주세요.");
+      setNameError("기업명을 입력해 주세요.");
       return;
     }
     setPending(true);
-    setError(null);
+    setNameError(null);
+    setAliasError(null);
+    setFormError(null);
     try {
       await saveCompany({ name: name.trim(), aliases }, company?.id);
       onSaved();
@@ -122,7 +128,11 @@ function CompanyEditor({
       if (!(caught instanceof ApiError)) {
         throw caught;
       }
-      setError(errorText(caught));
+      const nameMessage = caught.fields.name?.[0] ?? null;
+      const aliasMessage = caught.fields.aliases?.[0] ?? null;
+      setNameError(nameMessage);
+      setAliasError(aliasMessage);
+      setFormError(nameMessage === null && aliasMessage === null ? errorText(caught) : null);
     } finally {
       setPending(false);
     }
@@ -131,7 +141,17 @@ function CompanyEditor({
   return (
     <Panel aria-labelledby="company-editor-title">
       <h2 id="company-editor-title">{company ? `${company.name} 수정` : "기업 추가"}</h2>
-      <TextField label="기업명" value={name} maxLength={100} onChange={(event) => setName(event.target.value)} />
+      <TextField
+        label="기업명"
+        value={name}
+        maxLength={100}
+        onChange={(event) => {
+          setName(event.target.value);
+          setNameError(null);
+          setFormError(null);
+        }}
+        error={nameError ?? undefined}
+      />
       {aliases.length > 0 ? (
         <AliasList aria-label="별칭">
           {aliases.map((alias) => (
@@ -153,12 +173,16 @@ function CompanyEditor({
         placeholder="입력 후 Enter"
         value={aliasInput}
         maxLength={ALIAS_MAX_LENGTH}
-        onChange={(event) => setAliasInput(event.target.value)}
+        onChange={(event) => {
+          setAliasInput(event.target.value);
+          setAliasError(null);
+          setFormError(null);
+        }}
         onKeyDown={handleKey}
-        error={error ?? undefined}
+        error={aliasError ?? undefined}
         hint="띄어쓰기와 대소문자는 구분하지 않고 저장돼요."
       />
-      {error && aliasInput === "" ? <FormError role="alert">{error}</FormError> : null}
+      {formError ? <FormError role="alert">{formError}</FormError> : null}
       <Actions>
         <Button variant="tertiary" onClick={onCancel}>
           취소
@@ -172,6 +196,7 @@ function CompanyEditor({
 }
 
 export function AdminCompanyPage() {
+  useDocumentTitle("기업 관리");
   const loader = useCallback((signal?: AbortSignal) => fetchCompanies(signal), []);
   const { state, reload } = useAdminLoad(loader);
   const [selectedId, setSelectedId] = useState<number | "new" | null>(null);
