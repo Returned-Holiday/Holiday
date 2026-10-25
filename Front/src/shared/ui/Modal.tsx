@@ -2,8 +2,15 @@ import { useEffect, useId, useRef, type ReactNode, type SyntheticEvent } from "r
 import styled from "styled-components";
 import { mobileMedia, textStyle } from "../../styles/typography";
 
-const Dialog = styled.dialog`
-  width: min(480px, calc(100vw - 32px));
+// wide: 약관 같은 긴 문서용 (내부 스크롤)
+const Dialog = styled.dialog<{ $wide: boolean }>`
+  width: ${({ $wide }) => ($wide ? "min(880px, calc(100vw - 32px))" : "min(480px, calc(100vw - 32px))")};
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+
+  &:focus-visible {
+    outline: none;
+  }
   padding: 36px;
   border: none;
   border-radius: ${({ theme }) => theme.radius.xl};
@@ -41,6 +48,7 @@ type ModalProps = {
   onClose: () => void;
   dismissible?: boolean;
   centered?: boolean;
+  wide?: boolean;
   illustration?: ReactNode;
   children: ReactNode;
 };
@@ -51,6 +59,7 @@ export function Modal({
   onClose,
   dismissible = true,
   centered = false,
+  wide = false,
   illustration,
   children,
 }: ModalProps) {
@@ -66,10 +75,15 @@ export function Modal({
     }
     if (open && !dialog.open) {
       dialog.showModal();
+      // 긴 문서: 첫 버튼으로 포커스가 가면 중간부터 보임 → 창 자체에 포커스, 맨 위부터
+      if (wide) {
+        dialog.focus();
+        dialog.scrollTop = 0;
+      }
     } else if (!open && dialog.open) {
       dialog.close();
     }
-  }, [open]);
+  }, [open, wide]);
 
   const handleCancel = (event: SyntheticEvent<HTMLDialogElement>) => {
     if (!dismissible) {
@@ -84,7 +98,7 @@ export function Modal({
   };
 
   return (
-    <Dialog ref={ref} aria-labelledby={titleId} onCancel={handleCancel} onClose={handleClose}>
+    <Dialog ref={ref} $wide={wide} tabIndex={-1} aria-labelledby={titleId} onCancel={handleCancel} onClose={handleClose}>
       {open ? (
         <Body $centered={centered}>
           {illustration}
