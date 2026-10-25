@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useLocation, useNavigate, useParams } from "react-router";
 import styled from "styled-components";
 import { checklistPath, incidentPath } from "../../app/paths";
@@ -12,6 +13,7 @@ import type { SurveyAnswers } from "../../features/survey/types";
 import { useSurveyForm } from "../../features/survey/useSurveyForm";
 import { useSurveyResponse } from "../../features/survey/useSurveyResponse";
 import { isRecord } from "../../shared/lib/guards";
+import { useDocumentTitle } from "../../shared/lib/useDocumentTitle";
 import { Button } from "../../shared/ui/Button";
 import { PageContainer } from "../../shared/ui/Page";
 import { mobileMedia, textStyle } from "../../styles/typography";
@@ -32,6 +34,11 @@ const Question = styled.fieldset`
   margin: 0;
   padding: 0;
   border: none;
+  scroll-margin-top: 24px;
+
+  &:focus {
+    outline: none;
+  }
 `;
 
 const QuestionTitle = styled.legend`
@@ -95,6 +102,16 @@ const Message = styled.p`
   text-align: center;
 `;
 
+const Failure = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 80px 0;
+  ${textStyle("bodyMd")}
+  color: ${({ theme }) => theme.colors.text.body};
+`;
+
 function readPrefill(state: unknown): number[] {
   if (!isRecord(state) || !Array.isArray(state.prefillItemIds)) {
     return [];
@@ -122,6 +139,17 @@ function SurveyForm({ incident, saved, prefillIds }: SurveyFormProps) {
   );
   const question = form.step > 1 ? YES_NO_QUESTIONS[form.step - 2] : undefined;
 
+  // 단계가 바뀌면 새 질문으로 포커스 (화면 낭독기가 새 질문을 읽음, 처음 열 때는 X)
+  const questionRef = useRef<HTMLFieldSetElement>(null);
+  const shownStep = useRef(form.step);
+  useEffect(() => {
+    if (shownStep.current === form.step) {
+      return;
+    }
+    shownStep.current = form.step;
+    questionRef.current?.focus();
+  }, [form.step]);
+
   return (
     <Stack>
       <SurveyHeader
@@ -133,7 +161,7 @@ function SurveyForm({ incident, saved, prefillIds }: SurveyFormProps) {
       />
 
       {form.step === 1 ? (
-        <Question>
+        <Question ref={questionRef} tabIndex={-1}>
           <QuestionTitle>
             공지된 유출 항목 중
             <br />
@@ -175,7 +203,7 @@ function SurveyForm({ incident, saved, prefillIds }: SurveyFormProps) {
       ) : null}
 
       {question !== undefined ? (
-        <Question>
+        <Question ref={questionRef} tabIndex={-1} key={question.key}>
           <QuestionTitle>{question.text(incident.companyName)}</QuestionTitle>
           {ANSWER_OPTIONS.map((option) => (
             <OptionCard
@@ -221,23 +249,38 @@ export function SurveyPage() {
   const incidentId = parseIncidentId(params.incidentId);
   const detail = useIncidentDetail(incidentId);
   const survey = useSurveyResponse(incidentId);
+  useDocumentTitle(detail.state.status === "notFound" ? null : "내 상황 확인");
 
   if (detail.state.status === "notFound") {
     return <NotFoundPage />;
   }
 
+  const failed = detail.state.status === "error" || survey.state.status === "error";
+
   return (
     <PageContainer $maxWidth={680}>
-      {detail.state.status === "loading" || survey.status === "loading" ? (
+      {!failed && (detail.state.status === "loading" || survey.state.status === "loading") ? (
         <Message role="status">설문을 준비하는 중이에요.</Message>
       ) : null}
-      {detail.state.status === "error" || survey.status === "error" ? (
-        <Message role="alert">설문을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.</Message>
+      {failed ? (
+        <Failure role="alert">
+          설문을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.
+          <Button
+            variant="tertiary"
+            size="sm"
+            onClick={() => {
+              if (detail.state.status === "error") detail.retry();
+              if (survey.state.status === "error") survey.retry();
+            }}
+          >
+            다시 시도
+          </Button>
+        </Failure>
       ) : null}
-      {detail.state.status === "success" && survey.status === "success" ? (
+      {detail.state.status === "success" && survey.state.status === "success" ? (
         <SurveyForm
           incident={detail.state.incident}
-          saved={survey.answers}
+          saved={survey.state.answers}
           prefillIds={readPrefill(location.state)}
         />
       ) : null}
