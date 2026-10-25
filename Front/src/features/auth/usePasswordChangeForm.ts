@@ -7,6 +7,26 @@ import { useAuthStore } from "./useAuthStore";
 type Field = "currentPassword" | "newPassword" | "newPasswordConfirm";
 type Errors = Partial<Record<Field, string>>;
 
+type Values = Record<Field, string>;
+
+// 값이 바뀌면 다시 볼 칸 (확인 칸은 새 비밀번호에 영향받음)
+const AFFECTED: Record<Field, Field[]> = {
+  currentPassword: ["currentPassword"],
+  newPassword: ["newPassword", "newPasswordConfirm"],
+  newPasswordConfirm: ["newPasswordConfirm"],
+};
+
+function validatePasswordChange(field: Field, v: Values, email: string): string | undefined {
+  switch (field) {
+    case "currentPassword":
+      return v.currentPassword === "" ? "현재 비밀번호를 입력해 주세요." : undefined;
+    case "newPassword":
+      return checkPassword(v.newPassword, email) ?? undefined;
+    case "newPasswordConfirm":
+      return v.newPasswordConfirm === v.newPassword ? undefined : "새 비밀번호가 서로 달라요.";
+  }
+}
+
 export function usePasswordChangeForm(onSuccess: () => void) {
   const email = useAuthStore((state) => state.user?.email ?? "");
   const setUser = useAuthStore((state) => state.setUser);
@@ -17,15 +37,22 @@ export function usePasswordChangeForm(onSuccess: () => void) {
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  const validate = (field: Field): string | undefined => {
-    switch (field) {
-      case "currentPassword":
-        return currentPassword === "" ? "현재 비밀번호를 입력해 주세요." : undefined;
-      case "newPassword":
-        return checkPassword(newPassword, email) ?? undefined;
-      case "newPasswordConfirm":
-        return newPasswordConfirm === newPassword ? undefined : "새 비밀번호가 서로 달라요.";
-    }
+  const current: Values = { currentPassword, newPassword, newPasswordConfirm };
+  const validate = (field: Field) => validatePasswordChange(field, current, email);
+
+  // 바꾼 칸과 영향받는 칸 중 에러가 떠 있는 칸만 다시 검사 (맞으면 바로 지움)
+  const change = (key: Field, setter: (value: string) => void) => (value: string) => {
+    setter(value);
+    const next = { ...current, [key]: value };
+    setErrors((shown) => {
+      const updated = { ...shown };
+      for (const field of AFFECTED[key]) {
+        if (shown[field]) {
+          updated[field] = validatePasswordChange(field, next, email);
+        }
+      }
+      return updated;
+    });
   };
 
   const touch = (field: Field) => setErrors((current) => ({ ...current, [field]: validate(field) }));
@@ -78,7 +105,11 @@ export function usePasswordChangeForm(onSuccess: () => void) {
 
   return {
     values: { currentPassword, newPassword, newPasswordConfirm },
-    setters: { setCurrentPassword, setNewPassword, setNewPasswordConfirm },
+    setters: {
+      setCurrentPassword: change("currentPassword", setCurrentPassword),
+      setNewPassword: change("newPassword", setNewPassword),
+      setNewPasswordConfirm: change("newPasswordConfirm", setNewPasswordConfirm),
+    },
     errors,
     touch,
     formError,

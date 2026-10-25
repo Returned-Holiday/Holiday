@@ -20,8 +20,8 @@ export function useReportForm() {
   const [pending, setPending] = useState(false);
   const [done, setDone] = useState(false);
 
-  const validate = (field: Field): string | undefined => {
-    const value = values[field].trim();
+  const validate = (field: Field, source: Record<Field, string> = values): string | undefined => {
+    const value = source[field].trim();
     switch (field) {
       case "companyName":
         if (value === "") return "기업명을 입력해 주세요.";
@@ -37,7 +37,12 @@ export function useReportForm() {
     }
   };
 
-  const setValue = (field: Field, value: string) => setValues((current) => ({ ...current, [field]: value }));
+  // 에러가 떠 있는 칸은 입력할 때마다 다시 검사 (맞으면 바로 지움)
+  const setValue = (field: Field, value: string) => {
+    const next = { ...values, [field]: value };
+    setValues(next);
+    setErrors((shown) => (shown[field] ? { ...shown, [field]: validate(field, next) } : shown));
+  };
   const touch = (field: Field) => setErrors((current) => ({ ...current, [field]: validate(field) }));
 
   const submit = async (event: SubmitEvent<HTMLFormElement>) => {
