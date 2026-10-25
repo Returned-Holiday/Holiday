@@ -1,6 +1,7 @@
 import { Link, Navigate } from "react-router";
 import styled from "styled-components";
-import { HOME_PATH, LOGIN_PATH, PRIVACY_PATH, TERMS_PATH } from "../../app/paths";
+import { useState } from "react";
+import { HOME_PATH, LOGIN_PATH } from "../../app/paths";
 import {
   AuthCard,
   AuthForm,
@@ -19,6 +20,11 @@ import {
 } from "../../features/auth/password";
 import { useAuthStore } from "../../features/auth/useAuthStore";
 import { NICKNAME_MAX, useSignupForm } from "../../features/auth/useSignupForm";
+import { PolicyModal } from "../../features/policy/components/PolicyModal";
+import { PRIVACY_POLICY } from "../../features/policy/privacy";
+import { TERMS_OF_SERVICE } from "../../features/policy/terms";
+import type { PolicyDocumentData } from "../../features/policy/types";
+import { useDocumentTitle } from "../../shared/lib/useDocumentTitle";
 import { Button } from "../../shared/ui/Button";
 import { Checkbox } from "../../shared/ui/Checkbox";
 import { TextField } from "../../shared/ui/TextField";
@@ -49,13 +55,16 @@ const AgreeRow = styled.div<{ $divider?: boolean }>`
   gap: 12px;
   padding: ${({ $divider }) => ($divider ? "8px 0 14px" : "8px 0")};
   border-bottom: ${({ theme, $divider }) => ($divider ? `1px solid ${theme.colors.border.default}` : "none")};
+`;
 
-  a {
-    flex-shrink: 0;
-    ${textStyle("labelSmStrong")}
-    color: ${({ theme }) => theme.colors.brand.primary};
-    text-decoration: none;
-  }
+const ViewButton = styled.button`
+  flex-shrink: 0;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  ${textStyle("labelSmStrong")}
+  color: ${({ theme }) => theme.colors.brand.primary};
+  cursor: pointer;
 `;
 
 const SubmitButton = styled(Button)`
@@ -67,9 +76,11 @@ const RuleHint = styled.span`
 `;
 
 export function SignupPage() {
+  useDocumentTitle("회원가입");
   const status = useAuthStore((state) => state.status);
   const form = useSignupForm();
   const { values, setters, errors } = form;
+  const [openPolicy, setOpenPolicy] = useState<PolicyDocumentData | null>(null);
 
   if (status === "authenticated") {
     return <Navigate to={HOME_PATH} replace />;
@@ -153,9 +164,9 @@ export function SignupPage() {
               checked={form.agreements.terms}
               onChange={(event) => form.setAgreements((current) => ({ ...current, terms: event.target.checked }))}
             />
-            <Link to={TERMS_PATH} target="_blank" rel="noopener noreferrer">
+            <ViewButton type="button" onClick={() => setOpenPolicy(TERMS_OF_SERVICE)} aria-haspopup="dialog">
               보기
-            </Link>
+            </ViewButton>
           </AgreeRow>
           <AgreeRow>
             <Checkbox
@@ -163,9 +174,9 @@ export function SignupPage() {
               checked={form.agreements.privacy}
               onChange={(event) => form.setAgreements((current) => ({ ...current, privacy: event.target.checked }))}
             />
-            <Link to={PRIVACY_PATH} target="_blank" rel="noopener noreferrer">
+            <ViewButton type="button" onClick={() => setOpenPolicy(PRIVACY_POLICY)} aria-haspopup="dialog">
               보기
-            </Link>
+            </ViewButton>
           </AgreeRow>
           <AgreeRow>
             <Checkbox
@@ -189,6 +200,7 @@ export function SignupPage() {
       <SwitchRow>
         이미 계정이 있나요? <Link to={LOGIN_PATH}>로그인</Link>
       </SwitchRow>
+      <PolicyModal document={openPolicy} onClose={() => setOpenPolicy(null)} />
     </AuthCard>
   );
 }

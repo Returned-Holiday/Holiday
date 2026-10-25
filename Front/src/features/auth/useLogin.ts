@@ -48,5 +48,16 @@ export function useLogin(onSuccess?: () => void) {
     }
   };
 
-  return { email, setEmail, password, setPassword, error, pending, submit };
+  // 입력을 시작하면 "입력해 주세요" 안내는 지움 (서버 문구·잠금 안내는 다음 시도까지 유지)
+  const clearEmptyError = () => setError((current) => (current === EMPTY_INPUT_MESSAGE ? null : current));
+  const changeEmail = (value: string) => {
+    setEmail(value);
+    clearEmptyError();
+  };
+  const changePassword = (value: string) => {
+    setPassword(value);
+    clearEmptyError();
+  };
+
+  return { email, setEmail: changeEmail, password, setPassword: changePassword, error, pending, submit };
 }

@@ -32,6 +32,7 @@ import { useAdminLoad } from "../../features/admin/useAdminLoad";
 import { PRIORITY_LABELS } from "../../features/checklist/types";
 import { incidentTitle } from "../../features/incident/format";
 import { ApiError, errorText } from "../../shared/api/errors";
+import { useDocumentTitle } from "../../shared/lib/useDocumentTitle";
 import { toSafeHttpsUrl } from "../../shared/lib/validators";
 import { Button } from "../../shared/ui/Button";
 import { Pill } from "../../shared/ui/Tag";
@@ -146,9 +147,16 @@ function ActionEditor({
   incidents: AdminIncidentRow[];
   onSaved: () => void;
 }) {
-  const [draft, setDraft] = useState<Draft>(action ? toDraft(action) : EMPTY);
+  const [draft, setDraftState] = useState<Draft>(action ? toDraft(action) : EMPTY);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+
+  // 안내가 떠 있으면 고칠 때마다 다시 검사 (맞으면 지우고, 남은 문제가 있으면 그 문구로)
+  const setDraft = (update: Draft | ((current: Draft) => Draft)) => {
+    const next = typeof update === "function" ? update(draft) : update;
+    setDraftState(next);
+    setError((shown) => (shown === null ? null : (validate({ ...next, sourceUrl: next.sourceUrl?.trim() || null }) ?? null)));
+  };
 
   const setTrigger = (triggerType: TriggerType) =>
     setDraft((current) => ({
@@ -330,6 +338,7 @@ function ActionEditor({
 }
 
 export function AdminActionPage() {
+  useDocumentTitle("조치 관리");
   const loader = useCallback(async (signal?: AbortSignal) => {
     const [actions, incidents] = await Promise.all([fetchActions(signal), fetchAdminIncidents({}, signal)]);
     return { actions: actions.items, incidents: incidents.items, truncated: actions.truncated || incidents.truncated };

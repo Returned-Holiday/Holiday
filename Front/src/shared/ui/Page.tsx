@@ -3,9 +3,9 @@ import { mobileMedia } from "../../styles/typography";
 
 export const PageContainer = styled.div<{ $maxWidth?: number }>`
   width: 100%;
-  max-width: ${({ theme, $maxWidth }) => ($maxWidth ? `${$maxWidth}px` : theme.layout.contentWidth)};
+  max-width: calc(${({ theme, $maxWidth }) => ($maxWidth ? `${$maxWidth}px` : theme.layout.contentWidth)} + 2 * ${({ theme }) => theme.layout.desktopGutter});
   margin: 0 auto;
-  padding: 40px 0 72px;
+  padding: 40px ${({ theme }) => theme.layout.desktopGutter} 72px;
 
   ${mobileMedia} {
     padding: 24px ${({ theme }) => theme.layout.mobileGutter} 48px;

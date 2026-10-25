@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import { mobileMedia, textStyle } from "../../styles/typography";
+import { useDocumentTitle } from "../lib/useDocumentTitle";
 import { Illustration, type IllustrationName } from "./Illustration";
 
 const Wrap = styled.div`
@@ -80,6 +81,7 @@ export function StatusScreen({
   actions,
   note,
 }: StatusScreenProps) {
+  useDocumentTitle(title);
   return (
     <Wrap>
       <Body>

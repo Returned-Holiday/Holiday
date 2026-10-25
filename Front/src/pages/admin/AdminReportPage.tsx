@@ -14,6 +14,7 @@ import {
 import { ReportReviewPanel } from "../../features/admin/components/ReportReviewPanel";
 import { useAdminLoad } from "../../features/admin/useAdminLoad";
 import { formatFullDate } from "../../features/incident/format";
+import { useDocumentTitle } from "../../shared/lib/useDocumentTitle";
 
 const TABS: { value: ReportStatus; label: string }[] = [
   { value: "PENDING", label: "검수 대기" },
@@ -22,6 +23,7 @@ const TABS: { value: ReportStatus; label: string }[] = [
 ];
 
 export function AdminReportPage() {
+  useDocumentTitle("제보 검수");
   const [status, setStatus] = useState<ReportStatus>("PENDING");
   const [selectedId, setSelectedId] = useState<number | null>(null);
 

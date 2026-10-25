@@ -1,6 +1,6 @@
 import { useState, type SubmitEvent } from "react";
 import { ApiError } from "../../shared/api/errors";
-import { toSafeHttpsUrl } from "../../shared/lib/validators";
+import { todayDateValue, toSafeHttpsUrl } from "../../shared/lib/validators";
 import { COMPANY_NAME_MAX, createReport, LEAK_ITEMS_MAX } from "./api";
 
 type Field = "companyName" | "sourceUrl" | "notifiedAt" | "leakItemsText";
@@ -20,8 +20,8 @@ export function useReportForm() {
   const [pending, setPending] = useState(false);
   const [done, setDone] = useState(false);
 
-  const validate = (field: Field): string | undefined => {
-    const value = values[field].trim();
+  const validate = (field: Field, source: Record<Field, string> = values): string | undefined => {
+    const value = source[field].trim();
     switch (field) {
       case "companyName":
         if (value === "") return "기업명을 입력해 주세요.";
@@ -30,14 +30,22 @@ export function useReportForm() {
         // https만 (서버도 검증, 서버는 이 URL에 접속 X)
         return toSafeHttpsUrl(value) ? undefined : "https:// 로 시작하는 공식 페이지 주소를 입력해 주세요";
       case "notifiedAt":
-        return value === "" || !Number.isNaN(new Date(value).getTime()) ? undefined : "날짜를 확인해 주세요.";
+        if (value === "") return undefined;
+        if (Number.isNaN(new Date(value).getTime())) return "날짜를 확인해 주세요.";
+        // YYYY-MM-DD는 문자열 비교 = 날짜 비교
+        return value > todayDateValue() ? "공지일은 오늘 이후로 적을 수 없어요." : undefined;
       case "leakItemsText":
         if (value === "") return "공지에 적힌 유출 항목을 적어 주세요.";
         return value.length > LEAK_ITEMS_MAX ? `${LEAK_ITEMS_MAX}자 이하로 입력해 주세요.` : undefined;
     }
   };
 
-  const setValue = (field: Field, value: string) => setValues((current) => ({ ...current, [field]: value }));
+  // 에러가 떠 있는 칸은 입력할 때마다 다시 검사 (맞으면 바로 지움)
+  const setValue = (field: Field, value: string) => {
+    const next = { ...values, [field]: value };
+    setValues(next);
+    setErrors((shown) => (shown[field] ? { ...shown, [field]: validate(field, next) } : shown));
+  };
   const touch = (field: Field) => setErrors((current) => ({ ...current, [field]: validate(field) }));
 
   const submit = async (event: SubmitEvent<HTMLFormElement>) => {

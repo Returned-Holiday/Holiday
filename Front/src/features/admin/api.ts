@@ -17,7 +17,7 @@ export const LEAK_TYPES = [
 export type LeakType = (typeof LEAK_TYPES)[number]["value"];
 
 export const SURVEY_KEYS = [
-  { value: "PAYMENT_LINKED", label: "설문 2번 · 결제수단 등록" },
+  { value: "PAYMENT_LINKED", label: "설문 2번 · 결제수단 연결" },
   { value: "REUSED_PASSWORD", label: "설문 3번 · 비밀번호 재사용" },
   { value: "IMPERSONATION_CONTACT", label: "설문 4번 · 사칭 연락" },
   { value: "DAMAGE_OCCURRED", label: "설문 5번 · 피해 발생" },

@@ -13,6 +13,7 @@ import {
 import { useAuthStore } from "../../features/auth/useAuthStore";
 import { useLogin } from "../../features/auth/useLogin";
 import { isRecord } from "../../shared/lib/guards";
+import { useDocumentTitle } from "../../shared/lib/useDocumentTitle";
 import { isSafeInternalPath } from "../../shared/lib/validators";
 import { Button } from "../../shared/ui/Button";
 import { Icon } from "../../shared/ui/Icon";
@@ -55,6 +56,7 @@ function readState(state: unknown): { from: string; signedUp: boolean } {
 }
 
 export function LoginPage() {
+  useDocumentTitle("로그인");
   const location = useLocation();
   const navigate = useNavigate();
   const status = useAuthStore((state) => state.status);

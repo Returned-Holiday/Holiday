@@ -12,6 +12,7 @@ import { URGENT_MAX_PRIORITY, type ChecklistAction } from "../../features/checkl
 import { useChecklist } from "../../features/checklist/useChecklist";
 import { incidentTitle } from "../../features/incident/format";
 import { parseIncidentId } from "../../features/incident/useIncidentDetail";
+import { useDocumentTitle } from "../../shared/lib/useDocumentTitle";
 import { Button } from "../../shared/ui/Button";
 import { PageContainer } from "../../shared/ui/Page";
 import { Badge } from "../../shared/ui/Tag";
@@ -101,6 +102,7 @@ export function ChecklistPage() {
   const params = useParams();
   const incidentId = parseIncidentId(params.incidentId);
   const { state, toggle, savingId, saveError, retry } = useChecklist(incidentId);
+  useDocumentTitle(state.status === "notFound" ? null : "내 할 일 목록");
 
   if (state.status === "notFound") {
     // 404 = 설문 없음 → 설문으로

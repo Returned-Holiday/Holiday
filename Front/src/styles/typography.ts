@@ -12,3 +12,4 @@ export function textStyle(name: TextStyleName) {
 }
 
 export const mobileMedia = `@media (max-width: ${theme.breakpoints.mobile})`;
+export const narrowMedia = `@media (max-width: ${theme.breakpoints.narrow})`;

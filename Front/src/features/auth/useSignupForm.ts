@@ -15,6 +15,34 @@ type Field = "email" | "password" | "passwordConfirm" | "nickname" | "agreements
 type Errors = Partial<Record<Field, string>>;
 
 type Agreements = { terms: boolean; privacy: boolean; age: boolean };
+type SignupValues = { email: string; password: string; passwordConfirm: string; nickname: string; agreements: Agreements };
+
+const FIELDS: Field[] = ["email", "password", "passwordConfirm", "nickname", "agreements"];
+// 값이 바뀌면 다시 볼 칸 (비밀번호는 이메일 아이디 규칙, 확인 칸은 비밀번호에 영향받음)
+const AFFECTED: Record<keyof SignupValues, Field[]> = {
+  email: ["email", "password"],
+  password: ["password", "passwordConfirm"],
+  passwordConfirm: ["passwordConfirm"],
+  nickname: ["nickname"],
+  agreements: ["agreements"],
+};
+
+function validateSignup(field: Field, v: SignupValues): string | undefined {
+  switch (field) {
+    case "email":
+      return EMAIL_PATTERN.test(v.email.trim()) ? undefined : "이메일 형식을 확인해 주세요.";
+    case "password":
+      return checkPassword(v.password, v.email.trim()) ?? undefined;
+    case "passwordConfirm":
+      return v.passwordConfirm === v.password ? undefined : "비밀번호가 서로 달라요.";
+    case "nickname":
+      return NICKNAME_PATTERN.test(v.nickname.trim())
+        ? undefined
+        : `닉네임은 한글·영문·숫자 ${NICKNAME_MIN}~${NICKNAME_MAX}자로 입력해 주세요.`;
+    case "agreements":
+      return v.agreements.terms && v.agreements.privacy && v.agreements.age ? undefined : "필수 항목에 모두 동의해 주세요.";
+  }
+}
 
 export function useSignupForm() {
   const navigate = useNavigate();
@@ -28,36 +56,36 @@ export function useSignupForm() {
   const [pending, setPending] = useState(false);
 
   const allAgreed = agreements.terms && agreements.privacy && agreements.age;
-  const setAllAgreed = (checked: boolean) => setAgreements({ terms: checked, privacy: checked, age: checked });
+  const current: SignupValues = { email, password, passwordConfirm, nickname, agreements };
+  const validate = (field: Field) => validateSignup(field, current);
 
-  const validate = (field: Field): string | undefined => {
-    switch (field) {
-      case "email":
-        return EMAIL_PATTERN.test(email.trim()) ? undefined : "이메일 형식을 확인해 주세요.";
-      case "password":
-        return checkPassword(password, email.trim()) ?? undefined;
-      case "passwordConfirm":
-        return passwordConfirm === password ? undefined : "비밀번호가 서로 달라요.";
-      case "nickname":
-        return NICKNAME_PATTERN.test(nickname.trim())
-          ? undefined
-          : `닉네임은 한글·영문·숫자 ${NICKNAME_MIN}~${NICKNAME_MAX}자로 입력해 주세요.`;
-      case "agreements":
-        return allAgreed ? undefined : "필수 항목에 모두 동의해 주세요.";
-    }
+  // 바꾼 칸과 영향받는 칸 중 에러가 떠 있는 칸만 다시 검사 (맞으면 바로 지움, 다른 칸의 서버 문구는 유지)
+  const change = <K extends keyof SignupValues>(key: K, setter: (value: SignupValues[K]) => void) => (value: SignupValues[K]) => {
+    setter(value);
+    const next = { ...current, [key]: value };
+    setErrors((shown) => {
+      const updated = { ...shown };
+      for (const field of AFFECTED[key]) {
+        if (shown[field]) {
+          updated[field] = validateSignup(field, next);
+        }
+      }
+      return updated;
+    });
   };
+  const setAgreementsValue = (update: (prev: Agreements) => Agreements) => change("agreements", setAgreements)(update(agreements));
+  const setAllAgreed = (checked: boolean) => change("agreements", setAgreements)({ terms: checked, privacy: checked, age: checked });
 
   const touch = (field: Field) => setErrors((current) => ({ ...current, [field]: validate(field) }));
 
   const submit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const fields: Field[] = ["email", "password", "passwordConfirm", "nickname", "agreements"];
     const next: Errors = {};
-    for (const field of fields) {
+    for (const field of FIELDS) {
       next[field] = validate(field);
     }
     setErrors(next);
-    if (fields.some((field) => next[field])) {
+    if (FIELDS.some((field) => next[field])) {
       return;
     }
     setPending(true);
@@ -93,9 +121,14 @@ export function useSignupForm() {
 
   return {
     values: { email, password, passwordConfirm, nickname },
-    setters: { setEmail, setPassword, setPasswordConfirm, setNickname },
+    setters: {
+      setEmail: change("email", setEmail),
+      setPassword: change("password", setPassword),
+      setPasswordConfirm: change("passwordConfirm", setPasswordConfirm),
+      setNickname: change("nickname", setNickname),
+    },
     agreements,
-    setAgreements,
+    setAgreements: setAgreementsValue,
     allAgreed,
     setAllAgreed,
     errors,

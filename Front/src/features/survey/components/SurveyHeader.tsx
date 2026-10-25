@@ -22,6 +22,11 @@ const ProgressText = styled.div`
   }
 `;
 
+// 화면 제목(h1)은 작게, 큰 글씨는 질문
+const ProgressTitle = styled.h1`
+  ${textStyle("bodySm")}
+`;
+
 const Track = styled.div`
   height: 10px;
   overflow: hidden;
@@ -77,7 +82,7 @@ export function SurveyHeader({ title, step, total, leakedItems, activeCount }: S
     <>
       <Progress>
         <ProgressText>
-          <span>{title} · 내 상황 확인</span>
+          <ProgressTitle>{title} · 내 상황 확인</ProgressTitle>
           <strong aria-label={`${total}단계 중 ${step}단계`}>
             {step} / {total}
           </strong>

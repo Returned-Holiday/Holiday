@@ -5,6 +5,7 @@ import { SEARCH_QUERY_MAX_LENGTH } from "../../features/incident/api";
 import { IncidentCard } from "../../features/incident/components/IncidentCard";
 import { IncidentSearchForm } from "../../features/incident/components/IncidentSearchForm";
 import { parsePageNumber, useIncidentSearch } from "../../features/incident/useIncidentSearch";
+import { useDocumentTitle } from "../../shared/lib/useDocumentTitle";
 import { Button, ButtonLink } from "../../shared/ui/Button";
 import { Illustration } from "../../shared/ui/Illustration";
 import { PageContainer } from "../../shared/ui/Page";
@@ -52,6 +53,7 @@ const Message = styled.div`
 const PAGE_SIZE = 20;
 
 export function IncidentSearchPage() {
+  useDocumentTitle("사고 조회");
   const [params, setParams] = useSearchParams();
   const q = (params.get("q") ?? "").trim().slice(0, SEARCH_QUERY_MAX_LENGTH);
   const page = parsePageNumber(params.get("page"));

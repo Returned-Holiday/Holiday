@@ -30,9 +30,10 @@ const Inner = styled.div`
   align-items: center;
   justify-content: space-between;
   gap: 12px 32px;
-  max-width: ${({ theme }) => theme.layout.contentWidth};
+  max-width: calc(${({ theme }) => theme.layout.contentWidth} + 2 * ${({ theme }) => theme.layout.desktopGutter});
   min-height: 72px;
   margin: 0 auto;
+  padding: 0 ${({ theme }) => theme.layout.desktopGutter};
 
   ${mobileMedia} {
     padding: 12px ${({ theme }) => theme.layout.mobileGutter};

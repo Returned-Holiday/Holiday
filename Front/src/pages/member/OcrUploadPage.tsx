@@ -4,6 +4,7 @@ import { INCIDENTS_PATH, surveyPath } from "../../app/paths";
 import { incidentTitle } from "../../features/incident/format";
 import { DropZone, OcrLoading, OcrNotice, OcrResult, OcrUnmatched } from "../../features/ocr/components/OcrParts";
 import { useOcrUpload } from "../../features/ocr/useOcrUpload";
+import { useDocumentTitle } from "../../shared/lib/useDocumentTitle";
 import { PageContainer } from "../../shared/ui/Page";
 import { PageLead, PageTitle } from "../../shared/ui/SideNav";
 import { textStyle } from "../../styles/typography";
@@ -31,6 +32,7 @@ const SearchLink = styled(Link)`
 `;
 
 export function OcrUploadPage() {
+  useDocumentTitle("문자로 사고 찾기");
   const navigate = useNavigate();
   const { state, upload, reset } = useOcrUpload();
 

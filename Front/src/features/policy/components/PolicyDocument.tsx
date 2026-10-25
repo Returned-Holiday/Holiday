@@ -276,14 +276,19 @@ function CollapsibleSections({ sections }: { sections: PolicySection[] }) {
   );
 }
 
-export function PolicyDocument({ document }: { document: PolicyDocumentData }) {
+// embedded: 팝업 안 (제목은 팝업이 표시)
+export function PolicyDocument({ document, embedded = false }: { document: PolicyDocumentData; embedded?: boolean }) {
   const visible = document.sections.filter((section) => !section.collapsed);
   const collapsed = document.sections.filter((section) => section.collapsed);
 
   return (
     <>
-      <PageEyebrow>약관 및 정책</PageEyebrow>
-      <PageTitle>{document.title}</PageTitle>
+      {embedded ? null : (
+        <>
+          <PageEyebrow>약관 및 정책</PageEyebrow>
+          <PageTitle>{document.title}</PageTitle>
+        </>
+      )}
       <EffectiveDate>시행일 {document.effectiveDate}</EffectiveDate>
       <PageLead>{document.lead}</PageLead>
       <Summary aria-labelledby="policy-summary-title">

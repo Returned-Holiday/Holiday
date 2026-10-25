@@ -1,4 +1,4 @@
-import { useId, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from "react";
+import { useId, useState, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from "react";
 import styled, { css } from "styled-components";
 import { textStyle } from "../../styles/typography";
 import checkSmall from "../../assets/icons/check-small.svg";
@@ -44,9 +44,41 @@ const controlStyle = css<ControlProps>`
   }
 `;
 
-const Input = styled.input<ControlProps>`
+const Input = styled.input<ControlProps & { $withToggle?: boolean }>`
   ${controlStyle}
   height: ${({ $soft }) => ($soft ? "56px" : "60px")};
+  padding-right: ${({ $withToggle }) => ($withToggle ? "60px" : "22px")};
+
+  /* 브라우저 기본 보기 버튼 X (Edge는 칸을 벗어나면 숨김) → 직접 토글 */
+  &::-ms-reveal,
+  &::-ms-clear {
+    display: none;
+  }
+`;
+
+const InputWrap = styled.div`
+  position: relative;
+`;
+
+const RevealButton = styled.button`
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: ${({ theme }) => theme.radius.pill};
+  background: none;
+  color: ${({ theme }) => theme.colors.text.mute};
+  cursor: pointer;
+  transform: translateY(-50%);
+
+  &:hover {
+    color: ${({ theme }) => theme.colors.text.ink};
+  }
 `;
 
 const TextArea = styled.textarea<{ $invalid: boolean }>`
@@ -159,9 +191,12 @@ export function TextField({
   valid,
   hideLabel = false,
   appearance = "default",
+  type,
   ...rest
 }: TextFieldProps) {
   const { id, hintId, errorId, describedBy } = useFieldIds(hint, error);
+  const isPassword = type === "password";
+  const [revealed, setRevealed] = useState(false);
   return (
     <Field>
       {hideLabel ? (
@@ -171,15 +206,30 @@ export function TextField({
       ) : (
         <Label htmlFor={id}>{label}</Label>
       )}
-      <Input
-        id={id}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy}
-        $invalid={Boolean(error)}
-        $soft={appearance === "soft"}
-        $valid={Boolean(valid) && !error}
-        {...rest}
-      />
+      <InputWrap>
+        <Input
+          id={id}
+          type={isPassword && revealed ? "text" : type}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy}
+          $invalid={Boolean(error)}
+          $soft={appearance === "soft"}
+          $valid={Boolean(valid) && !error}
+          $withToggle={isPassword}
+          {...rest}
+        />
+        {isPassword ? (
+          <RevealButton
+            type="button"
+            aria-label={revealed ? "비밀번호 숨기기" : "비밀번호 보기"}
+            aria-pressed={revealed}
+            aria-controls={id}
+            onClick={() => setRevealed((current) => !current)}
+          >
+            <Icon name={revealed ? "eyeOff" : "eye"} size={22} />
+          </RevealButton>
+        ) : null}
+      </InputWrap>
       <FieldMessages hint={hint} error={error} valid={valid} hintId={hintId} errorId={errorId} />
     </Field>
   );

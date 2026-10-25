@@ -1,4 +1,5 @@
 import { PRIVACY_PATH, TERMS_PATH } from "../../../app/paths";
+import { useDocumentTitle } from "../../../shared/lib/useDocumentTitle";
 import { PageContainer } from "../../../shared/ui/Page";
 import {
   SideNavContent,
@@ -11,6 +12,7 @@ import type { PolicyDocumentData } from "../types";
 import { PolicyDocument } from "./PolicyDocument";
 
 export function PolicyPageLayout({ document }: { document: PolicyDocumentData }) {
+  useDocumentTitle(document.title);
   return (
     <PageContainer>
       <SideNavLayout>

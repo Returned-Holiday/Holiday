@@ -48,19 +48,26 @@ export function useSurveyForm(
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  const toggleItem = (id: number) =>
+  // 답을 고르면 "골라 주세요" 안내는 바로 지움
+  const toggleItem = (id: number) => {
+    setError(null);
     setDraft((current) => {
       const selected = current.selectedItemIds.includes(id)
         ? current.selectedItemIds.filter((itemId) => itemId !== id)
         : [...current.selectedItemIds, id];
       return { ...current, selectedItemIds: selected, leakItemsAnswer: selected.length > 0 ? "SELECTED" : null };
     });
+  };
 
-  const chooseLeakAnswer = (answer: "UNKNOWN" | "NONE") =>
+  const chooseLeakAnswer = (answer: "UNKNOWN" | "NONE") => {
+    setError(null);
     setDraft((current) => ({ ...current, leakItemsAnswer: answer, selectedItemIds: [] }));
+  };
 
-  const answer = (key: YesNoKey, value: Answer) =>
+  const answer = (key: YesNoKey, value: Answer) => {
+    setError(null);
     setDraft((current) => ({ ...current, answers: { ...current.answers, [key]: value } }));
+  };
 
   const currentKey = step > 1 ? YES_NO_QUESTIONS[step - 2]?.key : undefined;
   const stepAnswered =

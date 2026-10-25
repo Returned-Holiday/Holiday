@@ -38,3 +38,10 @@ export function isSafeInternalPath(value: unknown): value is string {
     throw error;
   }
 }
+
+// 오늘 날짜 (사용자 기기 기준 YYYY-MM-DD, date 입력 max·비교용)
+export function todayDateValue(now: Date = new Date()): string {
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}

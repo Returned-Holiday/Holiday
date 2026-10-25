@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ApiError } from "../../shared/api/errors";
 import { fetchSurvey } from "./api";
 import type { SurveyAnswers } from "./types";
@@ -10,6 +10,7 @@ type State =
 
 export function useSurveyResponse(incidentId: number | null) {
   const [state, setState] = useState<State>({ status: "loading" });
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (incidentId === null) {
@@ -30,7 +31,9 @@ export function useSurveyResponse(incidentId: number | null) {
         throw error;
       });
     return () => controller.abort();
-  }, [incidentId]);
+  }, [incidentId, attempt]);
 
-  return state;
+  const retry = useCallback(() => setAttempt((count) => count + 1), []);
+
+  return { state, retry };
 }

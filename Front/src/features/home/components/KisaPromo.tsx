@@ -42,7 +42,7 @@ export function KisaPromo() {
           <br />
           KISA 118
         </Title>
-        <ButtonLink to={`${FAQ_PATH}#${faqAnchor("report-channels")}`} size="sm">
+        <ButtonLink to={`${FAQ_PATH}#${faqAnchor("kisa-118")}`} size="sm">
           신고 방법 보기
         </ButtonLink>
       </Text>

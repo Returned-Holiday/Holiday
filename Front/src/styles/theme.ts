@@ -71,8 +71,12 @@ export const theme: DefaultTheme = {
     contentWidth: "1120px",
     gutter: "80px",
     mobileGutter: "16px",
+    // 창이 콘텐츠 폭보다 좁을 때 좌우 여백 (넓을 때는 가운데 정렬로 가려짐)
+    desktopGutter: "32px",
   },
   breakpoints: {
     mobile: "768px",
+    // 콘텐츠 폭 + 좌우 여백 근처, 겹치는 장식 숨김
+    narrow: "1180px",
   },
 };

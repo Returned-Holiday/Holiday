@@ -15,6 +15,7 @@ import {
 import { PASSWORD_MAX_LENGTH, PASSWORD_RULE_TEXT } from "../../features/auth/password";
 import { useAuthStore } from "../../features/auth/useAuthStore";
 import { usePasswordChangeForm } from "../../features/auth/usePasswordChangeForm";
+import { useDocumentTitle } from "../../shared/lib/useDocumentTitle";
 import { Button } from "../../shared/ui/Button";
 import { TextField } from "../../shared/ui/TextField";
 
@@ -23,6 +24,7 @@ const SubmitButton = styled(Button)`
 `;
 
 export function PasswordChangePage() {
+  useDocumentTitle("비밀번호 변경");
   const navigate = useNavigate();
   const forced = useAuthStore((state) => state.user?.passwordExpired ?? false);
   const form = usePasswordChangeForm(() => {
@@ -61,6 +63,7 @@ export function PasswordChangePage() {
           label="새 비밀번호"
           type="password"
           autoComplete="new-password"
+          placeholder="새 비밀번호 입력"
           value={values.newPassword}
           onChange={(event) => setters.setNewPassword(event.target.value)}
           onBlur={() => form.touch("newPassword")}
