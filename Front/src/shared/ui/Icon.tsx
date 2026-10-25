@@ -10,7 +10,9 @@ export type IconName =
   | "check"
   | "warning"
   | "clock"
-  | "arrow";
+  | "arrow"
+  | "eye"
+  | "eyeOff";
 
 type IconShape = {
   viewBox: number;
@@ -103,6 +105,26 @@ const ICONS: Record<IconName, IconShape> = {
     viewBox: 18,
     strokeWidth: 2.4,
     paths: <path d="M3.75 9H14.25M9.75 13.5L14.25 9L9.75 4.5" />,
+  },
+  eye: {
+    viewBox: 24,
+    strokeWidth: 2,
+    paths: (
+      <>
+        <path d="M2 12C4.5 7 8 4.75 12 4.75C16 4.75 19.5 7 22 12C19.5 17 16 19.25 12 19.25C8 19.25 4.5 17 2 12Z" />
+        <circle cx="12" cy="12" r="3.25" />
+      </>
+    ),
+  },
+  eyeOff: {
+    viewBox: 24,
+    strokeWidth: 2,
+    paths: (
+      <>
+        <path d="M9.9 5.03C10.58 4.85 11.28 4.75 12 4.75C16 4.75 19.5 7 22 12C21.24 13.52 20.36 14.8 19.37 15.82M14.12 14.12C13.58 14.66 12.83 15 12 15C10.34 15 9 13.66 9 12C9 11.17 9.34 10.42 9.88 9.88M6.62 6.62C4.79 7.79 3.24 9.6 2 12C4.5 17 8 19.25 12 19.25C14.05 19.25 15.93 18.66 17.62 17.53" />
+        <path d="M3 3L21 21" />
+      </>
+    ),
   },
 };
 
