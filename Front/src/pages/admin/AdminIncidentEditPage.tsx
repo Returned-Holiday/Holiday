@@ -27,10 +27,11 @@ import { LeakItemEditor } from "../../features/admin/components/LeakItemEditor";
 import { useAdminLoad } from "../../features/admin/useAdminLoad";
 import { parseIncidentId } from "../../features/incident/useIncidentDetail";
 import { ApiError, errorText } from "../../shared/api/errors";
-import { toSafeHttpsUrl } from "../../shared/lib/validators";
+import { todayDateValue, toSafeHttpsUrl } from "../../shared/lib/validators";
 import { Button } from "../../shared/ui/Button";
 import { Pill } from "../../shared/ui/Tag";
 import { TextAreaField, TextField } from "../../shared/ui/TextField";
+import { useDocumentTitle } from "../../shared/lib/useDocumentTitle";
 import { NotFoundPage } from "../public/NotFoundPage";
 
 const Row3 = styled.div`
@@ -88,6 +89,9 @@ function toValues(incident: AdminIncident): FormValues {
 function validate(values: FormValues): string | null {
   if (values.companyId === "") return "기업을 골라 주세요.";
   if (values.notifiedAt === "") return "공지일을 입력해 주세요.";
+  // YYYY-MM-DD는 문자열 비교 = 날짜 비교
+  if (values.notifiedAt > todayDateValue()) return "공지일은 오늘 이후로 적을 수 없어요.";
+  if (values.occurredAt !== "" && values.occurredAt > values.notifiedAt) return "발생일은 공지일보다 늦을 수 없어요.";
   if (values.affectedCount !== "" && !/^\d{1,10}$/.test(values.affectedCount)) return "영향 인원은 숫자로 입력해 주세요.";
   if (!toSafeHttpsUrl(values.sourceUrl.trim())) return "공식 출처는 https:// 주소만 넣을 수 있어요.";
   if (values.summary.trim() === "") return "사고 요약을 입력해 주세요.";
@@ -116,7 +120,12 @@ function IncidentForm({ incident, companies, onSaved }: {
   const [values, setValues] = useState<FormValues>(incident ? toValues(incident) : EMPTY);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const set = (key: keyof FormValues, value: string) => setValues((current) => ({ ...current, [key]: value }));
+  // 안내가 떠 있으면 고칠 때마다 다시 검사 (맞으면 지우고, 남은 문제가 있으면 그 문구로)
+  const set = (key: keyof FormValues, value: string) => {
+    const next = { ...values, [key]: value };
+    setValues(next);
+    setError((shown) => (shown === null ? null : (validate(next) ?? null)));
+  };
 
   const save = async (status: PublishStatus) => {
     const problem = validate(values);
@@ -165,8 +174,8 @@ function IncidentForm({ incident, companies, onSaved }: {
           ))}
         </Select>
         <Row3>
-          <TextField label="발생일" type="date" value={values.occurredAt} onChange={(event) => set("occurredAt", event.target.value)} />
-          <TextField label="공지일" type="date" value={values.notifiedAt} onChange={(event) => set("notifiedAt", event.target.value)} />
+          <TextField label="발생일" type="date" max={values.notifiedAt || todayDateValue()} value={values.occurredAt} onChange={(event) => set("occurredAt", event.target.value)} />
+          <TextField label="공지일" type="date" max={todayDateValue()} value={values.notifiedAt} onChange={(event) => set("notifiedAt", event.target.value)} />
           <TextField
             label="영향 인원"
             inputMode="numeric"
@@ -245,6 +254,8 @@ export function AdminIncidentEditPage() {
   const navigate = useNavigate();
   const isNew = params.incidentId === "new";
   const incidentId = isNew ? null : parseIncidentId(params.incidentId);
+  // 잘못된 주소면 404 화면이 제목을 정함
+  useDocumentTitle(isNew ? "사고 등록" : incidentId === null ? null : "사고 수정");
 
   const loader = useCallback(
     async (signal?: AbortSignal) => {

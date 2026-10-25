@@ -3,6 +3,8 @@ import { MYPAGE_PATH } from "../../app/paths";
 import infoIcon from "../../assets/icons/info.svg";
 import { COMPANY_NAME_MAX, LEAK_ITEMS_MAX, SOURCE_URL_MAX } from "../../features/report/api";
 import { useReportForm } from "../../features/report/useReportForm";
+import { useDocumentTitle } from "../../shared/lib/useDocumentTitle";
+import { todayDateValue } from "../../shared/lib/validators";
 import { Button, ButtonLink } from "../../shared/ui/Button";
 import { Card } from "../../shared/ui/Card";
 import { Illustration } from "../../shared/ui/Illustration";
@@ -91,6 +93,7 @@ function RequiredLabel({ children }: { children: string }) {
 }
 
 export function ReportNewPage() {
+  useDocumentTitle("사고 제보하기");
   const form = useReportForm();
 
   return (
@@ -134,6 +137,7 @@ export function ReportNewPage() {
               <TextField
                 label="기업 공지일"
                 type="date"
+                max={todayDateValue()}
                 value={form.values.notifiedAt}
                 onChange={(event) => form.setValue("notifiedAt", event.target.value)}
                 onBlur={() => form.touch("notifiedAt")}
