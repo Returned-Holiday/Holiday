@@ -9,6 +9,7 @@ import { DeleteRecordModal, WithdrawModal } from "../../features/mypage/componen
 import { MyReportList } from "../../features/mypage/components/MyReportList";
 import { useMypageData } from "../../features/mypage/useMypageData";
 import { isRecord } from "../../shared/lib/guards";
+import { useDocumentTitle } from "../../shared/lib/useDocumentTitle";
 import { Button, ButtonLink } from "../../shared/ui/Button";
 import { Card } from "../../shared/ui/Card";
 import { PageContainer } from "../../shared/ui/Page";
@@ -139,6 +140,7 @@ function daysSince(value: string): number | null {
 }
 
 export function MyPage() {
+  useDocumentTitle("마이페이지");
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
   const { state, reload } = useMypageData();

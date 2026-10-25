@@ -5,7 +5,9 @@ import { HelpContacts } from "../../features/incident/components/HelpContacts";
 import { IncidentHeading } from "../../features/incident/components/IncidentHeading";
 import { IncidentSummaryCard } from "../../features/incident/components/IncidentSummaryCard";
 import { LeakItemsSection } from "../../features/incident/components/LeakItemsSection";
+import { incidentTitle } from "../../features/incident/format";
 import { parseIncidentId, useIncidentDetail } from "../../features/incident/useIncidentDetail";
+import { useDocumentTitle } from "../../shared/lib/useDocumentTitle";
 import { Button } from "../../shared/ui/Button";
 import { PageContainer } from "../../shared/ui/Page";
 import { mobileMedia, textStyle } from "../../styles/typography";
@@ -62,6 +64,9 @@ const Message = styled.div`
 export function IncidentDetailPage() {
   const params = useParams();
   const { state, retry } = useIncidentDetail(parseIncidentId(params.incidentId));
+  useDocumentTitle(
+    state.status === "notFound" ? null : state.status === "success" ? incidentTitle(state.incident.companyName) : "사고 상세",
+  );
 
   if (state.status === "notFound") {
     return <NotFoundPage />;

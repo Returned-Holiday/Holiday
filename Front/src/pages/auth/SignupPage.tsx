@@ -24,6 +24,7 @@ import { PolicyModal } from "../../features/policy/components/PolicyModal";
 import { PRIVACY_POLICY } from "../../features/policy/privacy";
 import { TERMS_OF_SERVICE } from "../../features/policy/terms";
 import type { PolicyDocumentData } from "../../features/policy/types";
+import { useDocumentTitle } from "../../shared/lib/useDocumentTitle";
 import { Button } from "../../shared/ui/Button";
 import { Checkbox } from "../../shared/ui/Checkbox";
 import { TextField } from "../../shared/ui/TextField";
@@ -75,6 +76,7 @@ const RuleHint = styled.span`
 `;
 
 export function SignupPage() {
+  useDocumentTitle("회원가입");
   const status = useAuthStore((state) => state.status);
   const form = useSignupForm();
   const { values, setters, errors } = form;

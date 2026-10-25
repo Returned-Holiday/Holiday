@@ -6,6 +6,7 @@ import { KisaPromo } from "../../features/home/components/KisaPromo";
 import { QuickMenu } from "../../features/home/components/QuickMenu";
 import { RecentIncidentList } from "../../features/home/components/RecentIncidentList";
 import { useRecentIncidents } from "../../features/incident/useRecentIncidents";
+import { useDocumentTitle } from "../../shared/lib/useDocumentTitle";
 import { PageContainer } from "../../shared/ui/Page";
 import { mobileMedia } from "../../styles/typography";
 
@@ -31,6 +32,7 @@ const Row = styled.div<{ $spaced?: boolean }>`
 `;
 
 export function MainPage() {
+  useDocumentTitle("");
   const recent = useRecentIncidents(RECENT_LIMIT);
   const heroItems =
     recent.state.status === "success" ? recent.state.items.slice(0, HERO_CHIP_LIMIT) : [];

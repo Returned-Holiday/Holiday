@@ -5,6 +5,7 @@ import { INCIDENTS_PATH } from "../../app/paths";
 import infoIcon from "../../assets/icons/info.svg";
 import { FaqAccordion } from "../../features/faq/components/FaqAccordion";
 import { FAQ_CATEGORIES, faqAnchor, resolveFaqHash } from "../../features/faq/content";
+import { useDocumentTitle } from "../../shared/lib/useDocumentTitle";
 import { ButtonLink } from "../../shared/ui/Button";
 import { PageContainer } from "../../shared/ui/Page";
 import {
@@ -57,6 +58,7 @@ const Cta = styled.section`
 const FIRST_CATEGORY = FAQ_CATEGORIES[0];
 
 export function FaqPage() {
+  useDocumentTitle("유출 대응 상식");
   const { hash } = useLocation();
   const [categoryId, setCategoryId] = useState(FIRST_CATEGORY?.id ?? "");
   const [openIds, setOpenIds] = useState<Set<string>>(
