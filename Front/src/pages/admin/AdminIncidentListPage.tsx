@@ -14,6 +14,7 @@ import {
 } from "../../features/admin/components/AdminUi";
 import { useAdminLoad } from "../../features/admin/useAdminLoad";
 import { formatFullDate, incidentTitle } from "../../features/incident/format";
+import { useDocumentTitle } from "../../shared/lib/useDocumentTitle";
 import { ButtonLink } from "../../shared/ui/Button";
 import { VisuallyHidden } from "../../shared/ui/Page";
 import { Pill } from "../../shared/ui/Tag";
@@ -97,6 +98,7 @@ const FILTERS: { value: Filter; label: string }[] = [
 ];
 
 export function AdminIncidentListPage() {
+  useDocumentTitle("사고 관리");
   const [filter, setFilter] = useState<Filter>("ALL");
   const [query, setQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
@@ -160,7 +162,8 @@ export function AdminIncidentListPage() {
               <tr>
                 <th scope="col">사고명</th>
                 <th scope="col">공지일</th>
-                <th scope="col">유출 항목</th>
+                {/* 유출 안 됨으로 발표된 항목 포함 개수 */}
+                <th scope="col">발표 항목</th>
                 <th scope="col">대응 상태</th>
                 <th scope="col">공개</th>
                 <th scope="col">

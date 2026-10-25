@@ -1,4 +1,4 @@
-import { useRef, useState, type ClipboardEvent, type SubmitEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type ClipboardEvent, type SubmitEvent, type KeyboardEvent } from "react";
 import { Navigate, useNavigate } from "react-router";
 import styled from "styled-components";
 import { ADMIN_INCIDENTS_PATH } from "../../app/paths";
@@ -6,6 +6,7 @@ import { verifyOtp } from "../../features/admin/api";
 import { fetchCurrentUser } from "../../features/auth/api";
 import { useAuthStore } from "../../features/auth/useAuthStore";
 import { ApiError } from "../../shared/api/errors";
+import { useDocumentTitle } from "../../shared/lib/useDocumentTitle";
 import { Button } from "../../shared/ui/Button";
 import { Icon } from "../../shared/ui/Icon";
 import { textStyle } from "../../styles/typography";
@@ -97,6 +98,7 @@ const LENGTH = 6;
 const FAILED_MESSAGE = "인증 번호를 확인하지 못했어요. 인증 앱의 새 번호로 다시 입력해 주세요.";
 
 export function AdminOtpPage() {
+  useDocumentTitle("관리자 2차 인증");
   const navigate = useNavigate();
   const otpVerified = useAuthStore((state) => state.user?.otpVerified ?? false);
   const setUser = useAuthStore((state) => state.setUser);
@@ -104,6 +106,11 @@ export function AdminOtpPage() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const refs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // 열리면 바로 입력 (인증 앱 보고 숫자만 치면 되게)
+  useEffect(() => {
+    refs.current[0]?.focus();
+  }, []);
 
   if (otpVerified) {
     return <Navigate to={ADMIN_INCIDENTS_PATH} replace />;
