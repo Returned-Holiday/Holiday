@@ -72,7 +72,7 @@ QA1 보안 점검의 기준표와 실행 목록이다. 10/21에 코드 기준 �
 | # | 약점 | 상태 | 근거 |
 |---|---|---|---|
 | 1 | 오류 메시지 정보노출 | 적용 | 공통 예외 핸들러, `DEBUG=False`, 모든 404 바이트 동일(`config/tests/test_not_found.py`), 선택지 에러에 입력값 X |
-| 2 | 오류 상황 대응 부재 | 적용·조치 | `rh-except-pass`. OCR 요청 크기 변환 예외 미처리(F9) |
+| 2 | 오류 상황 대응 부재 | 적용 | `rh-except-pass`. OCR 요청 크기 변환 실패 → 400(F9, `test_malformed_content_length_is_400`) |
 | 3 | 부적절한 예외 처리 | 적용 | `rh-broad-except`(튜플 형태 포함) |
 
 ### 2-5. 코드오류 (5)
@@ -113,7 +113,7 @@ QA1 보안 점검의 기준표와 실행 목록이다. 10/21에 코드 기준 �
 | F6 | 설문 저장 시 검증 후 유출 항목 삭제 경합 → FK 오류 500 가능 | 낮음 | BE-A | 조치 완료(#28 `16e29d7`, 잠금 후 재확인 → 400) |
 | F7 | `SurveyKey.REUSED_PASSWORD` 같은 이름이 진단 도구에 "하드코드 비밀번호"로 오탐될 수 있음(실제 값은 선택지 키) | 관찰 | BE-A | 종료(10/26 Semgrep·Bandit 0건, 오탐 없음) |
 | F8 | `OPTIONS` 요청에 DRF 기본 메타데이터가 200 + 입력 필드 정보로 응답(정보 누출) | 중 | BE-A | 조치 완료(#35, 405. 비관리자의 관리자 API는 없는 경로 404와 동일) |
-| F9 | OCR 파일 누락 시 `int(CONTENT_LENGTH)` 예외 미처리 → 숫자가 아닌 Content-Length로 500(공통 문구, 내부 정보 X). 운영은 nginx가 잘못된 Content-Length를 400으로 먼저 거부 | 낮음 | BE-A | 조치 대기(변환 실패 시 0으로) |
+| F9 | OCR 파일 누락 시 `int(CONTENT_LENGTH)` 예외 미처리 → 숫자가 아닌 Content-Length로 500(공통 문구, 내부 정보 X). 운영은 nginx가 잘못된 Content-Length를 400으로 먼저 거부 | 낮음 | BE-B | 조치 완료(변환 실패 시 0 → 400 `UNSUPPORTED_FILE`) |
 
 ## 4. 웹 21개 항목 공격 테스트 (스테이징, QA1 당일)
 

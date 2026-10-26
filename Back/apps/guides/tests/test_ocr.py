@@ -145,6 +145,13 @@ class OcrSecurityTests(OcrTestCase):
         self.assert_code(response, status.HTTP_400_BAD_REQUEST, "UNSUPPORTED_FILE")
         post.assert_not_called()
 
+    # 숫자 아닌 Content-Length → 500 X (F9)
+    def test_malformed_content_length_is_400(self) -> None:
+        with mock.patch(POST_PATCH) as post:
+            response = self.client.post(OCR_URL, b"", content_type="multipart/form-data; boundary=x", CONTENT_LENGTH="abc")
+        self.assert_code(response, status.HTTP_400_BAD_REQUEST, "UNSUPPORTED_FILE")
+        post.assert_not_called()
+
     def test_upstream_failures_are_503(self) -> None:
         bad_body = mock.Mock(status_code=200)
         bad_body.json.side_effect = ValueError
