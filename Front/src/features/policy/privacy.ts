@@ -58,13 +58,36 @@ export const PRIVACY_POLICY: PolicyDocumentData = {
         ],
         rows: [
           ["네이버클라우드 (CLOVA OCR)", "통지문 텍스트 추출", "HTTPS 암호화 전송"],
-          ["Amazon Web Services", "서버·DB 운영", "서울 리전"],
+          ["Amazon Web Services", "서버·DB 운영", "시드니 리전(호주), 제4조 국외 이전"],
+        ],
+      },
+    },
+    {
+      id: "overseas-transfer",
+      title: "제4조  개인정보의 국외 이전",
+      body: {
+        kind: "table",
+        columns: [
+          { label: "구분", width: 230 },
+          { label: "내용", width: 608 },
+        ],
+        rows: [
+          ["이전받는 자", "Amazon Web Services, Inc. (문의: aws.amazon.com/contact-us)"],
+          ["이전 국가", "호주 (AWS 시드니 리전)"],
+          ["이전 항목", "제1조의 회원 정보, 진행 기록, 제보 내역, 접속 기록, 통지문 이미지(저장하지 않고 분석 중에만 처리)"],
+          ["이전 시기와 방법", "서비스 이용 시점에 암호화된 네트워크(HTTPS)로 전송, 암호화된 저장소에 보관"],
+          ["이용 목적", "서버·데이터베이스 운영 (처리 위탁)"],
+          ["보유 기간", "제2조와 같음 (회원 정보·기록은 탈퇴 시 즉시 삭제, 접속 기록·보안 로그는 90일, 관리자 접속 기록은 1년)"],
+          [
+            "거부 방법과 효과",
+            "회원 정보는 가입하지 않거나 탈퇴하면 이전되지 않습니다. 접속 기록은 서비스를 이용할 때 이전되며, 원하지 않으면 서비스를 이용하지 않을 수 있습니다. 이 경우 로그인이 필요한 기능은 쓸 수 없습니다.",
+          ],
         ],
       },
     },
     {
       id: "third-party",
-      title: "제4조  제3자 제공",
+      title: "제5조  제3자 제공",
       collapsed: true,
       body: {
         kind: "text",
@@ -76,7 +99,7 @@ export const PRIVACY_POLICY: PolicyDocumentData = {
     },
     {
       id: "safeguards",
-      title: "제5조  안전성 확보 조치",
+      title: "제6조  안전성 확보 조치",
       collapsed: true,
       body: {
         kind: "numbered",
@@ -92,19 +115,19 @@ export const PRIVACY_POLICY: PolicyDocumentData = {
     },
     {
       id: "rights",
-      title: "제6조  이용자의 권리와 행사 방법",
+      title: "제7조  이용자의 권리와 행사 방법",
       collapsed: true,
       body: {
         kind: "text",
         paragraphs: [
           "이용자는 언제든지 자신의 개인정보를 열람·정정·삭제하거나 처리 정지를 요구할 수 있습니다.",
-          "마이페이지에서 계정 정보와 진행 기록을 확인할 수 있고, 사고별 대응 기록 삭제와 회원 탈퇴를 직접 할 수 있습니다. 그 밖의 요청은 제8조의 개인정보 보호책임자에게 연락해 주세요.",
+          "마이페이지에서 계정 정보와 진행 기록을 확인할 수 있고, 사고별 대응 기록 삭제와 회원 탈퇴를 직접 할 수 있습니다. 그 밖의 요청은 제9조의 개인정보 보호책임자에게 연락해 주세요.",
         ],
       },
     },
     {
       id: "cookies",
-      title: "제7조  쿠키",
+      title: "제8조  쿠키",
       collapsed: true,
       body: {
         kind: "text",
@@ -116,7 +139,7 @@ export const PRIVACY_POLICY: PolicyDocumentData = {
     },
     {
       id: "officer",
-      title: "제8조  개인정보 보호책임자",
+      title: "제9조  개인정보 보호책임자",
       collapsed: true,
       body: {
         kind: "text",
@@ -125,7 +148,7 @@ export const PRIVACY_POLICY: PolicyDocumentData = {
     },
     {
       id: "remedies",
-      title: "제9조  권익침해 구제 방법",
+      title: "제10조  권익침해 구제 방법",
       collapsed: true,
       body: {
         kind: "table",
@@ -144,7 +167,7 @@ export const PRIVACY_POLICY: PolicyDocumentData = {
     },
     {
       id: "changes",
-      title: "제10조  방침의 변경",
+      title: "제11조  방침의 변경",
       collapsed: true,
       body: {
         kind: "text",

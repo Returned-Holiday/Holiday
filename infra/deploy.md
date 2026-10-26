@@ -1,14 +1,22 @@
 # 스테이징 배포 체크리스트
 
-`<도메인>`, `<리전>`, 시크릿 이름, 허용 IP, 비밀번호는 레포에 쓰지 않는다. 서버에서 직접 넣고 팀 비공개 채널로 공유한다. 기준값은 `infra/CLAUDE.md`.
+`<도메인>`, 시크릿 이름, 허용 IP, 비밀번호는 레포에 쓰지 않는다. 서버에서 직접 넣고 팀 비공개 채널로 공유한다. 기준값은 `infra/CLAUDE.md`.
 
-## 0. 도메인
-- [ ] Route 53에서 도메인 구매, 등록 확인 메일 승인(안 하면 정지)
+- 계정: 프로젝트 계정(소셜 로그인, 무료 플랜). **리전은 시드니 `ap-southeast-2`로 고정**(아래 `<리전>` 자리)
+- 서버 접속: **Session Manager만**(EC2 콘솔 → 인스턴스 → 연결 → Session Manager). 22번 포트를 열지 않고 SSH 키를 만들지 않는다
+- 작업 전 콘솔에서 Secrets Manager 테스트 시크릿을 만들었다가 지워 생성 가능 여부 확인
+
+## 0. 도메인 (첫날)
+이 계정은 Route 53 도메인 구매가 막혀 있다("Free Tier accounts are not supported"). 외부에서 사서 Route 53으로 연결한다.
+- [ ] 외부 등록업체(가비아, Namecheap 등)에서 도메인 구매
+- [ ] Route 53 → 호스팅 영역 생성(퍼블릭) → NS 레코드 4개 확인
+- [ ] 등록업체 관리 화면에서 네임서버를 위 4개로 변경. 반영은 보통 몇 시간, 최대 하루 이상 → **인증서(7단계)는 반영 후에만 가능**하니 가장 먼저
+- [ ] 반영 확인: `nslookup -type=NS <도메인>`에 `awsdns`가 보이면 완료
 
 ## 1. 계정·네트워크
-- [ ] 팀원별 IAM 사용자 + MFA. 루트 계정은 이후 사용하지 않음
-- [ ] VPC: 퍼블릭 서브넷 1(EC2), 프라이빗 서브넷 2(RDS 서브넷 그룹은 AZ 2개 필요)
-- [ ] SG-web: 443·80 전체, 22는 팀원 IP만
+- [ ] 팀원은 각자 계정으로 초대 + MFA(공용 로그인 X). 필요한 사람만 초대
+- [ ] VPC: 퍼블릭 서브넷 1(EC2), 프라이빗 서브넷 2(RDS 서브넷 그룹은 AZ 2개 필요). NAT 게이트웨이 만들지 않음(비용, 불필요)
+- [ ] SG-web: 443·80 전체만. **22번 없음**(Session Manager)
 - [ ] SG-db: 3306은 SG-web에서만(보안그룹 참조)
 
 ## 2. RDS
@@ -40,6 +48,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, DROP, INDEX, REFERENCES ON 
 | `CLOVA_OCR_URL`, `CLOVA_OCR_SECRET` | 클로바 일반 OCR Invoke URL(`https://...apigw.ntruss.com/...`)·Secret Key. 앱 시크릿에만 |
 
 ## 4. IAM 역할(EC2)
+- [ ] 관리형 정책 `AmazonSSMManagedInstanceCore`(Session Manager 접속용)
 - [ ] `secretsmanager:GetSecretValue`: 시크릿 2개 ARN만
 - [ ] `logs:CreateLogStream`, `logs:PutLogEvents`, `logs:DescribeLogStreams`: 아래 로그 그룹만
 - [ ] 로그 그룹 생성·삭제, 보관 기간 변경 권한은 주지 않음
@@ -55,17 +64,31 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, DROP, INDEX, REFERENCES ON 
 | `/returnedholiday/app` | 30일 |
 
 ## 6. EC2(Amazon Linux 2023)
+- [ ] 인스턴스: t3.micro, 루트 디스크 20GB(gp3), 4단계 IAM 역할 연결, 퍼블릭 IP 사용, 키 페어 **없음**
+- [ ] 고급 세부 정보 → 크레딧 사양 **Standard**(Unlimited면 CPU 과사용 시 추가 요금)
+- [ ] 콘솔 → 연결 → Session Manager로 접속되는지 확인(안 되면 IAM 역할의 SSM 정책, 인스턴스 재시작)
+
 ```bash
-sudo dnf install -y python3.12 python3.12-devel gcc pkgconf mariadb105-devel nginx git amazon-cloudwatch-agent
+# 메모리 1GB → 스왑 2GB (의존성 설치·프론트 빌드 대비)
+sudo dd if=/dev/zero of=/swapfile bs=1M count=2048 && sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile && echo '/swapfile swap swap defaults 0 0' | sudo tee -a /etc/fstab
+sudo dnf install -y python3.12 python3.12-devel gcc pkgconf mariadb105-devel nginx git amazon-cloudwatch-agent nodejs22
 sudo useradd --system --no-create-home --shell /sbin/nologin returnedholiday
 sudo mkdir -p /srv/returnedholiday/{app,front,nginx} /var/log/returnedholiday /etc/nginx/returnedholiday /var/www/certbot
 sudo chown returnedholiday:returnedholiday /var/log/returnedholiday && sudo chmod 750 /var/log/returnedholiday
 sudo usermod -aG returnedholiday cwagent   # 앱 로그 읽기
 sudo usermod -aG nginx cwagent             # nginx 로그 읽기
 ```
-- [ ] 코드: `dev` 최신을 `/srv/returnedholiday/app`에 clone(소유자 root, 서비스 계정은 읽기만)
+- [ ] `nodejs22`가 dnf에 없으면 nodejs.org의 22 LTS 리눅스 바이너리 설치. `node --version`으로 22.x 확인
+- [ ] 코드 받기: 비공개 레포 → **읽기 전용 Deploy key**(이 레포만, 쓰기 X). 개인 토큰을 서버에 두지 않음
+  ```bash
+  sudo ssh-keygen -t ed25519 -N "" -f /root/.ssh/holiday_deploy -C holiday-staging
+  sudo cat /root/.ssh/holiday_deploy.pub   # GitHub 레포 Settings → Deploy keys에 등록, "Allow write access" 끔
+  sudo GIT_SSH_COMMAND="ssh -i /root/.ssh/holiday_deploy" git clone -b dev git@github.com:Returned-Holiday/Holiday.git /srv/returnedholiday/app
+  ```
+  소유자 root, 서비스 계정은 읽기만
 - [ ] 백엔드: `python3.12 -m venv /srv/returnedholiday/venv` → `pip install --require-hashes -r Back/requirements/base.txt -r Back/requirements/prod.txt`
-- [ ] 프론트: Node 22로 `npm ci && npm run build` → `Front/dist`를 `/srv/returnedholiday/front/dist`로 복사(소스맵 없음 확인)
+- [ ] 프론트(서버에서 빌드, Session Manager는 파일 업로드가 번거로움): `cd Front && npm ci && npm run build` → `Front/dist`를 `/srv/returnedholiday/front/dist`로 복사, `.map` 파일 없음 확인
 - [ ] `infra/nginx/_error.html` → `/srv/returnedholiday/nginx/_error.html`
 
 ## 7. nginx·TLS

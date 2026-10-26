@@ -46,3 +46,6 @@
 | 10/15 | 비로그인 POST(가입·로그인)도 CSRF 검사(`csrf_protect`). 로그인 필요 응답은 401(DRF 기본 403 대신) | DRF는 로그인 사용자만 CSRF 검사 → 로그인 CSRF 차단. 프론트는 401로 세션 만료 판단 | `docs/security.md` 5, `docs/rules/api-response.md` |
 | 10/16 | 기업 별칭은 기업당 20개·각 1~50자, 공백 제거·소문자 정규화 후 다른 기업의 이름·별칭과 겹치면 409. "공지 갱신"은 수동 표시 없이 유출 항목 추가·수정·삭제 때만 자동 갱신 | 표기 차이로 검색·OCR이 엉뚱한 기업에 매칭되는 것 방지. 관리자가 갱신 표시를 잊는 경우 제거 | `docs/erd.md`, `docs/api.md` |
 | 10/21 | `APPEND_SLASH = False`. 끝 슬래시 없는 요청은 경로 존재와 무관하게 같은 404 | 기본값은 슬래시 붙인 경로가 있을 때만 301 → 관리자 API 등 경로 존재 노출. 모든 API·프론트 호출이 `/`로 끝나 영향 없음 | `Back/config/settings/base.py`, `docs/api.md` |
+| 10/23 | 스테이징은 프로젝트 AWS 계정(무료 플랜), 리전 시드니 `ap-southeast-2` 고정. 처리방침에 국외 이전(호주) 고지 추가 | 기존 계정 문제. 서울 리전 선택 불가, 지연은 체감 문제 없음 | `infra/CLAUDE.md`, `infra/deploy.md`, `Front/src/features/policy/privacy.ts` |
+| 10/23 | 서버 접속은 Session Manager만, 22번 포트·SSH 키 없음. 프론트는 서버에서 빌드, 코드는 읽기 전용 Deploy key | 외부 공격면 제거, 키 관리 불필요. Session Manager는 파일 업로드가 번거로움 | `infra/CLAUDE.md`, `infra/deploy.md` |
+| 10/23 | 도메인은 외부 등록업체에서 구매 후 Route 53 호스팅 영역으로 네임서버 연결. 서버는 t3.micro·디스크 20GB·스왑 2GB·CPU 크레딧 Standard | 계정에서 Route 53 도메인 구매 불가. 가벼운 서비스, 추가 요금 방지 | `infra/deploy.md` |
