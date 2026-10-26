@@ -130,6 +130,14 @@ class AdminActionDetailView(generics.RetrieveUpdateAPIView):
         return Response(AdminActionSerializer(update_action(action, serializer.validated_data)).data)
 
 
+# 잘못된 Content-Length → 0 (500 X)
+def _request_size(request: Request) -> int:
+    try:
+        return int(request.META.get("CONTENT_LENGTH") or 0)
+    except ValueError:
+        return 0
+
+
 # 이미지·인식 원문은 메모리에서만, 저장·로그·응답 X
 class OcrView(APIView):
     permission_classes = [IsAuthenticated]
@@ -140,7 +148,7 @@ class OcrView(APIView):
         upload = request.FILES.get("image")
         if upload is None:
             # 메모리 핸들러는 상한 초과 파일을 조용히 버림 → 요청 크기로 구분
-            if int(request.META.get("CONTENT_LENGTH") or 0) > OCR_MAX_BYTES:
+            if _request_size(request) > OCR_MAX_BYTES:
                 raise FileTooLarge
             raise UnsupportedFile
         image, image_format = prepare_image(upload)
