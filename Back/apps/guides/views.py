@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.db.models import QuerySet
 from rest_framework import generics, status
 from rest_framework.exceptions import NotFound
@@ -9,7 +10,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.guides.constants import OCR_MAX_BYTES, PublishStatus
+from apps.guides.constants import PublishStatus
 from apps.guides.exceptions import FileTooLarge, UnsupportedFile
 from apps.guides.models import Action, ActionCompletion
 from apps.guides.serializers import (
@@ -147,8 +148,8 @@ class OcrView(APIView):
     def post(self, request: Request) -> Response:
         upload = request.FILES.get("image")
         if upload is None:
-            # 메모리 핸들러는 상한 초과 파일을 조용히 버림 → 요청 크기로 구분
-            if _request_size(request) > OCR_MAX_BYTES:
+            # 메모리 핸들러는 요청이 상한을 넘으면 파일을 조용히 버림 → 요청 크기로 구분
+            if _request_size(request) > settings.FILE_UPLOAD_MAX_MEMORY_SIZE:
                 raise FileTooLarge
             raise UnsupportedFile
         image, image_format = prepare_image(upload)

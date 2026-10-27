@@ -94,8 +94,8 @@ React: 자동 이스케이프, 라우트 가드(화면 단위 인가, 편의용)
 ### 3-5. 파일 업로드 (OCR)
 | 정책 | 구현 |
 |---|---|
-| 디스크에 쓰지 않음 | `FILE_UPLOAD_HANDLERS`를 메모리 핸들러로 한정, `FILE_UPLOAD_MAX_MEMORY_SIZE = 5MB`. **Django 기본값은 2.5MB 초과 파일을 임시파일로 쓴다** |
-| 크기 | nginx `client_max_body_size 5M` + Django 설정 |
+| 디스크에 쓰지 않음 | Django: `FILE_UPLOAD_HANDLERS`를 메모리 핸들러로 한정, `FILE_UPLOAD_MAX_MEMORY_SIZE = 6MB`(요청 전체 기준, 넘으면 파일을 버리고 413). **Django 기본값은 2.5MB 초과 파일을 임시파일로 쓴다**. nginx: OCR 경로 `client_body_buffer_size 6m` → 본문을 메모리에만 둠(**nginx 기본 버퍼 8~16KB를 넘는 본문은 임시파일로 쓴다**) |
+| 크기 | 파일 자체 5MB(`OCR_MAX_BYTES`, `image_check.py`). 요청 전체는 multipart 경계 여유를 두어 6MB(nginx OCR 경로 `client_max_body_size 6m` = Django `FILE_UPLOAD_MAX_MEMORY_SIZE`). 그 밖의 경로는 nginx 5MB. 테스트: 정확히 5MB 통과, 5MB+1 413, 요청 6MB 초과 413 |
 | 형식 | 확장자 + Pillow로 실제 시그니처(JPEG, PNG) 확인, 픽셀 수 상한(2,500만, 한 변 1만, 압축 폭탄 방지). 통과한 이미지는 픽셀만 다시 저장해 EXIF(위치·기기) 제거 후 전송. 구현: `apps/guides/services/ocr/image_check.py` |
 | 외부 호출 | 클로바 OCR 주소·키는 시크릿(`CLOVA_OCR_URL`, `CLOVA_OCR_SECRET`, 설정 기본값 X). https + `*.apigw.ntruss.com`만 호출, 리다이렉트 따라가지 않음, TLS 검증 유지, 타임아웃 10초. 미설정·실패는 503 `OCR_UNAVAILABLE`(원인은 로그에 종류·상태 코드만). 구현: `apps/guides/services/ocr/client.py` |
 | 처리 후 | 인식 원문은 마스킹 후 매칭에만 사용, 저장·로그 금지. 응답에는 DB의 사고·항목 ID만 |

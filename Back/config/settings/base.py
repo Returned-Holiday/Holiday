@@ -86,7 +86,8 @@ SECURE_REFERRER_POLICY = "same-origin"
 
 # 기본 핸들러는 2.5MB 초과 시 디스크 임시 저장 → 메모리만
 FILE_UPLOAD_HANDLERS = ["django.core.files.uploadhandler.MemoryFileUploadHandler"]
-FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
+# 요청 전체 기준 → 5MB 파일 + multipart 경계 여유 (파일 자체 5MB는 OCR에서 검사)
+FILE_UPLOAD_MAX_MEMORY_SIZE = 6 * 1024 * 1024
 DATA_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024
 
 REST_FRAMEWORK = {

@@ -11,6 +11,7 @@ from PIL import Image, TiffImagePlugin
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from apps.guides.constants import OCR_MAX_BYTES
 from apps.guides.tests.helpers import make_incident, make_item, make_user
 from apps.incidents.constants import IncidentStatus, LeakType
 from config.secrets import MissingSecretError
@@ -136,6 +137,21 @@ class OcrSecurityTests(OcrTestCase):
     def test_rejects_oversized(self) -> None:
         big = SimpleUploadedFile("notice.png", b"0" * (5 * 1024 * 1024 + 1), content_type="image/png")
         response, post = self.upload(big, clova_response("SKT"))
+        self.assert_code(response, status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "FILE_TOO_LARGE")
+        post.assert_not_called()
+
+    # 파일 5MB 정확히 → 통과 (요청 전체는 multipart 경계만큼 더 큼)
+    def test_exact_limit_accepted(self) -> None:
+        data = image_file().read()
+        exact = SimpleUploadedFile("notice.png", data + b"\0" * (OCR_MAX_BYTES - len(data)), content_type="image/png")
+        response, post = self.upload(exact, clova_response("SKT"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK, response.content)
+        post.assert_called_once()
+
+    # 요청이 메모리 처리 상한 초과 → 파일 버려짐 → 413
+    def test_request_over_memory_limit(self) -> None:
+        huge = SimpleUploadedFile("notice.png", b"0" * (6 * 1024 * 1024 + 1), content_type="image/png")
+        response, post = self.upload(huge, clova_response("SKT"))
         self.assert_code(response, status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, "FILE_TOO_LARGE")
         post.assert_not_called()
 
