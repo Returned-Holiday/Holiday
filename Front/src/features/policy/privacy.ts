@@ -142,8 +142,18 @@ export const PRIVACY_POLICY: PolicyDocumentData = {
       title: "제9조  개인정보 보호책임자",
       collapsed: true,
       body: {
-        kind: "text",
-        paragraphs: ["개인정보 보호책임자: 반납한연휴 팀"],
+        kind: "table",
+        columns: [
+          { label: "구분", width: 230 },
+          { label: "내용", width: 608 },
+        ],
+        rows: [
+          ["개인정보 보호책임자", "반납한연휴 팀 개인정보 보호 담당"],
+          ["연락처", "이메일 fl4ghunters@gmail.com"],
+          ["처리 업무", "개인정보 열람·정정·삭제·처리정지 요구, 개인정보 관련 문의·불만·피해 구제"],
+          ["답변", "접수한 요청은 지체 없이 확인해 답변합니다."],
+          ["외부 신고·상담", "개인정보 침해 신고나 상담이 필요하면 제10조의 기관에 문의할 수 있습니다."],
+        ],
       },
     },
     {

@@ -2,7 +2,7 @@ import { useState } from "react";
 import styled from "styled-components";
 import { Icon } from "../../../shared/ui/Icon";
 import { Pill } from "../../../shared/ui/Tag";
-import { textStyle } from "../../../styles/typography";
+import { mobileMedia, textStyle } from "../../../styles/typography";
 import { formatFullDate } from "../../incident/format";
 import type { MyReport, ReportStatus } from "../../report/api";
 
@@ -10,6 +10,10 @@ const List = styled.ul`
   padding: 8px 32px;
   border-radius: ${({ theme }) => theme.radius.xl};
   background: ${({ theme }) => theme.colors.surface.card};
+
+  ${mobileMedia} {
+    padding: 4px 20px;
+  }
 
   > li + li {
     border-top: 1px solid ${({ theme }) => theme.colors.border.default};
@@ -76,6 +80,10 @@ const Empty = styled.p`
   ${textStyle("bodyMd")}
   color: ${({ theme }) => theme.colors.text.body};
   text-align: center;
+
+  ${mobileMedia} {
+    padding: 20px;
+  }
 `;
 
 const STATUS: Record<ReportStatus, { tone: "neutral" | "positive" | "negative"; label: string }> = {
