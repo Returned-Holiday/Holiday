@@ -135,7 +135,8 @@ React: 자동 이스케이프, 라우트 가드(화면 단위 인가, 편의용)
 | 전송 | nginx에서 TLS 종료, TLS 1.2/1.3, 80 → 301, HSTS |
 | 웹 서버 | `infra/CLAUDE.md`의 nginx 기준값 |
 | 앱 서버 | Gunicorn은 `127.0.0.1:8000`에만 바인드, root가 아닌 계정으로 실행 |
-| DB | Private Subnet, 보안그룹은 웹 서버 보안그룹에서 오는 3306만. **앱 계정은 SELECT/INSERT/UPDATE/DELETE만, 마이그레이션 계정 별도**. 저장소 암호화 |
+| DB | Private Subnet, 보안그룹은 웹 서버 보안그룹에서 오는 3306만. **앱 계정은 SELECT/INSERT/UPDATE/DELETE만, 마이그레이션 계정 별도**. 저장소 암호화. 앱→RDS TLS(RDS CA·호스트명 검증 `VERIFY_IDENTITY`, RDS `require_secure_transport=ON`). 구현: `config/settings/prod.py` |
+| 요청 제한 저장소 | 운영은 DB 캐시(`django_cache`)로 gunicorn 워커 간 공유. 워커별 메모리 캐시면 제한이 워커 수만큼 느슨. 구현: `config/settings/prod.py` |
 | 클라우드 계정 | 루트 계정 미사용, 팀원 IAM 사용자 + MFA |
 
 ### 3-8. 공급망
@@ -165,7 +166,7 @@ React: 자동 이스케이프, 라우트 가드(화면 단위 인가, 편의용)
 | SR1-3 LDAP | 해당 없음 | – | – |
 | SR1-4 시스템 자원 | 사용자 입력으로 파일 경로·OS 명령을 만들지 않음 | 3-5 | – |
 | SR1-5 XSS | React 이스케이프, ESLint 규칙 | 3-4 | 제보에 `<script>` → 텍스트로 표시 |
-| SR1-6 CSRF | Django CSRF + axios 헤더. DRF는 로그인 사용자만 검사 → 가입·로그인은 `csrf_protect` 추가 | `docs/rules/api-response.md` | 토큰 없이 POST → 403 |
+| SR1-6 CSRF | Django CSRF + axios 헤더. DRF는 로그인 사용자만 검사 → 가입·로그인은 `csrf_protect` 추가. 실패 응답은 DRF 403과 같은 JSON(`CSRF_FAILURE_VIEW` → `config/errors.py`) | `docs/rules/api-response.md` | 토큰 없이 POST → 403 |
 | SR1-7 HTTP 응답·리다이렉트 | 서버 리다이렉트 없음, https 링크만 | 3-3 | `javascript:` URL 제보 → 거부 |
 | SR1-8 메모리 | 해당 없음(Python/TS) | – | – |
 | SR1-9 보안기능 입력값 | 역할·우선순위는 서버가 결정 | 3-2, 3-3 | 우선순위 값을 조작해 전송 → 무시 |

@@ -57,6 +57,8 @@ EC2 ─HTTPS─▶ 네이버 클로바 OCR (통지문 분석 시에만)
 - RDS는 Private Subnet, 퍼블릭 접근 끔, 저장소 암호화 켬, 자동 백업 켬
 - **계정 분리**: 앱 계정은 `SELECT, INSERT, UPDATE, DELETE`만. 마이그레이션 계정은 별도(DDL 권한). 마스터 계정은 앱이 쓰지 않음 (D-04, D-06)
 - 문자셋 `utf8mb4`
+- 앱→RDS TLS: RDS CA로 인증서·호스트명 검증, 파라미터 `require_secure_transport=ON`
+- 요청 제한 캐시는 DB 캐시 테이블(`createcachetable`, 마이그레이션 계정으로 생성)
 - 에러 로그를 CloudWatch로 내보내기(90일)
 
 ## 비밀값

@@ -7,6 +7,7 @@ SECRET_KEY = get_secret("DJANGO_SECRET_KEY")
 ALLOWED_HOSTS = get_list("DJANGO_ALLOWED_HOSTS")
 CSRF_TRUSTED_ORIGINS = get_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 
+RDS_CA_BUNDLE = "/srv/returnedholiday/rds/ap-southeast-2-bundle.pem"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
@@ -15,10 +16,14 @@ DATABASES = {
         "PASSWORD": get_secret("DB_PASSWORD"),
         "HOST": get_secret("DB_HOST"),
         "PORT": get_secret("DB_PORT"),
-        "OPTIONS": {"charset": "utf8mb4"},
+        # RDS 인증서·호스트명 검증 (평문 접속 X)
+        "OPTIONS": {"charset": "utf8mb4", "ssl_mode": "VERIFY_IDENTITY", "ssl": {"ca": RDS_CA_BUNDLE}},
         "CONN_MAX_AGE": 60,
     }
 }
+
+# gunicorn 워커 간 공유 (LocMem은 워커별 → 요청 제한 워커 수만큼 느슨)
+CACHES = {"default": {"BACKEND": "django.core.cache.backends.db.DatabaseCache", "LOCATION": "django_cache"}}
 
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True

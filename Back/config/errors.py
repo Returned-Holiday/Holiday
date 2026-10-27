@@ -105,3 +105,8 @@ def not_found(request: HttpRequest, exception: Exception) -> JsonResponse:
 
 def server_error(request: HttpRequest) -> JsonResponse:
     return error_json("SERVER_ERROR", GENERIC_MESSAGE, 500)
+
+
+# 가입·로그인 csrf_protect 실패도 DRF 403과 같은 본문 (Django HTML 403 X)
+def csrf_failure(request: HttpRequest, reason: str = "") -> JsonResponse:
+    return error_json("FORBIDDEN", "요청을 처리할 권한이 없습니다.", 403)
