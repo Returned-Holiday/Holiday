@@ -48,4 +48,5 @@
 | 10/21 | `APPEND_SLASH = False`. 끝 슬래시 없는 요청은 경로 존재와 무관하게 같은 404 | 기본값은 슬래시 붙인 경로가 있을 때만 301 → 관리자 API 등 경로 존재 노출. 모든 API·프론트 호출이 `/`로 끝나 영향 없음 | `Back/config/settings/base.py`, `docs/api.md` |
 | 10/23 | 스테이징은 프로젝트 AWS 계정(무료 플랜), 리전 시드니 `ap-southeast-2` 고정. 처리방침에 국외 이전(호주) 고지 추가 | 기존 계정 문제. 서울 리전 선택 불가, 지연은 체감 문제 없음 | `infra/CLAUDE.md`, `infra/deploy.md`, `Front/src/features/policy/privacy.ts` |
 | 10/23 | 서버 접속은 Session Manager만, 22번 포트·SSH 키 없음. 프론트는 서버에서 빌드, 코드는 읽기 전용 Deploy key | 외부 공격면 제거, 키 관리 불필요. Session Manager는 파일 업로드가 번거로움 | `infra/CLAUDE.md`, `infra/deploy.md` |
+| 10/27 | 운영 캐시는 DB 캐시(`createcachetable`, 마이그레이션 계정). 앱→RDS는 TLS + 인증서·호스트명 검증, RDS `require_secure_transport=ON` | 스테이징 점검 F11: 워커별 캐시로 요청 제한 약 3배. Redis 추가 없이 기존 RDS 사용. DB 구간 평문 전송 제거 | `config/settings/prod.py`, `infra/deploy.md` |
 | 10/23 | 도메인은 외부 등록업체에서 구매 후 Route 53 호스팅 영역으로 네임서버 연결. 서버는 t3.micro·디스크 20GB·스왑 2GB·CPU 크레딧 Standard | 계정에서 Route 53 도메인 구매 불가. 가벼운 서비스, 추가 요금 방지 | `infra/deploy.md` |

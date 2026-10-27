@@ -21,7 +21,7 @@
 
 ## 2. RDS
 - [ ] MySQL 8.4, 프라이빗 서브넷 그룹, 퍼블릭 접근 끔, 저장소 암호화, 자동 백업
-- [ ] 파라미터 그룹: `character_set_server=utf8mb4`, `collation_server=utf8mb4_0900_ai_ci`
+- [ ] 파라미터 그룹: `character_set_server=utf8mb4`, `collation_server=utf8mb4_0900_ai_ci`, `require_secure_transport=ON`(평문 접속 거부)
 - [ ] 에러 로그 CloudWatch 내보내기
 - [ ] 마스터 계정으로 접속해 DB와 계정 2개 생성. 마스터 계정은 이후 앱이 쓰지 않음
 
@@ -90,6 +90,12 @@ sudo usermod -aG nginx cwagent             # nginx 로그 읽기
 - [ ] 백엔드: `python3.12 -m venv /srv/returnedholiday/venv` → `pip install --require-hashes -r Back/requirements/base.txt -r Back/requirements/prod.txt`
 - [ ] 프론트(서버에서 빌드, Session Manager는 파일 업로드가 번거로움): `cd Front && npm ci && npm run build` → `Front/dist`를 `/srv/returnedholiday/front/dist`로 복사, `.map` 파일 없음 확인
 - [ ] `infra/nginx/_error.html` → `/srv/returnedholiday/nginx/_error.html`
+- [ ] RDS CA 인증서(`config/settings/prod.py` `RDS_CA_BUNDLE` 경로, 공개 인증서라 644)
+  ```bash
+  sudo mkdir -p /srv/returnedholiday/rds
+  sudo curl -fsS -o /srv/returnedholiday/rds/ap-southeast-2-bundle.pem https://truststore.pki.rds.amazonaws.com/ap-southeast-2/ap-southeast-2-bundle.pem
+  sudo chmod 644 /srv/returnedholiday/rds/ap-southeast-2-bundle.pem
+  ```
 
 ## 7. nginx·TLS
 - [ ] `infra/nginx/returnedholiday.conf` → `/etc/nginx/conf.d/`, `proxy-params.conf` → `/etc/nginx/returnedholiday/`, `<도메인>` 치환
@@ -105,9 +111,17 @@ cd /srv/returnedholiday/app/Back
 # 마이그레이션 시크릿으로만 실행
 sudo -u returnedholiday env DJANGO_SETTINGS_MODULE=config.settings.prod AWS_REGION=<리전> AWS_SECRET_ID=<마이그레이션 시크릿> \
   /srv/returnedholiday/venv/bin/python manage.py migrate
+# 요청 제한용 공유 캐시 테이블 (DDL → 마이그레이션 시크릿)
+sudo -u returnedholiday env DJANGO_SETTINGS_MODULE=config.settings.prod AWS_REGION=<리전> AWS_SECRET_ID=<마이그레이션 시크릿> \
+  /srv/returnedholiday/venv/bin/python manage.py createcachetable
 sudo -u returnedholiday env DJANGO_SETTINGS_MODULE=config.settings.prod AWS_REGION=<리전> AWS_SECRET_ID=<앱 시크릿> \
   /srv/returnedholiday/venv/bin/python manage.py check --deploy
+# DB TLS 확인: 값이 비어 있으면 평문
+sudo -u returnedholiday env DJANGO_SETTINGS_MODULE=config.settings.prod AWS_REGION=<리전> AWS_SECRET_ID=<앱 시크릿> \
+  /srv/returnedholiday/venv/bin/python manage.py shell -c "from django.db import connection; c = connection.cursor(); c.execute(\"SHOW STATUS LIKE 'Ssl_cipher'\"); print(c.fetchone())"
 ```
+- [ ] `Ssl_cipher` 값이 있음(예: `TLS_AES_256_GCM_SHA384`). 인증서·호스트명 오류면 시작하지 말고 BE-A와 확인(검증을 끄지 않음)
+- [ ] 이미 운영 중인 서버: CA 받기 → `createcachetable` → TLS 확인 → `sudo systemctl restart returnedholiday` → 파라미터 그룹 `require_secure_transport=ON`(동적 파라미터, 재부팅 X)
 - [ ] `infra/systemd/*` → `/etc/systemd/system/`, `<리전>`·시크릿 이름 치환
 - [ ] `sudo systemctl daemon-reload && sudo systemctl enable --now returnedholiday returnedholiday-clearsessions.timer`
 - [ ] `infra/cloudwatch/agent.json` 적용 후 에이전트 시작
@@ -116,6 +130,7 @@ sudo -u returnedholiday env DJANGO_SETTINGS_MODULE=config.settings.prod AWS_REGI
 - [ ] `curl -I http://<도메인>` → 301, `https://`로
 - [ ] 응답 헤더: HSTS·CSP·nosniff·X-Frame-Options 각 1개, `Server: nginx`(버전 X)
 - [ ] `GET /api/auth/csrf/` → 204, `GET /api/auth/me/` → 401 + `Cache-Control: no-store`
+- [ ] 토큰 없이 `curl -si -X POST https://<도메인>/api/auth/login/` → 403 `{"code":"FORBIDDEN",...}` JSON(Django HTML X)
 - [ ] 병렬 요청으로 nginx 제한 확인(순서대로 보내면 TLS 연결 시간 때문에 안 걸릴 수 있음): `seq 60 | xargs -P 30 -I{} curl -s -o /dev/null -w "%{http_code}\n" https://<도메인>/api/incidents/ | sort | uniq -c` → 200과 429가 같이 보이면 정상. 429 본문은 `{"code":"RATE_LIMITED",...}` JSON(nginx 기본 화면 X), nginx에서 막혔는지는 접근 로그로 확인
 - [ ] 앱(DRF) 제한을 시험할 때는 nginx가 먼저 막지 않게 1초 간격으로 보냄(QA1 AU 항목)
 - [ ] 404 세 가지 본문이 바이트 단위로 같음: 허용 IP 밖 `GET /api/admin/incidents/`(nginx), 없는 경로 `GET /api/nothing/`(Django), 허용 IP 안 비관리자의 `GET /api/admin/incidents/`(DRF). `curl -s ... | sha256sum`으로 비교, `Allow` 헤더 없음
