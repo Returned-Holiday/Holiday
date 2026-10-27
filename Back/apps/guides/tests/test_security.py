@@ -194,6 +194,7 @@ class OwnershipSecurityTests(APITestCase):
         self.owner = helpers.make_user("owner@example.com")
         self.other = helpers.make_user("other@example.com")
         self.incident = helpers.make_incident()
+        helpers.make_item(self.incident, LeakType.CONTACT)
         self.action = helpers.make_action("공통", 5, leak_type=LeakType.CONTACT)
         self.client.force_login(self.owner)
         self.client.put(
