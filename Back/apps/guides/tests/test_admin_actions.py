@@ -6,6 +6,7 @@ from rest_framework.test import APITestCase
 
 from apps.accounts.models import User
 from apps.guides.models import Action, ActionCompletion
+from apps.guides.serializers import AdminActionSerializer
 from apps.guides.tests.helpers import make_incident, make_item, make_user, survey_payload
 from apps.incidents.constants import IncidentStatus
 
@@ -145,19 +146,40 @@ class AdminActionSecurityTests(AdminActionTestCase):
         self.assert_rejected("incident_id", trigger_type="ALWAYS", leak_type=None, incident_id=10**19)
         self.assertEqual(self.client.get(LIST_URL, {"incident_id": 10**19}).status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_scope_locked_after_completion(self) -> None:
+    def test_meaning_locked_after_completion(self) -> None:
         incident = make_incident()
         action_id = self.create(trigger_type="ALWAYS", leak_type=None, incident_id=incident.pk)["id"]
         action = Action.objects.get(pk=action_id)
+        before = AdminActionSerializer(action).data
         ActionCompletion.objects.create(user=make_user(), incident=incident, action=action)
-        for change in ({"incident_id": None, "trigger_type": "LEAK_TYPE", "leak_type": "CONTACT"},
-                       {"incident_id": make_incident("다른사").pk}):
+        for change in (
+            {"incident_id": None, "trigger_type": "LEAK_TYPE", "leak_type": "CONTACT"},
+            {"incident_id": make_incident("다른사").pk},
+            {"title": "전혀 다른 조치"},
+            {"steps": "다른 단계"},
+            {"source_url": "https://example.com/other"},
+        ):
             with self.subTest(change=list(change)):
                 response = self.client.patch(detail_url(action_id), change, format="json")
                 self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
                 self.assertEqual(response.json()["code"], "CONFLICT")
         action.refresh_from_db()
-        self.assertEqual((action.incident_id, action.trigger_type), (incident.pk, "ALWAYS"))
-        # 내용·공개 상태 변경은 허용
-        response = self.client.patch(detail_url(action_id), {"title": "수정", "status": "PUBLIC"}, format="json")
+        self.assertEqual(AdminActionSerializer(action).data, before)
+        # 같은 값 다시 보내기·순위·공개 상태 변경은 허용
+        unchanged = {"title": action.title, "steps": action.steps, "priority": 1, "status": "PUBLIC"}
+        response = self.client.patch(detail_url(action_id), unchanged, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_leak_type_and_survey_key_locked_after_completion(self) -> None:
+        incident = make_incident()
+        user = make_user()
+        for fields, change in (
+            ({"leak_type": "CONTACT"}, {"leak_type": "FINANCIAL"}),
+            ({"trigger_type": "SURVEY", "leak_type": None, "survey_key": "PAYMENT_LINKED"},
+             {"survey_key": "REUSED_PASSWORD"}),
+        ):
+            with self.subTest(change=list(change)):
+                action_id = self.create(**fields)["id"]
+                ActionCompletion.objects.create(user=user, incident=incident, action_id=action_id)
+                response = self.client.patch(detail_url(action_id), change, format="json")
+                self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)

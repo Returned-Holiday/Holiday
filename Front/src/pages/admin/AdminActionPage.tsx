@@ -91,7 +91,7 @@ const FieldLabel = styled.p`
   ${textStyle("bodyMdStrong")}
 `;
 
-const ACTION_LOCKED_MESSAGE = "이미 완료한 사용자가 있어 대상 사고나 트리거는 바꿀 수 없어요. 새 조치를 등록하고 이 조치는 비공개로 내려 주세요.";
+const ACTION_LOCKED_MESSAGE = "이미 완료한 사용자가 있어 우선순위와 공개 여부만 바꿀 수 있어요. 새 조치를 등록하고 이 조치는 비공개로 내려 주세요.";
 
 type Draft = ActionInput;
 
@@ -182,7 +182,7 @@ function ActionEditor({
       if (!(caught instanceof ApiError)) {
         throw caught;
       }
-      // 완료 기록 있는 조치의 대상·트리거 변경 → 409
+      // 완료 기록 있는 조치의 대상·트리거·내용 변경 → 409
       setError(caught.status === 409 ? ACTION_LOCKED_MESSAGE : errorText(caught));
     } finally {
       setPending(false);

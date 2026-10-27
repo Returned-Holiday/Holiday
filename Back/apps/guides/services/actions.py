@@ -2,10 +2,11 @@ from django.db.models import QuerySet
 from django.utils import timezone
 
 from apps.guides.constants import PublishStatus
-from apps.guides.exceptions import ActionScopeLocked
+from apps.guides.exceptions import ActionLocked
 from apps.guides.models import Action
 
-SCOPE_FIELDS = ("incident_id", "trigger_type")
+# 완료 기록이 생기면 조치의 의미를 정하는 값은 고정 (순위·공개 여부만 변경)
+LOCKED_FIELDS = ("incident_id", "trigger_type", "leak_type", "survey_key", "title", "steps", "source_url")
 
 
 def admin_actions(status: str | None, incident_id: int | None) -> QuerySet[Action]:
@@ -24,9 +25,9 @@ def create_action(data: dict) -> Action:
 
 # 처음 공개될 때만 공개 시각 기록 (서버 시각, "새 조치" 기준)
 def update_action(action: Action, data: dict) -> Action:
-    changes_scope = any(field in data and data[field] != getattr(action, field) for field in SCOPE_FIELDS)
-    if changes_scope and action.completions.exists():
-        raise ActionScopeLocked
+    changes_meaning = any(field in data and data[field] != getattr(action, field) for field in LOCKED_FIELDS)
+    if changes_meaning and action.completions.exists():
+        raise ActionLocked
     for field, value in data.items():
         setattr(action, field, value)
     if action.status == PublishStatus.PUBLIC and action.published_at is None:

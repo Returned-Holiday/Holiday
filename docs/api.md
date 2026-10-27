@@ -24,7 +24,7 @@
 | `PUT /api/guides/incidents/<id>/survey/` | 회원 | (본인, 공개 사고) | 기본 | 선택 항목은 그 사고의 "유출" 항목만. (임시) 2~5번 `YES`/`NO`/`UNKNOWN`, "잘 모르겠어요"와 선택 항목이 함께 오면 400 | BE-A |
 | `DELETE /api/guides/incidents/<id>/survey/` | 회원 | 본인(사고 공개 여부 무관) | `sensitive` | 내 설문 응답·선택 항목·그 사고의 완료 기록을 한 트랜잭션으로 삭제. 응답이 없으면 404 | BE-A |
 | `GET /api/guides/incidents/<id>/checklist/` | 회원 | (본인, 공개 사고) | 기본 | 공개 조치만으로 계산, 진행률, 새 조치·공지 갱신 표시, 기본 안내(출처·상담 채널). (임시) 조치별 확실/확인 필요 | BE-A |
-| `PUT /api/guides/incidents/<id>/completions/<action_id>/` | 회원 | 공통 조치이거나 그 사고의 특수 조치, 공개 상태 | 기본 | 완료 처리 | BE-A |
+| `PUT /api/guides/incidents/<id>/completions/<action_id>/` | 회원 | 지금 내 체크리스트에 보이는 조치만 | 기본 | 완료 처리 | BE-A |
 | `DELETE /api/guides/incidents/<id>/completions/<action_id>/` | 회원 | 위와 같음 | 기본 | 완료 해제 | BE-A |
 | `POST /api/guides/ocr/` | 회원 | – | `ocr` 10/시간/사용자 | JPG·PNG 5MB, 메모리 처리, 응답은 사고·항목 ID만 | BE-A |
 | `POST /api/reports/` | 회원 | – | `report` 5/일/사용자 | https URL, 길이 제한, 저장 전 마스킹 | BE-B |
@@ -47,7 +47,7 @@
 | `POST /api/admin/incidents/<id>/leak-items/` | 유출 항목 추가 | 유출 유형(`leakType`) 필수. `notice_revised_at` 갱신 | BE-B |
 | `PATCH·DELETE /api/admin/incidents/<id>/leak-items/<item_id>/` | 유출 항목 수정·삭제 | 사용자가 고른 항목 삭제는 409(수정으로 정정). 수정 시 `notice_revised_at` 갱신 | BE-B |
 | `GET·POST /api/admin/guides/actions/` | 조치 목록·등록(공통·특수) | 트리거별 필수값 검증 | BE-A |
-| `GET·PATCH /api/admin/guides/actions/<id>/` | 조치 수정·공개 전환 | 처음 공개 시 `published_at` 기록. 완료 기록이 있으면 `incident_id`·`trigger_type` 변경 409(새 조치 등록 후 기존 조치 비공개) | BE-A |
+| `GET·PATCH /api/admin/guides/actions/<id>/` | 조치 수정·공개 전환 | 처음 공개 시 `published_at` 기록. 완료 기록이 있으면 `priority`·`status` 외 변경 409(새 조치 등록 후 기존 조치 비공개) | BE-A |
 | `GET /api/admin/reports/?status=` | 제보 목록 | | BE-B |
 | `GET /api/admin/reports/<id>/` | 제보 상세 | 자유 텍스트는 이미 마스킹된 값 | BE-B |
 | `POST /api/admin/reports/<id>/approve/` | 승인, 반영한 사고 연결(선택) | 검수자·시각 기록 | BE-B |
@@ -179,10 +179,10 @@
 
 #### PUT /api/guides/incidents/<id>/completions/<action_id>/
 - 권한: 회원 / 요청 제한: 기본
-- 검증: 그 사고에 내 설문 응답이 있고, 조치가 공개 상태이며, 공통 조치이거나 그 사고의 특수 조치
+- 검증: 그 사고에 내 설문 응답이 있고, 조치가 지금 내 체크리스트에 보임(공개 + 공통 또는 그 사고 특수 + 내 설문·유출 항목으로 걸림). 체크리스트 계산과 같은 조건
 - 응답 204. 이미 완료면 그대로 204
 - 에러: 404(설문 응답 없음, 조건 밖의 조치)
-- 테스트: 설문 없이 완료 요청 404(PV), 다른 사고 특수 조치 ID 404, 비공개 조치 404
+- 테스트: 설문 없이 완료 요청 404(PV), 다른 사고 특수 조치 ID 404, 비공개 조치 404, 설문·유출 항목상 안 걸린 조치 404(설문을 바꿔 보이면 완료 가능)
 
 #### DELETE /api/guides/incidents/<id>/completions/<action_id>/
 - 권한·검증: PUT과 같음
