@@ -103,6 +103,10 @@ const WithdrawCard = styled(Card)`
   gap: 12px;
   padding: 24px 32px;
 
+  ${mobileMedia} {
+    padding: 20px;
+  }
+
   strong {
     display: block;
     ${textStyle("h3")}
@@ -125,6 +129,10 @@ const Empty = styled.div`
   ${textStyle("bodyMd")}
   color: ${({ theme }) => theme.colors.text.body};
   text-align: center;
+
+  ${mobileMedia} {
+    padding: 20px;
+  }
 `;
 
 const Notice = styled.p`
