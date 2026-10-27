@@ -76,16 +76,19 @@ def _reason_and_certainty(action: Action, types: dict[str, str], surveys: dict[s
     return SPECIAL_REASON, Certainty.CERTAIN
 
 
-# 저장 X, 요청마다 계산 (docs/erd.md 체크리스트 계산 규칙)
-def build_checklist(user: Model, incident: Model, response: SurveyResponse) -> Checklist:
-    types = _leak_type_certainty(incident, response)
-    surveys = _survey_certainty(response)
-    trigger = (
+def _triggered(incident: Model, types: dict[str, str], surveys: dict[str, str]) -> Q:
+    return (
         Q(trigger_type=TriggerType.LEAK_TYPE, leak_type__in=types)
         | Q(trigger_type=TriggerType.SURVEY, survey_key__in=surveys)
         | Q(trigger_type=TriggerType.ALWAYS, incident=incident)
     )
-    actions = list(Action.objects.filter(available_actions(incident) & trigger))
+
+
+# 저장 X, 요청마다 계산 (docs/erd.md 체크리스트 계산 규칙)
+def build_checklist(user: Model, incident: Model, response: SurveyResponse) -> Checklist:
+    types = _leak_type_certainty(incident, response)
+    surveys = _survey_certainty(response)
+    actions = list(Action.objects.filter(available_actions(incident) & _triggered(incident, types, surveys)))
     completed = set(
         filter_owned(ActionCompletion.objects.all(), user)
         .filter(incident=incident, action__in=actions)
@@ -101,10 +104,11 @@ def build_checklist(user: Model, incident: Model, response: SurveyResponse) -> C
     return Checklist(incident, response, tuple(items), revised_at is not None and revised_at > response.updated_at)
 
 
-# 설문 없이 완료 X (PV), 공개 + 공통 또는 이 사고 특수만
+# 지금 체크리스트에 보이는 조치만 (PV, 목록 계산과 같은 조건)
 def get_completable_action_or_404(user: Model, incident: Model, action_id: int) -> Action:
-    get_response_or_404(user, incident)
-    action = Action.objects.filter(available_actions(incident), pk=action_id).first()
+    response = get_response_or_404(user, incident)
+    triggered = _triggered(incident, _leak_type_certainty(incident, response), _survey_certainty(response))
+    action = Action.objects.filter(available_actions(incident) & triggered, pk=action_id).first()
     if action is None:
         raise Http404
     return action

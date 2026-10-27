@@ -3,6 +3,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.test import APITestCase
 
+from apps.guides.constants import Answer, SurveyKey, TriggerType
 from apps.guides.models import ActionCompletion, SurveyResponse
 from apps.guides.tests import helpers
 from apps.incidents.constants import IncidentStatus, LeakType
@@ -59,6 +60,24 @@ class GuidesSecurityReviewTests(APITestCase):
             self.client.put(self.completion_url())
         self.assertEqual(self.client.delete(self.completion_url()).status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(list(ActionCompletion.objects.values_list("user", flat=True)), [self.other.pk])
+
+    def test_hidden_action_not_completable(self) -> None:
+        reused = helpers.make_action(
+            "다른 사이트 비밀번호 변경", 1, trigger_type=TriggerType.SURVEY, survey_key=SurveyKey.REUSED_PASSWORD
+        )
+        other_type = helpers.make_action("카드 정지", 1, leak_type=LeakType.FINANCIAL)
+        self.answer()
+        for action in (reused, other_type):
+            with self.subTest(action=action.title):
+                self.assertEqual(self.client.put(self.completion_url(action.pk)).status_code, 404)
+                self.assertEqual(self.client.delete(self.completion_url(action.pk)).status_code, 404)
+        self.assertFalse(ActionCompletion.objects.exists())
+        # 설문을 바꿔 체크리스트에 보이면 완료 가능
+        self.answer(reused_password=Answer.YES)
+        self.assertEqual(self.client.put(self.completion_url(reused.pk)).status_code, status.HTTP_204_NO_CONTENT)
+        checklist = self.client.get(f"/api/guides/incidents/{self.incident.pk}/checklist/").json()["data"]
+        completed = {item["id"] for item in checklist["actions"] if item["completed"]}
+        self.assertEqual(completed, {reused.pk})
 
     def test_incident_turned_private(self) -> None:
         self.answer()
