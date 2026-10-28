@@ -139,7 +139,8 @@ export function MyIncidentCard({ incident, onDelete }: MyIncidentCardProps) {
           <img src={tail} width={12} height={20} alt="" />
           <Bubble>
             <strong>긴급 조치가 {incident.urgentRemaining}개 남았어요!</strong>
-            {incident.nextUrgentTitle ? <span>{incident.nextUrgentTitle}부터 해 볼까요?</span> : null}
+            {/* 조치 제목 끝맺음이 제각각(~하기, ~하세요) → 뒤에 말을 붙이지 않고 앞에 이름표 */}
+            {incident.nextUrgentTitle ? <span>먼저 할 일: {incident.nextUrgentTitle}</span> : null}
           </Bubble>
         </Message>
       ) : null}
