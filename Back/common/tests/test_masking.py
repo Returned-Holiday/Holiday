@@ -57,9 +57,73 @@ class MaskPiiTests(SimpleTestCase):
         )
 
     def test_masking_is_idempotent(self) -> None:
-        raw = "010-1234-5678 hong@test.com 1234-5678-9012-3456 900101-1234567 123-456-789012"
+        raw = (
+            "010-1234-5678 hong@test.com 1234-5678-9012-3456 900101-1234567 123-456-789012 "
+            "테헤란로 123-45, 101동 1203호 아이디: hong1234 성명: 홍길동 M12345678 11-12-123456-78"
+        )
         once = mask_pii(raw)
         self.assertEqual(mask_pii(once), once)
+
+    def test_address(self) -> None:
+        self.assert_masked(
+            (
+                ("서울 강남구 테헤란로 123-45", "서울 강남구 테헤란로 ***-**"),
+                ("중앙로12번길 34", "중앙로**번길 **"),
+                ("테헤란로 123(역삼동)", "테헤란로 ***(역삼동)"),
+                ("역삼동 737", "역삼동 ***"),
+                ("역삼동 737-1번지", "역삼동 ***-*번지"),
+                ("테헤란로 123, 101동 1203호", "테헤란로 ***, ***동 ****호"),
+            )
+        )
+
+    def test_account_id(self) -> None:
+        self.assert_masked(
+            (
+                ("아이디: hong1234", "아이디: ho******"),
+                ("ID hong_99", "ID ho*****"),
+                ("계정=abc", "계정=ab*"),
+            )
+        )
+
+    def test_name_with_label(self) -> None:
+        self.assert_masked(
+            (
+                ("성명: 홍길동", "성명: 홍*동"),
+                ("이름 : 홍길", "이름 : 홍*"),
+                ("고객명:남궁길동", "고객명:남**동"),
+            )
+        )
+
+    def test_passport_number(self) -> None:
+        self.assert_masked(
+            (
+                ("M12345678", "M1234****"),
+                ("여권 M123A4567", "여권 M123A****"),
+            )
+        )
+
+    def test_driver_license(self) -> None:
+        self.assert_masked(
+            (
+                ("11-12-123456-78", "11-12-******-**"),
+                ("서울 12-123456-78", "서울 12-******-**"),
+                ("서울12-123456-78", "서울12-******-**"),
+            )
+        )
+
+    # 항목명·단위·법 조항·로그 필드는 그대로 (OCR 매칭·보안 로그 보존)
+    def test_keeps_similar_non_pii(self) -> None:
+        for raw in (
+            "이름 주소 아이디 유출",
+            "처리 2건, 경로 2개",
+            "지하철 2호선",
+            "제29조 제1호",
+            "ID와 비밀번호",
+            "login user_id=12345 ip=1.2.3.4",
+            "SKT 2025",
+        ):
+            with self.subTest(raw=raw):
+                self.assertEqual(mask_pii(raw), raw)
 
     def test_international_phone_number(self) -> None:
         self.assert_masked(
@@ -127,6 +191,6 @@ class MaskPiiTests(SimpleTestCase):
                 self.assertEqual(mask_pii(raw), raw)
 
     def test_long_input_finishes(self) -> None:
-        for raw in ("12-" * 400, "a" * 1000 + "@", "0" * 1000, "a." * 500 + "@x"):
+        for raw in ("12-" * 400, "a" * 1000 + "@", "0" * 1000, "a." * 500 + "@x", "가로1" * 400, "아이디:" * 300, "1동" * 500):
             with self.subTest(length=len(raw)):
                 mask_pii(raw)
