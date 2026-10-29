@@ -4,9 +4,9 @@
 제출 소스코드의 **보안약점 수가 채점 1순위**다. 기능 추가보다 약점 없는 코드가 우선이다.
 
 ## 폴더
-- `Back/` Django 백엔드 — `Back/CLAUDE.md`
-- `Front/` React + Vite 프론트엔드 — `Front/CLAUDE.md`
-- `infra/` nginx·AWS 설정 — `infra/CLAUDE.md`
+- `Back/` Django 백엔드 — `Back/README.md`
+- `Front/` React + Vite 프론트엔드 — `Front/README.md`
+- `infra/` nginx·AWS 설정 — `infra/README.md`
 - `docs/` 설계·규칙 문서 (아래)
 
 ## 절대 규칙 (어기는 코드는 머지하지 않는다)
