@@ -38,7 +38,7 @@ SILENCED_SYSTEM_CHECKS = [*SILENCED_SYSTEM_CHECKS, "security.W021"]
 # XFF는 nginx 1단계만 신뢰
 REST_FRAMEWORK = {**REST_FRAMEWORK, "NUM_PROXIES": 1}
 
-# 로그 그룹별 파일 → CloudWatch 에이전트가 그룹·보관 기간 지정 (infra/CLAUDE.md)
+# 로그 그룹별 파일 → CloudWatch 에이전트가 그룹·보관 기간 지정 (infra/README.md)
 LOG_DIR = "/var/log/returnedholiday"
 LOGGING = {
     **LOGGING,

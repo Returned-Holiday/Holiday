@@ -9,7 +9,7 @@
 | 10/11 | 2라운드(기술경연)에만 집중. 3라운드는 문서·계획 범위에서 제외 | 팀 결정 | `docs/project/competition.md` |
 | 10/11 | 대회 미션은 없는 것으로 보고 일정에 미션 슬롯을 두지 않음 | 팀 판단 | `docs/project/team.md` |
 | 10/11 | 프론트(TS)도 진단 범위로 보고 같은 수준의 규칙 적용 | 대회 확인 | `docs/rules/secure-ts.md` |
-| 10/11 | 레포 하나(Returned-Holiday/Holiday)에 Back/Front/infra/docs. 공통 규칙은 docs에 한 번만 쓰고 CLAUDE.md는 참조 | 복사본이 어긋나는 문제 방지 | `README.md` |
+| 10/11 | 레포 하나(Returned-Holiday/Holiday)에 Back/Front/infra/docs. 공통 규칙은 docs에 한 번만 쓰고 폴더별 README는 요약과 참조만 | 복사본이 어긋나는 문제 방지 | `README.md` |
 | 10/11 | ~~역할: FE 1명, 백엔드 3명~~ 변경됨 → 10/11 | | |
 | 10/11 | **역할: 프론트 2명(FE1, FE2), 백엔드 2명(BE-A, BE-B)** | 팀 구성 | `docs/project/team.md` |
 | 10/11 | 일정: 10/23 역할 완료, 10/23–24 QA1, 10/26 오후 QA2 후 동결, 10/28 밤 제출 | 팀 결정 | `docs/project/team.md` |
@@ -20,11 +20,11 @@
 | 10/11 | 로그인 5회 실패 시 30분 잠금 | 진단 SR2-2(5회 이내). 계정 잠금 악용을 줄이려고 짧게 | `docs/security.md` |
 | 10/11 | 비밀번호 변경 주기 90일(로그인 시 강제), 최근 4개 재사용 금지, 최소 사용 1일 | 진단가이드 3(6)개월과 기반시설 BF 반기 중 엄격한 쪽 | `docs/security.md` |
 | 10/11 | ~~관리자: 비공개 경로 + 별도 포트 + 허용 IP + TOTP~~ 변경됨 → 10/11 | | |
-| 10/11 | **관리자: 관리자 API는 허용 IP(nginx) + `is_staff` + TOTP 2차 인증, 관리자 화면은 비관리자에게 404.** 별도 포트는 쓰지 않음 | 관리자 화면이 SPA라 같은 출처여야 세션·CSRF를 그대로 씀. 기반 AE의 근본 대책(지정 IP) + 2차 인증은 유지 | `docs/security.md`, `infra/CLAUDE.md` |
+| 10/11 | **관리자: 관리자 API는 허용 IP(nginx) + `is_staff` + TOTP 2차 인증, 관리자 화면은 비관리자에게 404.** 별도 포트는 쓰지 않음 | 관리자 화면이 SPA라 같은 출처여야 세션·CSRF를 그대로 씀. 기반 AE의 근본 대책(지정 IP) + 2차 인증은 유지 | `docs/security.md`, `infra/README.md` |
 | 10/11 | 로그 보관: 관리자 접속·처리 1년, 보안 이벤트·nginx·RDS 90일, 일반 앱 30일 | 개인정보 안전성 확보조치 기준, 정보통신망법 고시 | `docs/security.md` |
 | 10/11 | 6개월 미로그인 계정 만료는 넣지 않음 | 비밀번호 찾기가 없어 복구 불가. 90일 강제 변경이 같은 목적을 대신함 | `docs/security.md` |
 | 10/11 | PR은 자기가 머지해도 됨. 단 BE-A의 PR은 BE-B가 보안 리뷰, 보안 관련 프론트 PR은 BE-B에게 보여주고 머지 | 소규모 팀, 백엔드 분담 문서 | `docs/rules/common.md` |
-| 10/11 | 주석은 "왜"만 한국어 한 줄. 이모지·AI 관련 용어·장식·변경 이력 주석 금지 | 심사위원이 소스코드를 읽음 | `docs/rules/common.md`, `CLAUDE.md` |
+| 10/11 | 주석은 "왜"만 한국어 한 줄. 이모지·장식·변경 이력 주석 금지 | 심사위원이 소스코드를 읽음 | `docs/rules/common.md` |
 | 10/11 | 백엔드는 앱 단위 분담: BE-A(`accounts`, `guides`, 인프라·`config`), BE-B(`common`, `incidents`, `reports`, `mypage`, CI 보안 도구, BE-A 보안 검증) | 백엔드 팀 문서 | `docs/backend.md` |
 | 10/11 | API 경로는 `/api/<앱>/...`(버전 접두사 없음), 관리자는 `/api/admin/<앱>/...` | 백엔드 팀 문서 | `docs/api.md` |
 | 10/11 | 앱 사이 규칙: 의존 방향 한쪽, 다른 앱은 `services`로만 호출, 보안 판단은 `common`, 모델은 담당자만 | 서로 기다리지 않고 코드를 깨지 않기 위해 | `docs/backend.md` |
@@ -46,7 +46,7 @@
 | 10/15 | 비로그인 POST(가입·로그인)도 CSRF 검사(`csrf_protect`). 로그인 필요 응답은 401(DRF 기본 403 대신) | DRF는 로그인 사용자만 CSRF 검사 → 로그인 CSRF 차단. 프론트는 401로 세션 만료 판단 | `docs/security.md` 5, `docs/rules/api-response.md` |
 | 10/16 | 기업 별칭은 기업당 20개·각 1~50자, 공백 제거·소문자 정규화 후 다른 기업의 이름·별칭과 겹치면 409. "공지 갱신"은 수동 표시 없이 유출 항목 추가·수정·삭제 때만 자동 갱신 | 표기 차이로 검색·OCR이 엉뚱한 기업에 매칭되는 것 방지. 관리자가 갱신 표시를 잊는 경우 제거 | `docs/erd.md`, `docs/api.md` |
 | 10/21 | `APPEND_SLASH = False`. 끝 슬래시 없는 요청은 경로 존재와 무관하게 같은 404 | 기본값은 슬래시 붙인 경로가 있을 때만 301 → 관리자 API 등 경로 존재 노출. 모든 API·프론트 호출이 `/`로 끝나 영향 없음 | `Back/config/settings/base.py`, `docs/api.md` |
-| 10/23 | 스테이징은 프로젝트 AWS 계정(무료 플랜), 리전 시드니 `ap-southeast-2` 고정. 처리방침에 국외 이전(호주) 고지 추가 | 기존 계정 문제. 서울 리전 선택 불가, 지연은 체감 문제 없음 | `infra/CLAUDE.md`, `infra/deploy.md`, `Front/src/features/policy/privacy.ts` |
-| 10/23 | 서버 접속은 Session Manager만, 22번 포트·SSH 키 없음. 프론트는 서버에서 빌드, 코드는 읽기 전용 Deploy key | 외부 공격면 제거, 키 관리 불필요. Session Manager는 파일 업로드가 번거로움 | `infra/CLAUDE.md`, `infra/deploy.md` |
+| 10/23 | 스테이징은 프로젝트 AWS 계정(무료 플랜), 리전 시드니 `ap-southeast-2` 고정. 처리방침에 국외 이전(호주) 고지 추가 | 기존 계정 문제. 서울 리전 선택 불가, 지연은 체감 문제 없음 | `infra/README.md`, `infra/deploy.md`, `Front/src/features/policy/privacy.ts` |
+| 10/23 | 서버 접속은 Session Manager만, 22번 포트·SSH 키 없음. 프론트는 서버에서 빌드, 코드는 읽기 전용 Deploy key | 외부 공격면 제거, 키 관리 불필요. Session Manager는 파일 업로드가 번거로움 | `infra/README.md`, `infra/deploy.md` |
 | 10/27 | 운영 캐시는 DB 캐시(`createcachetable`, 마이그레이션 계정). 앱→RDS는 TLS + 인증서·호스트명 검증, RDS `require_secure_transport=ON` | 스테이징 점검 F11: 워커별 캐시로 요청 제한 약 3배. Redis 추가 없이 기존 RDS 사용. DB 구간 평문 전송 제거 | `config/settings/prod.py`, `infra/deploy.md` |
 | 10/23 | 도메인은 외부 등록업체에서 구매 후 Route 53 호스팅 영역으로 네임서버 연결. 서버는 t3.micro·디스크 20GB·스왑 2GB·CPU 크레딧 Standard | 계정에서 Route 53 도메인 구매 불가. 가벼운 서비스, 추가 요금 방지 | `infra/deploy.md` |

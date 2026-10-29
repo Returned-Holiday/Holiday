@@ -43,7 +43,7 @@ docs/features.md · docs/security.md (설계)
 |---|---|---|
 | 1 | 서비스 개요, 사용자 유형 | 기획서 1장 |
 | 2 | 기능 목록: 기능 → API → 접근 가능한 역할 | `docs/features.md`, `docs/api.md` |
-| 3 | 시스템 구성: 아키텍처도, 기술 스택·버전 | 기획서 3·4장, `infra/CLAUDE.md` |
+| 3 | 시스템 구성: 아키텍처도, 기술 스택·버전 | 기획서 3·4장, `infra/README.md` |
 | 4 | 데이터 흐름: 개인정보 입력 지점과 처리·저장·폐기 경로 | `docs/security.md` |
 | 5 | 소스코드 구조: 폴더 지도, 진입점, **공통 보안 모듈 위치** | 레포 구조 |
 | 6 | 보안 설계: 위협 → 대책 → 구현 위치 | `docs/security.md` |
@@ -60,7 +60,7 @@ docs/features.md · docs/security.md (설계)
 - [ ] 최종 Semgrep·Bandit·pip-audit·npm audit 결과 캡처(개요서·PPT 재료)
 - [ ] SBOM(CycloneDX) 생성
 - [ ] 프론트 운영 빌드에 소스맵이 없다
-- [ ] 제출용 소스코드 묶음에서 팀 작업용 파일(`CLAUDE.md`, `.claude/`, `docs/`)을 뺄지 결정했다. 진단 대상이 아니고, 넣으면 개발 도구 사용 흔적이 그대로 보인다
+- [x] 제출용 소스코드 묶음은 `git archive`로 만든다(커밋된 파일만, `.env`·`node_modules`·`dist` 제외)
 
 ## 디스코드 문의 예시
 > 2라운드 제출물 중 보안부문 "서비스 개요서"의 정해진 양식이나 필수 포함 항목이 있을까요? 없다면 분량이나 형식(pdf/hwp)에 제한이 있는지 궁금합니다.

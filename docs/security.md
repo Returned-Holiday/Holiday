@@ -133,7 +133,7 @@ React: 자동 이스케이프, 라우트 가드(화면 단위 인가, 편의용)
 |---|---|
 | 비밀값 | `SECRET_KEY`, DB 계정, OCR 키는 Secrets Manager(서버 시작 시 IAM 역할로 조회). 로컬은 `.env`(커밋 금지). settings에 기본값 없음 |
 | 전송 | nginx에서 TLS 종료, TLS 1.2/1.3, 80 → 301, HSTS |
-| 웹 서버 | `infra/CLAUDE.md`의 nginx 기준값 |
+| 웹 서버 | `infra/README.md`의 nginx 기준값 |
 | 앱 서버 | Gunicorn은 `127.0.0.1:8000`에만 바인드, root가 아닌 계정으로 실행 |
 | DB | Private Subnet, 보안그룹은 웹 서버 보안그룹에서 오는 3306만. **앱 계정은 SELECT/INSERT/UPDATE/DELETE만, 마이그레이션 계정 별도**. 저장소 암호화. 앱→RDS TLS(RDS CA·호스트명 검증 `VERIFY_IDENTITY`, RDS `require_secure_transport=ON`). 구현: `config/settings/prod.py` |
 | 요청 제한 저장소 | 운영은 DB 캐시(`django_cache`)로 gunicorn 워커 간 공유. 워커별 메모리 캐시면 제한이 워커 수만큼 느슨. 구현: `config/settings/prod.py` |
