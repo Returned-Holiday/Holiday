@@ -23,12 +23,25 @@ export function toSafeHttpsUrl(value: string): URL | null {
   return url;
 }
 
-// //외부도메인 오픈 리다이렉트 차단
+// 같은 출처 경로만 허용 (오픈 리다이렉트 X)
 export function isSafeInternalPath(value: unknown): value is string {
-  return (
-    typeof value === "string" &&
-    value.startsWith("/") &&
-    !value.startsWith("//") &&
-    !value.startsWith("/\\")
-  );
+  if (typeof value !== "string" || !value.startsWith("/") || /[\\\s\p{Cc}]/u.test(value)) {
+    return false;
+  }
+  const origin = window.location.origin;
+  try {
+    return new URL(value, origin).origin === origin;
+  } catch (error) {
+    if (error instanceof TypeError) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+// 오늘 날짜 (사용자 기기 기준 YYYY-MM-DD, date 입력 max·비교용)
+export function todayDateValue(now: Date = new Date()): string {
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
 }

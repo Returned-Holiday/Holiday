@@ -12,7 +12,7 @@
 
 | 기획서 기능 영역 | 앱 | 담당 | 관리자 API |
 |---|---|---|---|
-| 계정 관리 | `accounts` | BE-A | 회원 목록, 관리자 계정 비활성화(삭제 대신), 관리자 OTP |
+| 계정 관리 | `accounts` | BE-A | 관리자 OTP 인증(계정 비활성화·OTP 기기 등록은 서버 명령) |
 | 맞춤 대응 가이드 | `guides` (설문, 체크리스트, OCR) | BE-A | 조치 등록·공개 |
 | 인프라·설정 | AWS, nginx, `config` | BE-A | 없음 |
 | 사고 조회 | `incidents` | BE-B | 사고·유출 항목 등록, 공개 |
@@ -23,7 +23,7 @@
 나눈 기준:
 - BE-A는 로직이 가장 복잡한 맞춤 대응 가이드와 인프라를 맡는다. `accounts`는 BE-A가 이미 만든 인증 코드가 있다.
 - BE-B는 패턴이 정해진 조회·등록·검수 기능과 여러 앱이 같이 쓰는 보안 공통 함수를 맡는다.
-- 둘 다 Claude Code로 개발하므로, 담당 기준은 "코드를 쓰는 사람"이 아니라 **"이해하고 설명할 책임이 있는 사람"**이다.
+- 담당 기준은 "코드를 쓰는 사람"이 아니라 **"이해하고 설명할 책임이 있는 사람"**이다.
 
 ### BE-B의 검증 역할 (기능 담당과 별도)
 - BE-A의 모든 PR을 보안 관점으로 리뷰한다.
@@ -33,7 +33,7 @@
 ## 주차별 일정
 
 기획서 5-5의 주차별 작업을 두 사람이 같은 주에 나눠 맡아 서로 기다리는 구간을 줄인다. 팀 전체 일정(10/23 역할 완료, QA, 10/28 제출)은 `docs/project/team.md`.
-- BE-A의 2주차(배포 + 체크리스트)가 가장 무겁다. 밀리면 **비밀번호 변경을 3주차 뒤로 미룬다.**
+- BE-A의 2주차(체크리스트 + 운영 설정)가 가장 무겁다. 서버 구성·배포는 FE2. 밀리면 **비밀번호 변경을 3주차 뒤로 미룬다.**
 
 ## 디렉토리 구조
 
@@ -42,7 +42,7 @@
 ```
 Back/
 ├── manage.py                 # 로컬에서만 .env를 읽는다
-├── CLAUDE.md                 # [BE-A] 짧은 요약 + 규칙 문서 불러오기
+├── README.md                 # [BE-A] 짧은 요약 + 실행 명령
 ├── .env.example              # 자리만 표시, 실제 값 없음
 ├── requirements/             # [BE-A] base / dev / prod (.in → 해시 고정 .txt)
 ├── config/                   # [BE-A] 프로젝트 설정
@@ -57,6 +57,10 @@ Back/
 │   ├── validators.py         #   https URL 검증, 입력 길이 검증
 │   ├── permissions.py        #   관리자 전용 등 권한 검사
 │   ├── queries.py            #   본인 소유 데이터만 꺼내는 소유 필터
+│   ├── middleware.py         #   비밀번호 만료 차단, 관리자 감사 로그, API 캐시 금지
+│   ├── log_filters.py        #   로그 개인정보 마스킹 필터
+│   ├── passwords.py          #   비밀번호 만료 기준(90일)
+│   ├── request.py            #   클라이언트 IP 추출(XFF 신뢰 범위)
 │   └── tests/
 └── apps/
     ├── accounts/             # [BE-A] 계정 관리
@@ -100,7 +104,7 @@ apps/guides/services/
 
 | 앱 | 담당 | 모델 | 주요 서비스 함수 | 관리자 API |
 |---|---|---|---|---|
-| `accounts` | BE-A | User, PasswordHistory | 가입, 로그인 잠금, 비밀번호 변경, 탈퇴 | 회원 목록, 관리자 비활성화 |
+| `accounts` | BE-A | User, PasswordHistory | 가입, 로그인 잠금, 비밀번호 변경, 탈퇴 | 없음(OTP 인증은 `/api/auth/otp/`) |
 | `incidents` | BE-B | Company, Incident, IncidentLeakItem | 공개 사고 조회, 기업명·별칭 검색, 표시 이름 조합 | 사고 등록·공개, 유출 항목 편집, 공지 갱신 시각 기록 |
 | `guides` | BE-A | Action, SurveyResponse(선택 항목 포함), ActionCompletion | 체크리스트 계산, 진행률, 완료 검증, OCR | 조치 등록·공개, 공개 시각 기록 |
 | `reports` | BE-B | Report | 제보 생성(저장 전 마스킹), 승인·반려 | 제보 검수(반려 사유 필수) |
@@ -117,7 +121,7 @@ apps/guides/services/
 | `guides` | `/api/guides/incidents/<id>/survey/`, `.../checklist/`, `.../completions/<action_id>/`, `/api/guides/ocr/` | 회원 |
 | `reports` | `/api/reports/` (작성, 내 제보 목록) | 회원 |
 | `mypage` | `/api/mypage/` | 회원 |
-| 관리자 | `/api/admin/accounts/`, `/api/admin/incidents/`, `/api/admin/guides/`, `/api/admin/reports/` | 관리자(허용 IP + `is_staff` + OTP) |
+| 관리자 | `/api/admin/incidents/`, `/api/admin/guides/`, `/api/admin/reports/` | 관리자(허용 IP + `is_staff` + OTP) |
 
 `guides`에는 조치 목록을 직접 조회하는 경로를 두지 않는다. 조치는 체크리스트 계산 결과로만 내보내서, 비공개 조치나 다른 사고의 특수 조치가 새는 경로를 줄인다.
 
@@ -138,7 +142,7 @@ apps/guides/services/
 |---|---|---|
 | `incidents` (BE-B) | `services.get_public_incidents()`, `services.get_public_incident_or_404(incident_id)`, 유출 유형 상수 `constants.LeakType` | guides, reports |
 | `guides` (BE-A) | `services.get_progress(user)` | mypage |
-| `common` (BE-B) | `masking.mask_pii()`, `validators.validate_https_url()`, `queries.get_owned_or_404()` | 전체 |
+| `common` (BE-B) | `masking.mask_pii()`, `validators.validate_https_url()`, `queries.get_owned_or_404(qs, user, owner_field=..., **lookup)`·`queries.filter_owned()`(소유자 조건 먼저 고정, 남의 것·없음 모두 404, 비로그인 빈 결과), `request.client_ip()`, `passwords.is_password_expired()` | 전체 |
 
 `common/permissions.py`의 `IsStaffWithOtp`(관리자 API 권한)는 정책이 확정되어 구현까지 해 두었다.
 
@@ -150,7 +154,7 @@ apps/guides/services/
 | settings(base/local/test/prod) 보안 기본값 | 완료. `check`, 운영 설정 `check --deploy` 경고 0건 |
 | 의존성 해시 고정(`requirements/*.txt`) | 완료 |
 | `accounts.User` | ERD 필드로 작성. BE-A의 기존 인증 코드로 바꿔도 되며, ERD 필드만 맞춘다 |
-| 나머지 모델, 마이그레이션 | BE-A가 뼈대 단계에서 작성 |
+| 나머지 모델, 마이그레이션 | 앱 담당자가 작성. `incidents`·`reports` 완료(BE-B) |
 | 고정 함수 | 이름과 형태만 있음 |
 | 뷰·serializer·URL | 비어 있음 |
 

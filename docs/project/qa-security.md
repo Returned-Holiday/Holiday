@@ -1,0 +1,163 @@
+# QA1 보안 점검 (10/23–24, BE-B 주관)
+
+QA1 보안 점검의 기준표와 실행 목록이다. 10/21에 코드 기준 사전 점검을 마쳤고(아래 1·2절), QA1 당일에는 미구현 기능 점검과 스테이징 공격 테스트(3절)만 하면 된다. 결과는 각 표의 "결과" 칸에 적고, 조치는 PR로 남긴다. 이 문서가 서비스 개요서 보안 부분의 원본이다.
+
+- 기준: 진단가이드 구현 단계 49개(`docs/rules/secure-python.md`, `secure-ts.md`), 기반시설 웹 21개(`docs/security.md` 5장)
+- 사전 점검 범위: dev(`2f494fb`) + guides 모델·API(#26·#28). 10/21 밤 머지분(#32~#40)까지 상태 갱신(`c585360` 기준)
+- 10/26 갱신: OCR(#41)·nginx 요청 제한(#43)·프론트 마무리(#44·#46) 포함 dev `8d9bd3c` 기준. 백엔드 미구현 항목 없음
+- 상태 표기: **적용**(근거 있음) / **조치**(고칠 것) / **미구현**(기능이 아직 없음, 구현 PR에서 점검) / **스테이징**(서버에서만 확인 가능) / **해당 없음**
+
+## 1. 자동 점검 (CI와 같은 명령, QA1 첫날 전체 1회)
+
+| 도구 | 명령 (`Back/`, `Front/`) | 10/21 결과 | 10/26 결과 (`8d9bd3c`) |
+|---|---|---|---|
+| Semgrep(공개 규칙 + 금지 API 규칙 18개, tests 포함) | CI `semgrep` 잡 | 0건 | 0건 |
+| Bandit | `bandit -q -r . -x ./requirements,./.venv` | 0건 | 0건 |
+| pip-audit | `pip-audit -r requirements/base.txt -r requirements/prod.txt` | 0건 | 0건(CI `backend` 잡) |
+| npm audit | `npm audit --omit=dev` | 0건 | 0건(개발 의존성 포함 전체도 0건, #46 zod 갱신) |
+| 테스트 | `DJANGO_SETTINGS_MODULE=config.settings.test python manage.py test` | 265개 통과(dev `c585360`) | 291개 통과 |
+| 마이그레이션 누락 | `python manage.py makemigrations --check --dry-run` | 변경 없음 | 변경 없음 |
+| 운영 설정 | `python manage.py check --deploy --settings=config.settings.prod` | 스테이징에서 실행 | 스테이징에서 실행 |
+
+## 2. 진단가이드 49개 항목 현황 (백엔드 기준, 프론트는 2-8)
+
+### 2-1. 입력데이터 검증 및 표현 (17)
+| # | 약점 | 상태 | 근거 |
+|---|---|---|---|
+| 1 | SQL 삽입 | 적용 | ORM만, Semgrep `rh-raw-sql`. 검색어 `' OR '1'='1`·`%`·`_` 테스트(`incidents/tests/test_security.py`) |
+| 2 | 코드 삽입 | 적용 | Semgrep `rh-code-exec`, 템플릿 미사용 |
+| 3 | 경로 조작·자원 삽입 | 적용 | 입력으로 파일 경로·호스트를 만드는 코드 없음(10/21 검색 0건) |
+| 4 | XSS | 적용 | API는 JSON만, `rh-mark-safe`. 프론트 `dangerouslySetInnerHTML` 0건 |
+| 5 | OS 명령어 삽입 | 적용 | `rh-os-command`(`subprocess` import 자체 금지) |
+| 6 | 위험한 형식 파일 업로드 | 적용 | OCR(#41): 5MB(메모리 핸들러가 버린 경우도 요청 크기로 413), 확장자 + Pillow 실제 형식 일치, JPEG·PNG 해석기만(`formats=`, TIFF 등 다른 해석기 실행 X), 화소 2,500만·한 변 1만, 픽셀만 다시 저장(EXIF 제거), 디스크 저장 X. nginx OCR 경로 1r/s(#43). 테스트 `OcrSecurityTests`(`test_rejects_disguised_or_broken_files`, `test_rejects_pixel_bomb`, `test_rejects_oversized`, `test_other_parsers_never_run`, `test_exif_removed_before_sending`) |
+| 7 | 신뢰되지 않는 URL 자동접속 | 적용 | 서버 리다이렉트 0건, `APPEND_SLASH=False`(#30), 외부 링크는 `SafeExternalLink` |
+| 8 | XXE | 해당 없음 | XML 미사용, `rh-xml-parsing` |
+| 9 | XML 삽입 | 해당 없음 | 위와 같음 |
+| 10 | LDAP 삽입 | 해당 없음 | LDAP 미사용 |
+| 11 | CSRF | 적용 | `rh-csrf-disabled`, 비로그인 POST `csrf_protect`. 테스트 `accounts`·`guides`의 `test_requires_csrf*` |
+| 12 | SSRF | 적용 | `validate_https_url`(IP·localhost·계정정보 거부), 서버는 제보 URL에 접속 X. OCR 외부 주소는 시크릿 + https·`*.apigw.ntruss.com`만, 리다이렉트 X(`test_non_clova_endpoint_not_called`) |
+| 13 | HTTP 응답분할 | 적용 | 헤더·쿠키에 입력값을 넣는 코드 0건 |
+| 14 | 정수형 오버플로 | 적용 | `10**30` 입력 시 SQLite·MySQL 모두 404/400(500 없음). ID 입력은 `max_value=DB_ID_MAX`(`common/validators.py`, F4) 또는 ORM 범위 처리(관리자 사고 `company_id` 등 `PrimaryKeyRelatedField`는 범위 초과 → 조회 결과 없음 → 400) |
+| 15 | 보안기능 결정에 쓰는 입력값 | 적용 | 역할·상태·제보자·신규 사고 비공개를 서버가 결정. `test_ignores_client_role`, `test_server_fields_not_client_controlled`, `test_create_always_private` |
+| 16 | 메모리 버퍼 오버플로 | 해당 없음 | Python |
+| 17 | 포맷 스트링 삽입 | 적용 | `rh-log-format`(로그 f-string·format·`%` 결합 금지) |
+
+### 2-2. 보안기능 (16)
+| # | 약점 | 상태 | 근거 |
+|---|---|---|---|
+| 1 | 인증 없는 중요기능 | 적용 | 기본 `IsAuthenticated`, 관리자 API는 `IsStaffWithOtp`(OTP 인증 세션만), 관리자 OTP 인증 API(#32: 실패 응답 통일, 성공 시 세션 재발급). 비밀번호 변경·탈퇴는 현재 비밀번호 확인(#38). 테스트 `accounts/tests/test_security_review.py`(다른 기기 세션 종료, 탈퇴 후 옛 쿠키 401) |
+| 2 | 부적절한 인가 | 적용 | 소유 필터 `common.queries`, 공개 필터, `IsStaffWithOtp`, 404 통일. 모든 뷰 권한 클래스 명시(#35). 조치 대상 변경은 완료 기록 있으면 409(#33) |
+| 3 | 자원 권한 설정 | 스테이징 | 전용 계정·`UMask=0027`·로그 디렉터리 750(`infra/systemd`) |
+| 4 | 취약한 암호 알고리즘 | 적용 | `rh-weak-hash`, Bandit |
+| 5 | 암호화되지 않은 중요정보 | 적용·스테이징 | PBKDF2, 운영 `Secure` 쿠키·HSTS·SSL 리다이렉트. TLS는 서버에서 확인 |
+| 6 | 하드코드된 중요정보 | 적용 | `p/secrets`, 테스트 비밀번호는 실행마다 랜덤, 비밀값은 Secrets Manager. 10/21 IP·키 검색 0건 |
+| 7 | 키 길이 | 해당 없음 | 직접 암호화 없음(TLS는 nginx) |
+| 8 | 적절하지 않은 난수 | 적용 | `rh-insecure-random`, 프론트 `Math.random` 0건 |
+| 9 | 취약한 비밀번호 허용 | 적용 | KISA 검증기를 가입·변경 모두 적용, 변경은 최소 1일·현재+최근 4개 재사용 금지(#38) |
+| 10 | 전자서명 확인 | 해당 없음 | |
+| 11 | 인증서 유효성 검증 | 적용 | `rh-tls-verify-disabled`. OCR 외부 호출은 `requests` 기본 TLS 검증(`verify` 변경 0건), https 주소만, 타임아웃 10초 |
+| 12 | 하드디스크에 저장되는 쿠키 | 적용 | 세션 15분·요청마다 갱신·브라우저 종료 시 만료, HttpOnly·SameSite=Lax, 세션에 민감정보 없음 |
+| 13 | 주석 속 시스템 주요정보 | 적용 | 인프라 값은 `<...>` 자리표시자, 10/21 검색 0건 |
+| 14 | 솔트 없는 일방향 해시 | 적용 | Django 해셔만 |
+| 15 | 무결성 검사 없는 코드 다운로드 | 적용 | pip 해시 고정, `npm ci`, Actions 커밋 해시·Semgrep 이미지 digest 고정. 의존성 변경은 해시를 PyPI와 대조(#25) |
+| 16 | 반복 인증시도 제한 | 적용 | axes 5회 30분(대소문자 우회 테스트), 로그인 10/분, OTP 5/분 + django-otp 실패 지연(#32), 제보 5/일, OCR 10/시간. 앞단 nginx IP당 `/api/` 10r/s·로그인·가입·비밀번호·탈퇴·OTP·OCR 1r/s, 초과 시 앱과 같은 429(#43) |
+
+### 2-3. 시간 및 상태 (2)
+| # | 약점 | 상태 | 근거 |
+|---|---|---|---|
+| 1 | TOCTOU | 적용 | 이메일 유일 제약, 제보 검수 조건부 UPDATE(MySQL 동시 요청 5/5 한 번만 반영), 설문 `update_or_create`, 완료 `get_or_create`, 기업 저장 행 잠금(빈 테이블 첫 등록은 한계, `docs/erd.md`) |
+| 2 | 종료되지 않는 반복문 | 적용 | 재귀 없음, 페이지 20 고정, 별칭 20·선택 항목 50 상한. 문서의 "페이지 50"은 20으로 정정(F5) |
+
+### 2-4. 에러처리 (3)
+| # | 약점 | 상태 | 근거 |
+|---|---|---|---|
+| 1 | 오류 메시지 정보노출 | 적용 | 공통 예외 핸들러, `DEBUG=False`, 모든 404 바이트 동일(`config/tests/test_not_found.py`), 선택지 에러에 입력값 X |
+| 2 | 오류 상황 대응 부재 | 적용 | `rh-except-pass`. OCR 요청 크기 변환 실패 → 400(F9, `test_malformed_content_length_is_400`) |
+| 3 | 부적절한 예외 처리 | 적용 | `rh-broad-except`(튜플 형태 포함) |
+
+### 2-5. 코드오류 (5)
+| # | 약점 | 상태 | 근거 |
+|---|---|---|---|
+| 1 | Null 역참조 | 적용 | `get_object_or_404`, `.first()` 결과 확인 |
+| 2 | 부적절한 자원 해제 | 적용 | 파일 열기 0건. OCR 이미지는 메모리(`BytesIO`)에서 `with Image.open`으로만 |
+| 3 | 해제된 자원 사용 | 적용 | 위와 같음 |
+| 4 | 초기화되지 않은 변수 | 적용 | Bandit·Semgrep 0건, 리뷰 |
+| 5 | 신뢰할 수 없는 역직렬화 | 적용 | `rh-unsafe-deserialization`, 세션 JSON 직렬화 기본값 |
+
+### 2-6. 캡슐화 (4)
+| # | 약점 | 상태 | 근거 |
+|---|---|---|---|
+| 1 | 잘못된 세션에 의한 정보 노출 | 적용 | 클래스 속성·전역 변수에 요청 데이터 저장 없음 |
+| 2 | 남은 디버그 코드 | 적용 | `rh-debug-code`, `rh-debug-setting`, 프론트 `console`·`debugger` 0건 |
+| 3 | Private 배열 반환 | 적용 | 상수는 `frozenset`·튜플, 체크리스트 항목은 튜플 |
+| 4 | Private 배열에 Public 데이터 할당 | 적용 | 위와 같음 |
+
+### 2-7. API 오용 (2)
+| # | 약점 | 상태 | 근거 |
+|---|---|---|---|
+| 1 | DNS lookup 의존 보안 결정 | 적용 | 관리자 허용 IP는 nginx `geo`, XFF는 nginx가 덮어씀 + `NUM_PROXIES=1` |
+| 2 | 취약한 API | 적용 | 금지 API 규칙, `assert`·`sys.exit` 0건 |
+
+### 2-8. 프론트(TypeScript) 요약
+`dangerouslySetInnerHTML`·`innerHTML`·`eval`·`localStorage`·`document.cookie`·`Math.random`·`console`·빈 `catch`·API 클라이언트 밖 `fetch` 모두 0건. `_blank` 링크는 전부 `noopener noreferrer`, 운영 소스맵 끔. 에러 화면은 서버 공통 문구만 표시.
+
+## 3. 발견 사항과 조치
+
+| # | 내용 | 심각도 | 담당 | 상태 |
+|---|---|---|---|---|
+| F1 | 403·429가 `django.request` → 일반 로그(30일)로만 감. `security.md` 3-6은 보안 이벤트(90일) | 중 | BE-B | 조치 완료(#34, 429 반복은 IP·경로당 1분 1줄) |
+| F2 | 미구현 기능 점검: OTP(#32)·조치 관리자 API(#33)·비밀번호 변경·탈퇴(#38)·마이페이지(#37)·OCR(#41) | – | 각 담당 | 완료. 모두 리뷰·머지. OCR은 리뷰에서 TIFF 해석기 실행·짧은 기업명 오매칭 발견 → 반영 후 머지 |
+| F3 | guides 뷰 3개 `permission_classes` 미명시(#28) | 낮음 | BE-A | 조치 완료(#35) |
+| F4 | 정수 입력 `max_value` 미지정: 제보 승인 `incident_id`(BE-B), 설문 `selected_item_ids`·조치 `incident_id`(BE-A) | 낮음 | BE-B·BE-A | 조치 완료(#35·#36). 상한 상수는 `common/validators.py`로 일원화 |
+| F5 | `secure-python.md` 시간 및 상태 2번 "페이지 50" → 실제 20 | 문서 | BE-B | 정정 완료 |
+| F6 | 설문 저장 시 검증 후 유출 항목 삭제 경합 → FK 오류 500 가능 | 낮음 | BE-A | 조치 완료(#28 `16e29d7`, 잠금 후 재확인 → 400) |
+| F7 | `SurveyKey.REUSED_PASSWORD` 같은 이름이 진단 도구에 "하드코드 비밀번호"로 오탐될 수 있음(실제 값은 선택지 키) | 관찰 | BE-A | 종료(10/26 Semgrep·Bandit 0건, 오탐 없음) |
+| F8 | `OPTIONS` 요청에 DRF 기본 메타데이터가 200 + 입력 필드 정보로 응답(정보 누출) | 중 | BE-A | 조치 완료(#35, 405. 비관리자의 관리자 API는 없는 경로 404와 동일) |
+| F9 | OCR 파일 누락 시 `int(CONTENT_LENGTH)` 예외 미처리 → 숫자가 아닌 Content-Length로 500(공통 문구, 내부 정보 X). 운영은 nginx가 잘못된 Content-Length를 400으로 먼저 거부 | 낮음 | BE-B | 조치 완료(변환 실패 시 0 → 400 `UNSUPPORTED_FILE`) |
+| F12 | (10/27 정적 분석 F-01) 완료 API가 공개·사고 범위만 확인 → 설문·유출 항목상 체크리스트에 안 보이는 조치도 ID로 미리 완료(본인 범위) | 중 | FE1 | 조치 완료(완료·취소가 체크리스트 계산과 같은 조건 사용, 안 보이는 조치 404. 테스트 `test_hidden_action_not_completable`) |
+| F13 | (F-02) 완료 기록이 있는 조치의 `leak_type`·`survey_key`·제목·단계·출처 변경 가능 → 과거 완료가 다른 내용의 완료로 보임 | 중 | FE1 | 조치 완료(완료 기록이 있으면 순위·공개 여부 외 변경 409, 새 조치 등록 후 기존 조치 비공개) |
+| F14 | (F-03) 운영 캐시 미설정(워커별 메모리) → 요청 제한이 워커 수만큼 느슨 | 중 | BE-A | 조치 완료(#50 DB 캐시, F11과 같음). 서버 `createcachetable` 적용 필요 |
+| F15 | (F-04) nginx 기본 본문 버퍼(8~16KB) 초과분은 임시파일에 기록 → OCR 이미지가 디스크에 남을 수 있음. 요청 5MB 상한이 multipart 경계를 포함해 정확히 5MB 파일 거부 | 중 | FE1 | 조치 완료(OCR 경로 nginx 6m·본문 메모리 버퍼, Django 메모리 처리 6MB, 파일 5MB 검사 유지). 서버 nginx 설정 반영 필요 |
+| F16 | (F-05) 가입 API 409 "이미 가입된 이메일"로 가입 여부 확인 가능 | 낮음 | – | 잔여 위험으로 수용. 이메일 소유 확인이 없어 문구만 바꿔도 상태 코드·흐름으로 구분됨. 가입 IP당 5회/시간 + nginx 제한, 비밀번호 찾기 없음, 로그인 실패 문구는 구분 X. 3라운드에 이메일 인증 도입 시 같은 응답으로 변경 |
+| F17 | 마스킹 규칙에 주소·아이디·운전면허번호 없음, 정책 표의 성명·여권번호 미구현 → OCR 원문·제보·로그에서 그대로 통과(운전면허는 계좌 규칙으로 일부만) | 중 | BE-B | 조치 완료(`common/masking.py`에 5종 추가, 항목명·단위·`user_id=` 오탐 제외 테스트 `test_keeps_similar_non_pii`) |
+
+## 4. 웹 21개 항목 공격 테스트 (스테이징, QA1 당일)
+
+준비: 테스트 계정 2개(회원 A·B), OTP 등록된 관리자 1개(서버 명령 `create_admin`·`register_otp`, `infra/deploy.md` 10단계), 공개·비공개 사고 각 1개, B의 제보 1개. 계정 정보는 문서·채팅에 적지 않는다.
+
+```bash
+BASE=https://<도메인>
+curl -s -c jar -b jar "$BASE/api/auth/csrf/" -o /dev/null
+CSRF=$(awk '/csrftoken/{print $7}' jar)
+H=(-b jar -c jar -H "X-CSRFToken: $CSRF" -H "Referer: $BASE/" -H "Content-Type: application/json")
+# 로그인: 비밀번호는 표준입력으로만 (명령 기록·프로세스 목록 X). 테스트 계정 비밀번호에 " \ 없게
+read -rs PW
+printf '{"email":"<회원A>","password":"%s"}' "$PW" | curl -s "${H[@]}" --data-binary @- "$BASE/api/auth/login/"
+unset PW
+# 테스트 끝나면
+rm -f jar
+```
+
+| 코드 | 항목 | 요청 | 기대 결과 | 자동 테스트 근거 | 결과 |
+|---|---|---|---|---|---|
+| CI | 코드 인젝션 | 제보 `leak_items_text`에 `{{7*7}}`, `; ls` | 201, 텍스트 그대로 저장 | Semgrep 금지 규칙 | |
+| SI | SQL 인젝션 | `GET /api/incidents/?q=' OR '1'='1`, 로그인 email에 같은 값 | 200 빈 목록 / 401 | `test_injection_strings_are_plain_text` | |
+| DI | 디렉터리 인덱싱 | `GET /assets/`, `GET /api/` | 404(목록 X) | nginx `autoindex off` | |
+| EP | 에러 페이지 | 없는 URL, 잘못된 JSON POST, 응답 `Server` 헤더 | 공통 형식, 버전 X | `test_not_found.py` | |
+| IL | 정보 누출 | 응답·번들·HTML 주석, `/.env`·`/.git/config`, `/index.html.bak`, `/assets/*.map` | 내부 정보 X. 숨김 파일·`/assets/` 없는 파일은 404, 그 외 경로는 프론트 404 화면(파일 내용 X) | 소스맵 끔 | |
+| XS | XSS | 제보에 `<img src=x onerror=alert(1)>` → 관리자 화면에서 열람 | 텍스트로 표시 | React 이스케이프 | |
+| CF | CSRF | 토큰 없이·변조해서 로그인·제보 POST | 403 | `test_requires_csrf*` | |
+| SF | SSRF | 제보 `source_url`에 `https://127.0.0.1/`, `https://169.254.169.254/`, `file:///etc/passwd` | 400 | `common/tests/test_validators.py` | |
+| BF | 약한 비밀번호 | `abc12345`로 가입, 6회 연속 로그인 실패 | 400 / 429 잠금 | `test_rejects_weak_password`, `test_locks_after_five_failures` | |
+| IA | 불충분한 인증 | 쿠키 없이 `/api/reports/`·`/api/mypage/`, 현재 비밀번호 없이 탈퇴·비밀번호 변경 | 401 / 400 | `test_anonymous_rejected`, mypage `test_requires_login`, `test_wrong_or_missing_current` | |
+| IN | 불충분한 권한 검증 | A로 B의 제보·설문 접근, 다른 사고의 조치 ID로 완료, 비공개 사고 ID | 404 | `test_only_own_reports_and_no_detail_api`, guides `OwnershipSecurityTests` | |
+| PR | 비밀번호 복구 | – | 기능 없음 | – | 해당 없음 |
+| PV | 프로세스 검증 | 설문 없이 `PUT .../completions/<id>/`, 만료 계정으로 `/api/incidents/` | 404 / 403 `PASSWORD_EXPIRED` | `test_requires_survey`, `test_expired_user_blocked` | |
+| FU | 악성 파일 업로드 | `.png`로 바꾼 텍스트 파일, `.png`로 바꾼 TIFF, 6MB 이미지 | 400 / 400 / 413 | `test_rejects_disguised_or_broken_files`, `test_other_parsers_never_run`, `test_rejects_oversized` | |
+| FD | 파일 다운로드 | – | 기능 없음 | – | 해당 없음 |
+| IS | 세션 관리 | 로그인 전후 `sessionid` 비교, 15분 대기 후 요청 | 값 다름 / 401 | `test_rotates_session_on_login` | |
+| SN | 평문 전송 | `http://` 접속, `openssl s_client -tls1_1` | 301 https / 연결 거부 | nginx TLS 1.2+ | |
+| CC | 쿠키 변조 | `sessionid` 임의 값·다른 계정 값 일부 변경 | 401 | 서버 세션 | |
+| AE | 관리자 페이지 노출 | `/admin/`, 허용 외 IP에서 `/api/admin/incidents/`, OTP 없이 관리자 API, 회원으로 `/manage` | `/admin/`·`/manage`는 프론트 404 화면(Django admin 없음), 관리자 API는 404(없는 경로와 본문 동일) | `test_not_found.py`, `AdminAccessTests` | |
+| AU | 자동화 공격 | 앱 제한: 로그인 11회/분(**없는 이메일로**, 실제 계정은 5회에서 axes 잠금이 먼저 걸림), 제보 6회/일, 검색 61회/분. **1초 간격으로 보냄**(nginx 인증 경로 1r/s·burst 5가 먼저 막지 않게). nginx 제한: `/api/incidents/` 병렬 60회(`infra/deploy.md` 9단계) | 429, 본문 `RATE_LIMITED`(nginx·앱 동일) | `test_create_limited_per_day`, `test_nginx_rate_limit.py` | |
+| WM | 불필요한 메소드 | 읽기 API에 `PUT`·`DELETE`, 아무 경로에 `TRACE`·`OPTIONS` | 405 (앱에서도 `OPTIONS` 405, #35) | `test_put_and_delete_not_allowed` | |

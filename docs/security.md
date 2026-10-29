@@ -21,10 +21,10 @@
 | 세션 | 유휴 **15분** 만료. 로그인 시 세션 ID 재발급. 비밀번호 변경 시 다른 세션 무효화 | 진단 SR4-1, 기반 IS |
 | 재인증 | 비밀번호 변경·탈퇴 요청은 **현재 비밀번호를 함께 받아 매번 확인**한다(별도 재인증 세션을 두지 않음) | 진단 SR2-1 ③, SR4-1 |
 | 쿠키 | 세션: `HttpOnly`, `Secure`, `SameSite=Lax`. CSRF 쿠키는 JS가 읽어야 하므로 HttpOnly 아님(Django 설계상 정상) | 진단 SR2-8, 기반 CC |
-| 관리자 | React 관리자 화면 + 관리자 API(`/api/admin/`). **관리자 API는 허용 IP만(nginx) + `is_staff` + TOTP 2차 인증**. Django 기본 admin은 쓰지 않는다(설치하지 않음). 관리자 계정은 삭제하지 않고 비활성화만 | 진단 SR2-1·SR2-4, 기반 AE |
+| 관리자 | React 관리자 화면 + 관리자 API(`/api/admin/`). **관리자 API는 허용 IP만(nginx) + `is_staff` + TOTP 2차 인증**. Django 기본 admin은 쓰지 않는다(설치하지 않음). 관리자 계정은 삭제하지 않고 비활성화만(서버 명령으로, 화면·API 없음) | 진단 SR2-1·SR2-4, 기반 AE |
 | 업로드(OCR) | JPG·PNG만, **5MB**, 디스크에 쓰지 않음 | 진단 SR1-10, 기반 FU |
 | 전송 | TLS 1.2/1.3만, HTTP → HTTPS 301, HSTS | 진단 SR2-8, 기반 SN, WEB-20·21 |
-| 마스킹 | 성명 1자 이상(홍\*동), 주민번호 뒤 6자리, 여권번호 뒤 4자리, 연락처 뒤 4자리, 카드번호 7~12번째, 계좌번호 뒤 5자리 | 기반 IL(개인정보위 안내서) |
+| 마스킹 | 성명 1자 이상(홍\*동), 주민번호(외국인등록번호) 뒤 6자리, 여권번호 뒤 4자리, 운전면허번호 일련·검증번호 8자리, 연락처 뒤 4자리, 카드번호 7~12번째, 계좌번호 뒤 5자리, 이메일 아이디 앞 2자 외 전부(ab\*\*\*\*@naver.com), 아이디 앞 2자 외 전부, 주소는 도로명·동 이름까지만(건물번호·번지·동·호 가림) | 기반 IL(개인정보위 안내서), 이메일은 팀 결정 |
 | 로그 보관 | 관리자 접속·처리 **1년**(월 1회 점검) / 사용자 보안 이벤트·nginx·RDS **90일** / 일반 앱 **30일** | 아래 3-6 |
 
 ## 2. 요청이 지나가는 보안 계층
@@ -52,10 +52,12 @@ React: 자동 이스케이프, 라우트 가드(화면 단위 인가, 편의용)
 | 세션 인증만 | `DEFAULT_AUTHENTICATION_CLASSES = SessionAuthentication` |
 | 로그인 | `authenticate()` + `login()` (세션 키 자동 교체). 실패 문구 하나로 통일 |
 | 잠금 | django-axes: 실패 5회, 잠금 30분, 계정 기준. 로그인 요청 IP 제한(10/분)과 함께 사용 |
-| 비밀번호 검증 | Django 기본 검증기 + KISA 규칙 커스텀 검증기. 가입·변경 모두 서버에서 검증 |
-| 만료 강제 | `users.password_changed_at` + 90일. 만료된 세션은 공통 권한 클래스가 비밀번호 변경·로그아웃·`/auth/me` 외 모두 403 |
+| 비밀번호 검증 | Django 기본 검증기 + KISA 규칙 커스텀 검증기(`apps/accounts/validators.py`). 가입·변경 모두 서버에서 검증 |
+| 만료 강제 | `users.password_changed_at` + 90일. 만료된 세션은 공통 미들웨어(`common/middleware.py` `PasswordExpiryMiddleware`)가 비밀번호 변경·로그아웃·`/auth/me`(+ CSRF 발급·로그인) 외 모든 `/api/` 요청을 403 `PASSWORD_EXPIRED`. 권한 클래스는 뷰가 `permission_classes`를 바꾸면 빠지므로 경로 기준으로 막는다. 기준 값은 `common/passwords.py` |
 | 변경 | 현재 비밀번호 확인 → 최소 사용 1일 → 규칙 → 최근 4개 비교 → 저장 → `update_session_auth_hash()`(다른 세션 무효화) |
 | 탈퇴 | 비밀번호 재확인 → 사용자 삭제(개인 데이터 CASCADE) → 세션 삭제 |
+| 가입 동의 | 약관·처리방침·만 14세 이상 동의는 서버에서 모두 `true`인지 검증만 하고 저장하지 않음. 동의 없이는 가입이 불가하므로 계정 존재 = 가입 시 동의, 시각은 `date_joined`. 개인정보 최소 수집 |
+| 닉네임 | 한글·영문·숫자 2~20자. 공백·특수문자 X |
 | 비밀번호를 잊은 사용자 | TODO(전원, 10/12): 처리 방법 결정. 추천은 "다른 이메일로 새로 가입" 안내 + 기획서에 범위 제외 사유 명시 |
 
 ### 3-2. 인가·접근통제
@@ -65,7 +67,7 @@ React: 자동 이스케이프, 라우트 가드(화면 단위 인가, 편의용)
 | 내 데이터는 URL에 ID를 받지 않음 | 설문·체크리스트·제보는 `request.user`로 조회. 타인 ID를 넣을 자리가 없어 IDOR가 구조적으로 사라진다 |
 | 공개 필터 | 사고·조치는 공통 매니저(예: `public()`)로만 조회. 비공개는 404 |
 | 교차 검증 | 설문 선택 항목은 그 사고의 "유출" 항목만, 완료 처리는 공통 조치이거나 그 사고의 특수 조치이면서 공개 상태만 |
-| 존재 여부 비노출 | 비공개·타인 리소스는 403이 아닌 404 |
+| 존재 여부 비노출 | 비공개·타인 리소스는 403이 아닌 404. 모든 404는 본문·헤더가 같음(없는 경로·권한 없는 관리자 경로·비공개 리소스·nginx 허용 IP 차단): `{"code":"NOT_FOUND",...}` 압축형 한 가지, 404에는 `Allow` 헤더 X. 테스트 `config/tests/test_not_found.py`(nginx 설정 문자열까지 비교) |
 | 관리자 API | `/api/admin/` 아래에만 둔다. 공통 권한 클래스가 `is_staff` + 이번 세션의 OTP 인증을 함께 검사한다. nginx는 이 경로를 허용 IP 외에는 차단한다 |
 | 관리자 OTP | 관리자는 로그인 후 TOTP 6자리를 한 번 더 입력해야 관리자 API를 쓸 수 있다(django-otp). 기기 등록은 화면 없이 서버 명령으로만. OTP 입력은 5회/분 제한 |
 | 관리자 화면 | React의 `/manage` 아래. 관리자가 아니면 404 화면을 보여 존재를 드러내지 않고, 관리자 화면 코드는 별도 파일로 나눠 관리자만 내려받는다. 경로 이름은 번들에 포함되므로 비밀로 보지 않으며, 실제 보호는 위 서버 검사가 맡는다. 일반 화면에는 관리자 링크가 없다 |
@@ -75,9 +77,9 @@ React: 자동 이스케이프, 라우트 가드(화면 단위 인가, 편의용)
 | 정책 | 구현 |
 |---|---|
 | 모든 입력은 serializer에서 검증 | 타입·길이·형식. 공통 검증 함수: `validate_https_url`, 길이 상수 |
-| SQL은 ORM만 | `raw()`, `extra()`, 커서 문자열 결합 금지. Semgrep 규칙으로 차단 |
-| URL | https만, 길이 제한. **서버는 이 URL에 접속하지 않는다**(SSRF 원천 차단) |
-| 제보 자유 텍스트 | 저장 전 마스킹: 전화번호, 이메일, 주민번호, **카드번호, 계좌번호**. 길이 제한 |
+| SQL은 ORM만 | `raw()`, `extra()`, `RawSQL`, 커서 직접 사용 금지. Semgrep 사용자 정의 규칙(`.semgrep/rules.yml`)으로 PR마다 차단. 같은 파일에 금지 API 목록(`docs/rules/secure-python.md`, `secure-ts.md`)의 나머지도 규칙화 |
+| URL | https만, 500자 이하, 계정정보(`user:pass@`)·IP 주소·localhost 호스트 거부. **서버는 이 URL에 접속하지 않는다**(SSRF 원천 차단). 구현: `common/validators.py` |
+| 제보 자유 텍스트 | 저장 전 마스킹: 전화번호, 이메일, 주민번호, **카드번호, 계좌번호**, 여권번호, 운전면허번호, 주소(건물번호·번지·동·호), 아이디·성명(`아이디`·`ID`·`계정`, `성명:`·`이름:` 같은 표시가 있을 때). 같은 함수를 OCR 인식 원문(매칭 전)과 로그 마스킹 필터에도 사용. 길이 제한. 구분자 `-`·`.`·공백 혼용, 괄호 지역번호, `+82` 국제번호, 15자리 아멕스 카드 인식. 한계: 공백으로만 나눈 계좌번호(숫자 나열과 구분 불가), 전각 숫자는 일부만 가림, 표시 없는 이름·아이디는 일반 단어와 구분 불가, 하이픈 없는 운전면허번호는 계좌 규칙(뒤 5자리). 계좌와 구분할 수 없는 숫자열(주문번호·사업자번호 등)은 계좌로, `~로 1588-1234`처럼 도로명 형태 뒤 번호는 주소로 보고 가림(놓치는 쪽보다 더 가리는 쪽). 숫자 뒤 한글 단위(`2건`·`2호선`)·`제1호`·로그의 `user_id=`는 제외. 구현: `common/masking.py` |
 | 사용자 입력을 계산에 쓰지 않음 | 체크리스트 우선순위·진행률은 서버가 계산 |
 
 ### 3-4. 출력·브라우저
@@ -86,16 +88,16 @@ React: 자동 이스케이프, 라우트 가드(화면 단위 인가, 편의용)
 | XSS | React 기본 이스케이프만. `dangerouslySetInnerHTML`·`innerHTML` 금지(ESLint error). 관리자 화면도 같은 규칙 |
 | 외부 링크 | `SafeExternalLink`: https만, `rel="noopener noreferrer"` |
 | 보안 헤더 | Django: `X_FRAME_OPTIONS=DENY`, nosniff, Referrer-Policy, HSTS<br>nginx: CSP `script-src 'self'`, `style-src 'self' 'unsafe-inline'`(styled-components 런타임 스타일 때문), `frame-ancestors 'none'` |
-| 캐시 | 회원 API 응답 `Cache-Control: no-store` |
+| 캐시 | `/api/` 응답 전체 `Cache-Control: no-store`(공용 PC·뒤로 가기 노출 방지). 구현: `common/middleware.py` `NoStoreApiMiddleware` |
 | 소스 노출 | 운영 빌드 소스맵 끔. HTML·번들에 주석·디버그 정보 없음 |
 
 ### 3-5. 파일 업로드 (OCR)
 | 정책 | 구현 |
 |---|---|
-| 디스크에 쓰지 않음 | `FILE_UPLOAD_HANDLERS`를 메모리 핸들러로 한정, `FILE_UPLOAD_MAX_MEMORY_SIZE = 5MB`. **Django 기본값은 2.5MB 초과 파일을 임시파일로 쓴다** |
-| 크기 | nginx `client_max_body_size 5M` + Django 설정 |
-| 형식 | 확장자 + Pillow로 실제 시그니처(JPEG, PNG) 확인, 픽셀 수 상한(압축 폭탄 방지) |
-| 외부 호출 | 클로바 OCR 주소는 설정에 고정, TLS 검증 유지, 타임아웃, 키는 Secrets Manager |
+| 디스크에 쓰지 않음 | Django: `FILE_UPLOAD_HANDLERS`를 메모리 핸들러로 한정, `FILE_UPLOAD_MAX_MEMORY_SIZE = 6MB`(요청 전체 기준, 넘으면 파일을 버리고 413). **Django 기본값은 2.5MB 초과 파일을 임시파일로 쓴다**. nginx: OCR 경로 `client_body_buffer_size 6m` → 본문을 메모리에만 둠(**nginx 기본 버퍼 8~16KB를 넘는 본문은 임시파일로 쓴다**) |
+| 크기 | 파일 자체 5MB(`OCR_MAX_BYTES`, `image_check.py`). 요청 전체는 multipart 경계 여유를 두어 6MB(nginx OCR 경로 `client_max_body_size 6m` = Django `FILE_UPLOAD_MAX_MEMORY_SIZE`). 그 밖의 경로는 nginx 5MB. 테스트: 정확히 5MB 통과, 5MB+1 413, 요청 6MB 초과 413 |
+| 형식 | 확장자 + Pillow로 실제 시그니처(JPEG, PNG) 확인, 픽셀 수 상한(2,500만, 한 변 1만, 압축 폭탄 방지). 통과한 이미지는 픽셀만 다시 저장해 EXIF(위치·기기) 제거 후 전송. 구현: `apps/guides/services/ocr/image_check.py` |
+| 외부 호출 | 클로바 OCR 주소·키는 시크릿(`CLOVA_OCR_URL`, `CLOVA_OCR_SECRET`, 설정 기본값 X). https + `*.apigw.ntruss.com`만 호출, 리다이렉트 따라가지 않음, TLS 검증 유지, 타임아웃 10초. 미설정·실패는 503 `OCR_UNAVAILABLE`(원인은 로그에 종류·상태 코드만). 구현: `apps/guides/services/ocr/client.py` |
 | 처리 후 | 인식 원문은 마스킹 후 매칭에만 사용, 저장·로그 금지. 응답에는 DB의 사고·항목 ID만 |
 | 남용 방지 | 회원만, 사용자당 10회/시간 |
 | 고지 | 업로드 전에 외부 처리 위탁(네이버 클로바) 안내 |
@@ -105,10 +107,11 @@ React: 자동 이스케이프, 라우트 가드(화면 단위 인가, 편의용)
 |---|---|
 | 상세 에러 미노출 | `DEBUG=False`, DRF 공통 예외 핸들러(`{"code","message"}`), Django 404·500 핸들러, React ErrorBoundary |
 | 예외 처리 | `except Exception`·`except: pass` 금지. 예상 가능한 예외만 구체적으로 처리 |
-| 보안 이벤트 | 로그인 성공·실패, 잠금, 로그아웃, 비밀번호 변경, 탈퇴, 403, 429, 제보 검수, OCR 호출(내용 제외) |
-| 관리자 접속·처리 기록 | 관리자 API 요청마다 기록(조회 포함): 시각, 관리자 ID, IP, 대상(종류·ID), 행위(조회·등록·수정·공개 전환·승인·반려). 공통 감사 로그 모듈이 남긴다. 변경 전후 값은 남기지 않는다 |
-| 로그 필드 | 시각, user_id, IP, 경로, 결과. 이메일·전화번호는 마스킹 필터. 비밀번호·OCR 원문은 어떤 로그에도 없음 |
-| 저장 위치 | CloudWatch Logs (로그 그룹별 보관 기간으로 자동 삭제) |
+| 보안 이벤트 | 로그인 성공·실패, 잠금, 로그아웃, 비밀번호 변경, 탈퇴, 403, 429, 제보 검수, OCR 호출(내용 제외). 403·429는 공통 예외 처리기(`api_denied`: 상태·user_id·IP·URL 패턴)와 만료 차단 미들웨어(`password_expired_blocked`)가 `app.security`로 남김. 로그인 잠금·CSRF 실패(`django.security`)는 기존 로그와 중복 기록 X. 429 반복은 (IP, URL 패턴)당 1분에 한 줄(로그 폭주 방지, nginx `limit_req`와 함께). 테스트 `config/tests/test_security_events.py` |
+| 관리자 접속·처리 기록 | 관리자 API 요청마다 기록(조회 포함): 시각, 관리자 ID, IP, 대상(종류·ID), 행위(조회·등록·수정·공개 전환·승인·반려). 공통 감사 로그 모듈이 남긴다. 변경 전후 값은 남기지 않는다. 구현: `common/middleware.py` `AdminAuditMiddleware` → 전용 로거 `app.audit`(1년 보관 로그 그룹). 대상은 URL 패턴과 정수 ID만 기록(경로 원문·요청 본문 X, 로그 위조 방지). 행위는 메소드 기본값(GET 조회·POST 등록·PATCH 수정·DELETE 삭제), 공개 전환·승인·반려처럼 메소드로 구분 안 되는 행위는 뷰에서 `common.audit.set_audit_action(request, "PUBLISH")` 등으로 지정(허용 값만 기록) |
+| 로그 필드 | 시각, user_id, IP, 경로, 결과. 이메일·전화번호 등은 마스킹 필터(`common/log_filters.py` `PiiMaskingFilter`, 모든 핸들러에 연결, 예외 원문 포함). 비밀번호·OCR 원문은 어떤 로그에도 없음. IP 추출은 `common/request.py` `client_ip` |
+| 저장 위치 | CloudWatch Logs (로그 그룹별 보관 기간으로 자동 삭제). 로거별 핸들러 분리: `app`(일반 30일) / `app.security`·`axes`·`django.security`(보안 이벤트 90일, CSRF 실패·허용 외 Host 포함) / `app.audit`(관리자 1년). 운영은 `/var/log/returnedholiday/{app,security,audit}.log` → CloudWatch 에이전트가 그룹별로 수집(`config/settings/prod.py`) |
+| 미들웨어 순서 | `NoStoreApi`는 SecurityMiddleware 바로 다음(잠금·만료 응답에도 no-store), `AdminAudit` → `PasswordExpiry`는 OTP 다음(만료로 막힌 관리자 요청도 기록). 순서는 `config/tests/test_security_wiring.py`로 고정 |
 | 위변조 방지 | 서버 IAM 역할에는 로그 쓰기 권한만, 삭제 권한 없음 |
 | DB 내 로그 최소화 | axes 접속 기록 테이블 끔(`AXES_DISABLE_ACCESS_LOG`), 만료 세션 매일 `clearsessions` |
 
@@ -130,9 +133,10 @@ React: 자동 이스케이프, 라우트 가드(화면 단위 인가, 편의용)
 |---|---|
 | 비밀값 | `SECRET_KEY`, DB 계정, OCR 키는 Secrets Manager(서버 시작 시 IAM 역할로 조회). 로컬은 `.env`(커밋 금지). settings에 기본값 없음 |
 | 전송 | nginx에서 TLS 종료, TLS 1.2/1.3, 80 → 301, HSTS |
-| 웹 서버 | `infra/CLAUDE.md`의 nginx 기준값 |
+| 웹 서버 | `infra/README.md`의 nginx 기준값 |
 | 앱 서버 | Gunicorn은 `127.0.0.1:8000`에만 바인드, root가 아닌 계정으로 실행 |
-| DB | Private Subnet, 보안그룹은 웹 서버 보안그룹에서 오는 3306만. **앱 계정은 SELECT/INSERT/UPDATE/DELETE만, 마이그레이션 계정 별도**. 저장소 암호화 |
+| DB | Private Subnet, 보안그룹은 웹 서버 보안그룹에서 오는 3306만. **앱 계정은 SELECT/INSERT/UPDATE/DELETE만, 마이그레이션 계정 별도**. 저장소 암호화. 앱→RDS TLS(RDS CA·호스트명 검증 `VERIFY_IDENTITY`, RDS `require_secure_transport=ON`). 구현: `config/settings/prod.py` |
+| 요청 제한 저장소 | 운영은 DB 캐시(`django_cache`)로 gunicorn 워커 간 공유. 워커별 메모리 캐시면 제한이 워커 수만큼 느슨. 구현: `config/settings/prod.py` |
 | 클라우드 계정 | 루트 계정 미사용, 팀원 IAM 사용자 + MFA |
 
 ### 3-8. 공급망
@@ -162,7 +166,7 @@ React: 자동 이스케이프, 라우트 가드(화면 단위 인가, 편의용)
 | SR1-3 LDAP | 해당 없음 | – | – |
 | SR1-4 시스템 자원 | 사용자 입력으로 파일 경로·OS 명령을 만들지 않음 | 3-5 | – |
 | SR1-5 XSS | React 이스케이프, ESLint 규칙 | 3-4 | 제보에 `<script>` → 텍스트로 표시 |
-| SR1-6 CSRF | Django CSRF + axios 헤더 | `docs/rules/api-response.md` | 토큰 없이 POST → 403 |
+| SR1-6 CSRF | Django CSRF + axios 헤더. DRF는 로그인 사용자만 검사 → 가입·로그인은 `csrf_protect` 추가. 실패 응답은 DRF 403과 같은 JSON(`CSRF_FAILURE_VIEW` → `config/errors.py`) | `docs/rules/api-response.md` | 토큰 없이 POST → 403 |
 | SR1-7 HTTP 응답·리다이렉트 | 서버 리다이렉트 없음, https 링크만 | 3-3 | `javascript:` URL 제보 → 거부 |
 | SR1-8 메모리 | 해당 없음(Python/TS) | – | – |
 | SR1-9 보안기능 입력값 | 역할·우선순위는 서버가 결정 | 3-2, 3-3 | 우선순위 값을 조작해 전송 → 무시 |

@@ -1,0 +1,10 @@
+# /etc/systemd/system/returnedholiday-clearsessions.timer
+[Unit]
+Description=Daily expired session cleanup
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target

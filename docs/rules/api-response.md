@@ -16,7 +16,7 @@
 | 내 데이터는 URL에 소유자 ID를 받지 않음 | 설문·체크리스트·제보·마이페이지는 `request.user`로 찾는다 | 기반 IN |
 | 존재 여부 비노출 | 비공개 사고, 다른 사용자 리소스, 없는 리소스, 관리자가 아닌 사용자의 관리자 API 요청은 모두 **404** | 기반 IN·IL·AE |
 | CSRF | 상태를 바꾸는 요청(POST·PUT·PATCH·DELETE)은 `X-CSRFToken` 헤더 필수. 앱 시작 시 `GET /api/auth/csrf/`로 쿠키 발급 | 진단 SR1-6 |
-| 허용 메소드 | 엔드포인트마다 필요한 메소드만. 그 외 405 | 기반 WM |
+| 허용 메소드 | 엔드포인트마다 필요한 메소드만. 그 외 405. `OPTIONS`도 405(DRF 메타데이터 끔, `DEFAULT_METADATA_CLASS = None`) | 기반 WM |
 | 목록 크기 | 페이지 크기 20 고정. 클라이언트가 크기를 바꿀 수 없다 | 자원 고갈 방지 |
 | 요청 제한 | `docs/api.md`의 범위별 제한. 초과 시 429 | 기반 AU |
 | 캐시 | 회원 API 응답은 `Cache-Control: no-store` | 진단 SR2-7 |
@@ -24,15 +24,17 @@
 
 ## 응답 형식
 
-성공:
+성공(`Back/config/renderers.py`가 감싼다):
 ```json
 { "data": { ... } }
 ```
 
-목록(DRF 페이지네이션):
+목록(DRF 페이지네이션, 목록도 `data`로 감싼다):
 ```json
-{ "count": 134, "next": "...", "previous": null, "results": [ ... ] }
+{ "data": { "count": 134, "next": "...", "previous": null, "results": [ ... ] } }
 ```
+
+본문 없는 성공(204)은 감싸지 않는다. 에러 응답도 감싸지 않는다.
 
 에러(`Back/config/errors.py`가 만든다):
 ```json
@@ -73,6 +75,8 @@
 | `AUTH_FAILED` | 401 | 이메일 또는 비밀번호 불일치(어느 쪽인지 구분하지 않음) | accounts |
 | `ACCOUNT_LOCKED` | 429 | 로그인 잠금(30분) | accounts |
 | `PASSWORD_EXPIRED` | 403 | 비밀번호 90일 경과, 변경 필요 | accounts |
+| `OTP_FAILED` | 400 | 관리자 OTP 불일치(실패 문구 하나) | accounts |
 | `CONFLICT` | 409 | 중복, 삭제할 수 없는 항목 | 각 앱 |
 | `FILE_TOO_LARGE` | 413 | 업로드 5MB 초과 | guides |
 | `UNSUPPORTED_FILE` | 400 | JPG·PNG 아님 | guides |
+| `OCR_UNAVAILABLE` | 503 | 외부 OCR 서비스 실패(일반 문구, 원인은 로그에만) | guides |

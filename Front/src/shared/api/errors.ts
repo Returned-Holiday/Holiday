@@ -1,4 +1,5 @@
 import { isAxiosError } from "axios";
+import { isRecord } from "../lib/guards";
 
 export const GENERIC_ERROR_MESSAGE = "요청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.";
 const NETWORK_ERROR_MESSAGE = "서버에 연결하지 못했습니다. 네트워크 상태를 확인해 주세요.";
@@ -19,8 +20,15 @@ export class ApiError extends Error {
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+// 입력 검증 에러 → 첫 칸의 서버 문구, 그 외 → 공통 문구
+export function errorText(error: ApiError): string {
+  for (const messages of Object.values(error.fields)) {
+    const first = messages[0];
+    if (first !== undefined) {
+      return first;
+    }
+  }
+  return error.message;
 }
 
 function readFieldErrors(value: unknown): FieldErrors {

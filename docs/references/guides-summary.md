@@ -49,7 +49,7 @@ SR1-1 DB 조회 / SR1-2 XML / SR1-3 LDAP / SR1-4 시스템 자원 / SR1-5 XSS / 
 | 분야 | 우리 적용 |
 |---|---|
 | **Web Application 21개(전부 '상')** | 진단원이 해 볼 공격 목록. QA 테스트케이스로 사용 (`docs/security.md` 5장) |
-| 웹 서비스 WEB-01~26 | nginx 하드닝 값 (`infra/CLAUDE.md`) |
+| 웹 서비스 WEB-01~26 | nginx 하드닝 값 (`infra/README.md`) |
 | DBMS D-01~26 | DB 계정 최소 권한, 접속 IP 제한, 설정 파일 권한, 감사 로그 |
 | 클라우드 CA-01~19 | MFA, Public/Private 서브넷, 공인 IP 최소화, 로깅, 백업, 통신 암호화 |
 

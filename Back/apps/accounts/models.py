@@ -7,11 +7,18 @@ from django.utils import timezone
 class UserManager(BaseUserManager):
     use_in_migrations = True
 
+    # 저장·조회 같은 정규화 (대소문자 중복 가입·잠금 우회 방지)
+    @staticmethod
+    def normalize_login_email(email: str) -> str:
+        return email.strip().lower()
+
+    def get_by_natural_key(self, username: str) -> "User":
+        return self.get(**{self.model.USERNAME_FIELD: self.normalize_login_email(username)})
+
     def _create_user(self, email: str, password: str | None, **extra_fields: object) -> "User":
         if not email:
             raise ValueError("email is required")
-        # 이메일 소문자 저장 (대소문자 중복 가입 방지)
-        user = self.model(email=email.strip().lower(), **extra_fields)
+        user = self.model(email=self.normalize_login_email(email), **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -40,3 +47,22 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = "email"
     EMAIL_FIELD = "email"
     REQUIRED_FIELDS = ["nickname"]
+
+    class Meta:
+        db_table = "users"
+
+    # 로그·예외에 이메일 노출 X
+    def __str__(self) -> str:
+        return str(self.pk)
+
+
+class PasswordHistory(models.Model):
+    # 탈퇴 시 함께 삭제
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="password_histories")
+    # 해시만 저장 (평문 X)
+    password = models.CharField(max_length=128)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "password_histories"
+        indexes = [models.Index(fields=["user", "created_at"], name="ix_pwhist_user_created")]

@@ -1,6 +1,6 @@
 # 백엔드(Python·Django) 시큐어코딩 규칙
 
-진단가이드 구현 단계 49개 약점을 Django 기준 규칙으로 옮겼다. CI의 Semgrep·Bandit이 대부분을 자동으로 잡지만, **권한·로직 항목은 도구가 못 잡으니 리뷰에서 본다.**
+진단가이드 구현 단계 49개 약점을 Django 기준 규칙으로 옮겼다. CI의 Semgrep(`.semgrep/rules.yml`)·Bandit이 대부분을 자동으로 잡지만, **권한·로직 항목은 도구가 못 잡으니 리뷰에서 본다.**
 
 ## 바로 외울 금지 목록
 
@@ -8,13 +8,13 @@
 |---|---|---|
 | `raw()`, `extra()`, `cursor.execute(f"...")`, 문자열로 만든 SQL | ORM, 꼭 필요하면 파라미터 바인딩 | SQL 삽입 |
 | `eval`, `exec`, `compile`, `__import__`(외부 입력) | 허용 목록 딕셔너리로 선택 | 코드 삽입 |
-| `os.system`, `subprocess(..., shell=True)` | 사용하지 않음 | OS 명령어 삽입 |
+| `os.system`, `os.popen`, `subprocess`(import 자체) | 사용하지 않음 | OS 명령어 삽입 |
 | `pickle`, `marshal`, `shelve`, `yaml.load`(Loader 미지정) | `json`, `yaml.safe_load` | 역직렬화 |
 | `xml.etree`, `lxml`로 외부 XML 파싱 | 사용하지 않음(필요하면 `defusedxml`) | XXE |
 | `random` 모듈(보안 용도) | `secrets` | 적절하지 않은 난수 |
 | `hashlib.md5`, `hashlib.sha1` (용도 무관) | `hashlib.sha256` 이상, 비밀번호는 Django 해셔 | 취약한 암호 알고리즘 |
 | `requests(..., verify=False)` | 기본값 유지 | 인증서 검증 |
-| `except Exception:`, `except:`, `except ...: pass` | 구체적 예외만 처리, 처리할 게 없으면 잡지 않음 | 부적절한 예외 처리, 오류 상황 대응 부재 |
+| `except Exception:`, `except (..., Exception):`, `except:`, `except ...: pass` | 구체적 예외만 처리, 처리할 게 없으면 잡지 않음 | 부적절한 예외 처리, 오류 상황 대응 부재 |
 | `print`, `pdb`, `breakpoint()`, 디버그 툴바 | `logging` | 남은 디버그 코드 |
 | 예외 메시지·`str(e)`·serializer 내부 에러를 응답에 그대로 | 공통 예외 핸들러의 일반 메시지 | 오류 메시지 정보노출 |
 | `AllowAny`(공개 API 외) | 기본값(`IsAuthenticated`) | 인증 없는 중요 기능 |
@@ -23,6 +23,8 @@
 | `assert`로 보안 검사 | `if` + 예외 | 취약한 API(최적화 시 assert 제거됨) |
 | settings에 비밀값 기본값 | 환경변수·Secrets Manager, 없으면 시작 실패 | 하드코드된 중요정보 |
 | 로그에 이메일·전화번호·비밀번호·OCR 원문 | 마스킹 필터, 비밀번호·OCR 원문은 아예 기록 안 함 | 중요정보 노출 |
+| 로그 메시지에 f-string·`.format()`·`%` 결합 | `logger.info("... %s", value)` | 포맷 스트링 삽입 |
+| `Report` 일괄 저장(`bulk_create`, `bulk_update`, `update(leak_items_text=...)`) | 객체마다 `save()` (저장 전 마스킹이 `save()`에 있음) | 중요정보 노출 |
 
 ## 49개 항목별 규칙
 
@@ -71,7 +73,7 @@
 | # | 약점 | 규칙 |
 |---|---|---|
 | 1 | TOCTOU | "확인 후 사용" 대신 원자적 처리: `get_or_create`, `update_or_create`, 유일 제약, `transaction.atomic`, 필요 시 `select_for_update` |
-| 2 | 종료되지 않는 반복문·재귀 | 재귀 금지, 반복은 상한을 둔다. 목록 크기 상한(페이지 50) |
+| 2 | 종료되지 않는 반복문·재귀 | 재귀 금지, 반복은 상한을 둔다. 목록 크기 상한(페이지 20 고정, 클라이언트 변경 X) |
 
 ### 에러처리 (3)
 | # | 약점 | 규칙 |

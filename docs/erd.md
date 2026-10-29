@@ -1,6 +1,6 @@
 # ERD 설계
 
-10월 7일·11일 팀 논의로 만든 ERD 문서(원본: 팀 Claude Docs)를 레포로 옮기고, 10월 11일 보안 검토 결과를 반영했다. **앞으로는 이 파일이 기준**이다. 모델을 바꾸려면 이 문서를 같은 PR에서 함께 고친다.
+10월 7일·11일 팀 논의로 만든 ERD 문서(원본: 팀 공유 문서)를 레포로 옮기고, 10월 11일 보안 검토 결과를 반영했다. **앞으로는 이 파일이 기준**이다. 모델을 바꾸려면 이 문서를 같은 PR에서 함께 고친다.
 
 ## 10/11 검토 반영 내역
 
@@ -21,9 +21,17 @@
 | 13 | "항상" 트리거는 특수 조치 전용. 체크리스트 위에 사고의 공지 원문(`source_url`)과 상담 채널(`contact_info`)을 "기본 안내"로 항상 표시 | 모든 사용자에게 보여줄 내용은 사고마다 달라 공통 조치로 만들 수 없음. 걸린 조치가 없어도 볼 안내가 남음 | **확정** |
 | 14 | 설문 5문항으로 변경: 2~5번 예/아니요/모름, 5번 `damage_occurred`(이미 겪은 피해) 추가, 1번 "잘 모르겠어요"(`leak_items_unknown`) 추가, 체크리스트에 확실/확인 필요 구분 | 기억하기 어려운 문항에서 "아니요"를 고르면 금전 피해 차단 조치가 빠짐. 이미 피해를 입은 사람에게 구제 절차 안내 필요 | **임시** |
 
+### 10/13 디자인 검토 반영
+
+| # | 변경 | 이유 | 상태 |
+|---|---|---|---|
+| 15 | `incidents.response_status` 추가: 대응 진행 중 / 대응 종료. 관리자가 직접 지정, 공개 여부(`status`)와 별개 | 사고 상세의 "대응 진행 중" 배지 | **확정** |
+| 16 | 설문 응답 삭제 추가. 그 사고의 설문 응답·선택 항목·완료 기록을 함께 삭제 | 사용자가 사고별 대응 기록을 직접 지울 수 있게 | **확정** |
+| 17 | `last_login`은 화면에 표시하지 않음. 직전 로그인 시각도 따로 저장하지 않음 | 로그인 순간 갱신돼 항상 현재 로그인 시각이 보임 | **확정** |
+
 "팀 확인 필요" 항목은 10/12 킥오프에서 확정한다. 반대 의견이 없으면 그대로 구현한다.
 
-**임시** 표시는 설문 명세(Claude Docs "소개딩 설문·대응 연결 명세")가 작성 중이라 바뀔 수 있는 내용이다. 모델은 임시 기준으로 만들되, 명세가 확정되면 이 문서를 먼저 고치고 마이그레이션을 맞춘다. 기획서와 달라진 점은 `docs/project/plan.md`에 모은다.
+**임시** 표시는 설문 명세("소개딩 설문·대응 연결 명세")가 작성 중이라 바뀔 수 있는 내용이다. 모델은 임시 기준으로 만들되, 명세가 확정되면 이 문서를 먼저 고치고 마이그레이션을 맞춘다. 기획서와 달라진 점은 `docs/project/plan.md`에 모은다.
 
 ---
 
@@ -32,7 +40,7 @@
 소개딩(개인정보 유출 대응 헬프데스크)의 DB는 **테이블 10개**로 구성한다. 이 문서는 ERD 그림에 담기지 않는 규칙과 논의에서 합의한 결정을 정리한다.
 
 - 기준: 개발기획서, 10월 7일·11일 논의, 10월 11일 보안 검토
-- 실제 스키마는 Django 마이그레이션이 만든다. 아래 SQL은 ERD Cloud 그림 전용이라 DB에 실행하지 않는다. 실제 테이블명은 Django 규칙(예: `incidents_incident`)을 따른다.
+- 실제 스키마는 Django 마이그레이션이 만든다. 아래 SQL은 ERD Cloud 그림 전용이라 DB에 실행하지 않는다. 실제 테이블명은 모델 `Meta.db_table`로 ERD 이름과 같게 지정한다(예: `users`, `incidents`). Django 기본 테이블과 M2M 연결 테이블은 Django 규칙을 따른다.
 - Django 기본 테이블(권한·그룹, 세션, django-axes, django-otp)은 범위 밖이다. 단 보관 정책은 `docs/security.md` 3-6을 따른다. Django 기본 admin은 설치하지 않는다.
 - 운영 DB는 AWS RDS MySQL 8.4를 전제로 한다.
 
@@ -60,7 +68,7 @@
 | 결정 | 내용 | 근거 |
 |---|---|---|
 | 기업 분리와 별칭 | companies 1개에 incidents 여러 개(1:N). 별칭은 기업의 필드 하나로 둔다 | 한 기업에서 사고가 반복될 수 있고, 검색과 OCR에서 표기 차이(예: SKT / SK텔레콤)를 맞춰야 한다 |
-| 별칭은 JSON 배열 | `companies.aliases`를 JSON 배열로 저장하고, 저장할 때 공백 제거와 소문자 정규화를 한다. **다른 기업과 별칭이 겹치지 않는지 모델 `clean()`에서 검증**한다 | OCR 매칭 규칙을 명확히 한다. JSON은 기업 간 중복을 DB가 막지 못한다 |
+| 별칭은 JSON 배열 | `companies.aliases`를 JSON 배열로 저장하고, 저장할 때 공백 제거와 소문자 정규화를 한다. **다른 기업과 별칭이 겹치지 않는지 모델 `clean()`에서 검증**하고, 저장은 `services.save_company()`로만 한다(기업 행 잠금 후 검증·저장, TOCTOU 방지. 기업이 하나도 없을 때의 동시 등록은 막지 못함) | OCR 매칭 규칙을 명확히 한다. JSON은 기업 간 중복을 DB가 막지 못한다 |
 | 사고 표시 이름은 조합 | 제목 컬럼 없이 "기업명 · 공지 연월 · 대표 유출 항목"을 조합해 표시 | 같은 기업의 사고를 목록과 OCR 후보 화면에서 구분. 관리자가 제목을 따로 관리하지 않아도 된다 |
 | 유출 항목은 행으로 저장 | 사고별로 발표 원문 표현, 유출 여부, 유형 코드를 한 행씩 저장 | 설문 응답이 항목을 ID로 정확히 가리켜야 한다. JSON은 순서가 바뀌면 엉뚱한 항목을 가리킨다 |
 | 선택된 유출 항목은 삭제 막음 | 사용자가 고른 항목은 삭제할 수 없고(RESTRICT), 정정은 수정으로 처리 | 추가 공지로 항목을 고칠 때 사용자 선택이 조용히 사라지는 것을 막는다 |
@@ -87,7 +95,7 @@
 - `email` (UNIQUE): 소문자로 정규화해 저장. 대소문자만 다른 중복 가입을 막는다. (Django의 `normalize_email`은 도메인만 소문자로 바꾸므로 직접 처리)
 - `password`: PBKDF2 해시만 저장
 - `password_changed_at`: 비밀번호 마지막 변경 시각. 90일 경과 시 변경 강제, 최소 사용 1일 판단
-- `last_login`: Django 기본. 마이페이지에 "마지막 로그인" 표시
+- `last_login`: Django 기본. 화면에 표시하지 않음(로그인 순간 갱신돼 현재 로그인 시각만 담김)
 - `is_staff`: 관리자 여부. `is_superuser`는 Django 권한 체계용
 
 ### password_histories
@@ -96,7 +104,7 @@
 
 ### companies
 - `name` (UNIQUE): 대표 기업명
-- `aliases`: 검색과 OCR 매칭에 쓸 다른 표기들. JSON 배열, 저장 시 공백 제거·소문자 정규화, 기업 간 중복 금지
+- `aliases`: 검색과 OCR 매칭에 쓸 다른 표기들. JSON 배열(빈 값은 `[]`, NULL 없음), 저장 시 NFKC(전각→반각)·공백 제거·소문자 정규화, 기업당 20개·각 1~50자. 다른 기업의 이름·별칭과 겹치면 거부(정규화 후 비교)
 
 ### incidents
 - `company_id`: 사고를 낸 기업
@@ -105,7 +113,8 @@
 - `source_url`: 공식 출처(https만)
 - `contact_info`: 기업 전담 상담 채널
 - `status`: 공개 / 비공개(신규 등록 기본값은 비공개)
-- `notice_revised_at`: 기업 추가 공지로 유출 항목이 바뀐 시각. 유출 항목을 저장할 때와 관리자가 "공지 갱신"을 표시할 때만 갱신. "공지 갱신" 배너 판단 기준
+- `response_status`: 대응 진행 중 / 대응 종료. 관리자가 지정, 신규 등록 기본값은 진행 중. 사고 상세 배지에 표시. 공개 필터와 무관
+- `notice_revised_at`: 기업 추가 공지로 유출 항목이 바뀐 시각. 유출 항목을 추가·수정·삭제할 때만 자동 갱신(수동 표시 없음). "공지 갱신" 배너 판단 기준
 
 사고 제목 컬럼은 두지 않는다. 화면에는 "SK텔레콤 · 2025.04 공지 · 휴대전화번호, 유심 정보 외 2건"처럼 조합해 표시한다.
 
@@ -126,6 +135,7 @@
 
 ### survey_responses
 - (user_id, incident_id)당 하나
+- 사용자가 삭제하면 선택 항목과 같은 사고의 완료 기록(`action_completions`)도 함께 지운다. 한 트랜잭션에서 처리
 - (임시) `payment_linked`, `reused_password`, `impersonation_contact`, `damage_occurred`: 설문 2~5번 응답. 값은 `YES` / `NO` / `UNKNOWN`
 - (임시) `leak_items_unknown`: 설문 1번 "잘 모르겠어요". 참이면 선택 항목을 저장하지 않는다. 거짓이고 선택 항목이 없으면 "해당 없음"
 - 문항과 선택지 문구는 `docs/features.md` 상황 설문
@@ -191,12 +201,13 @@
 | 관리자가 특수 조치 추가·공개 | 미완료로 나타나 진행률이 내려간다. `actions.published_at`이 `survey_responses.updated_at`보다 최신이면 "새 조치" 표시 |
 | 기업 추가 공지로 유출 항목 추가·정정 | `incidents.notice_revised_at`이 `survey_responses.updated_at`보다 최신이면 "공지 내용이 갱신됐어요. 설문을 다시 확인해 주세요" 배너 |
 | 사용자가 체크 해제 | 허용(완료 기록 행 삭제) |
+| 사용자가 설문 응답 삭제 | 그 사고의 설문 응답·선택 항목·완료 기록 모두 삭제. 다시 설문하면 처음부터 |
 | 같은 조치가 여러 조건에 걸림 | 한 번만 표시 |
 | 사고가 비공개로 전환 | 사용자 화면에서 숨김 |
 
 ## 상태 값 정의
 
-상태는 세 테이블에만 있고, 모든 상태 변경은 관리자만 할 수 있다(서버에서 권한 검사).
+상태는 세 테이블에만 있고, 모든 상태 변경은 관리자만 할 수 있다(서버에서 권한 검사). 사고는 공개 여부(`status`)와 대응 상태(`response_status`) 두 가지를 따로 가진다.
 
 | 대상 | 값 | 의미 |
 |---|---|---|
@@ -205,6 +216,8 @@
 | 제보(reports) | 반려 | 부적절한 제보. 사유 필수, 제보자 마이페이지에 표시 |
 | 사고(incidents) | 비공개 | 작성 중이거나 내린 상태. 신규 등록 기본값 |
 | 사고(incidents) | 공개 | 사용자에게 노출 |
+| 사고 대응 상태(incidents.response_status) | 대응 진행 중 | 기업·기관 대응이 이어지는 중. 신규 등록 기본값 |
+| 사고 대응 상태(incidents.response_status) | 대응 종료 | 관리자가 종료로 바꾼 사고. 상세와 체크리스트는 그대로 제공 |
 | 조치(actions) | 비공개 | 작성 중, 내부 검토 필요, 또는 내린 상태 |
 | 조치(actions) | 공개 | 체크리스트 계산 대상 |
 
@@ -226,6 +239,7 @@
 ### 체크 제약 (Django 모델에서 정의)
 - `leak_type`: 코드 상수에 정의된 값만
 - `status`: 테이블별 허용값만
+- `incidents.response_status`: `ONGOING` / `CLOSED`만
 - 트리거가 "유형"이면 `leak_type` 필수, `survey_key`는 비움
 - 트리거가 "설문"이면 `survey_key` 필수. 값은 결제수단 연결 / 비밀번호 재사용 / 사칭 연락 / 피해 발생(임시) 중 하나
 - 트리거가 "항상"이면 `incident_id` 필수(특수 조치 전용, 확정)
@@ -269,7 +283,7 @@
 DB 제약으로 표현할 수 없는 규칙은 서버 코드에서 검증하고, 각 규칙은 테스트로 고정한다. 소스코드 진단에서 확인될 수 있는 지점이다.
 
 - **공개 필터**: 사용자에게 보이는 모든 사고·조치 조회는 서버에서 "공개"만 거른다. URL을 직접 입력해도 비공개는 404(기획서 5-2-3)
-- **소유 필터**: 설문 응답, 완료 기록, 제보는 항상 `user = 요청자`로 조회(IDOR 방지). 이 리소스들은 URL에 ID를 받지 않는다
+- **소유 필터**: 설문 응답, 완료 기록, 제보는 항상 `user = 요청자`로 조회(IDOR 방지). 이 리소스들은 URL에 ID를 받지 않는다. 설문 응답 삭제도 `user = 요청자` 조건으로만 지운다
 - **설문 선택 항목 검증**: 고른 항목은 그 사고의 항목이고 "유출" 항목이어야 한다. (임시) "잘 모르겠어요"(`leak_items_unknown`)와 선택 항목이 함께 오면 거부한다
 - **완료 처리 검증**: 완료하려는 조치는 공통 조치이거나 그 사고의 특수 조치이고, 공개 상태여야 한다. 이게 없으면 다른 사고의 특수 조치 ID로 완료 처리하는 요청을 막지 못한다
 - **상태 변경 권한**: 제보 검수와 공개 전환은 관리자만
@@ -292,7 +306,7 @@ DB 제약으로 표현할 수 없는 규칙은 서버 코드에서 검증하고,
 | 입력 데이터 | 제보 자유 텍스트는 저장 전 마스킹 |
 | 비밀번호 정책 | `password_changed_at`, `password_histories` |
 
-DB 계정 분리(앱 계정은 데이터 조회·수정만)는 `infra/CLAUDE.md`, 로그 보관은 `docs/security.md` 3-6.
+DB 계정 분리(앱 계정은 데이터 조회·수정만)는 `infra/README.md`, 로그 보관은 `docs/security.md` 3-6.
 
 ## ERD Cloud 가져오기용 SQL
 
@@ -331,7 +345,7 @@ CREATE TABLE password_histories (
 CREATE TABLE companies (
   id BIGINT NOT NULL AUTO_INCREMENT COMMENT '기업 ID',
   name VARCHAR(100) NOT NULL COMMENT '기업명',
-  aliases JSON NULL COMMENT '별칭 배열(공백 제거, 소문자 정규화, 기업 간 중복 금지)',
+  aliases JSON NOT NULL COMMENT '별칭 배열(빈 값 [], 공백 제거, 소문자 정규화, 기업 간 중복 금지)',
   PRIMARY KEY (id),
   UNIQUE KEY uq_companies_name (name)
 ) COMMENT '기업';
@@ -346,6 +360,7 @@ CREATE TABLE incidents (
   source_url VARCHAR(500) NOT NULL COMMENT '공식 출처(https만)',
   contact_info TEXT NULL COMMENT '기업 전담 상담 채널(최대 500자)',
   status VARCHAR(20) NOT NULL DEFAULT 'PRIVATE' COMMENT '공개/비공개',
+  response_status VARCHAR(20) NOT NULL DEFAULT 'ONGOING' COMMENT '대응 진행 중/종료(관리자 지정)',
   notice_revised_at DATETIME NULL COMMENT '공지 갱신 시각(유출 항목 변경 시, 배너 판단)',
   created_at DATETIME NOT NULL COMMENT '등록일',
   updated_at DATETIME NOT NULL COMMENT '수정일',
@@ -450,6 +465,6 @@ CREATE TABLE reports (
 - [ ] 실제 유출 공지 5~10건을 모아 유형 매핑으로 검증
 - [x] "항상" 트리거 범위 결정: 특수 조치 전용 (검토 13번)
 - [ ] ERD Cloud 그림을 영역별(공식 정보 / 사용자 진행 / 제보 / 계정)로 재배치하고 위 SQL로 갱신
-- [x] 기능별 앱(accounts, incidents, guides, reports, mypage)으로 Django 뼈대 구성(`docs/backend.md`). 모델은 BE-A가 작성
-- [ ] 앱별 모델 담당자 지정, 모델 변경은 PR로만 받기(마이그레이션 충돌 방지)
+- [x] 기능별 앱(accounts, incidents, guides, reports, mypage)으로 Django 뼈대 구성(`docs/backend.md`)
+- [x] 앱별 모델 담당자 지정(accounts·guides BE-A, incidents·reports BE-B), 모델 변경은 PR로만 받기(마이그레이션 충돌 방지)
 - [ ] 11월 2일 소스코드 진단 전까지 스키마 안정화

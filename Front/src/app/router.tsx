@@ -10,14 +10,38 @@ import { ReportNewPage } from "../pages/member/ReportNewPage";
 import { SurveyPage } from "../pages/member/SurveyPage";
 import { FaqPage } from "../pages/public/FaqPage";
 import { IncidentDetailPage } from "../pages/public/IncidentDetailPage";
+import { IncidentSearchPage } from "../pages/public/IncidentSearchPage";
 import { MainPage } from "../pages/public/MainPage";
 import { NotFoundPage } from "../pages/public/NotFoundPage";
 import { PrivacyPolicyPage } from "../pages/public/PrivacyPolicyPage";
+import { ServerErrorPage } from "../pages/public/ServerErrorPage";
+import { TermsPage } from "../pages/public/TermsPage";
 import { RequireAdmin } from "./guards/RequireAdmin";
 import { RequireAuth } from "./guards/RequireAuth";
-import { ADMIN_BASE_PATH, ADMIN_OTP_PATH, LOGIN_PATH, PASSWORD_CHANGE_PATH } from "./paths";
+import { SiteLayout } from "./layout/SiteLayout";
+import {
+  ADMIN_ACTIONS_PATH,
+  ADMIN_COMPANIES_PATH,
+  ADMIN_INCIDENTS_PATH,
+  ADMIN_OTP_PATH,
+  ADMIN_REPORTS_PATH,
+  FAQ_PATH,
+  HOME_PATH,
+  INCIDENTS_PATH,
+  LOGIN_PATH,
+  MYPAGE_PATH,
+  OCR_PATH,
+  PASSWORD_CHANGE_PATH,
+  PRIVACY_PATH,
+  REPORT_NEW_PATH,
+  SIGNUP_PATH,
+  TERMS_PATH,
+} from "./paths";
 
 // 관리자 화면 lazy 분리
+const AdminLayout = lazy(() =>
+  import("./layout/AdminLayout").then((module) => ({ default: module.AdminLayout })),
+);
 const AdminOtpPage = lazy(() =>
   import("../pages/admin/AdminOtpPage").then((module) => ({ default: module.AdminOtpPage })),
 );
@@ -42,33 +66,51 @@ const AdminReportPage = lazy(() =>
 );
 
 export const router = createBrowserRouter([
-  { path: "/", element: <MainPage /> },
-  { path: "/incidents/:incidentId", element: <IncidentDetailPage /> },
-  { path: "/faq", element: <FaqPage /> },
-  { path: "/privacy", element: <PrivacyPolicyPage /> },
-  { path: LOGIN_PATH, element: <LoginPage /> },
-  { path: "/signup", element: <SignupPage /> },
   {
-    element: <RequireAuth />,
+    element: <SiteLayout />,
+    errorElement: (
+      <SiteLayout>
+        <ServerErrorPage />
+      </SiteLayout>
+    ),
     children: [
-      { path: PASSWORD_CHANGE_PATH, element: <PasswordChangePage /> },
-      { path: "/ocr", element: <OcrUploadPage /> },
-      { path: "/incidents/:incidentId/survey", element: <SurveyPage /> },
-      { path: "/incidents/:incidentId/checklist", element: <ChecklistPage /> },
-      { path: "/reports/new", element: <ReportNewPage /> },
-      { path: "/me", element: <MyPage /> },
+      { path: HOME_PATH, element: <MainPage /> },
+      { path: INCIDENTS_PATH, element: <IncidentSearchPage /> },
+      { path: "/incidents/:incidentId", element: <IncidentDetailPage /> },
+      { path: FAQ_PATH, element: <FaqPage /> },
+      { path: PRIVACY_PATH, element: <PrivacyPolicyPage /> },
+      { path: TERMS_PATH, element: <TermsPage /> },
+      { path: LOGIN_PATH, element: <LoginPage /> },
+      { path: SIGNUP_PATH, element: <SignupPage /> },
+      {
+        element: <RequireAuth />,
+        children: [
+          { path: PASSWORD_CHANGE_PATH, element: <PasswordChangePage /> },
+          { path: OCR_PATH, element: <OcrUploadPage /> },
+          { path: "/incidents/:incidentId/survey", element: <SurveyPage /> },
+          { path: "/incidents/:incidentId/checklist", element: <ChecklistPage /> },
+          { path: REPORT_NEW_PATH, element: <ReportNewPage /> },
+          { path: MYPAGE_PATH, element: <MyPage /> },
+        ],
+      },
+      { path: "*", element: <NotFoundPage /> },
     ],
   },
   {
     element: <RequireAdmin />,
+    errorElement: <ServerErrorPage />,
     children: [
-      { path: ADMIN_OTP_PATH, element: <AdminOtpPage /> },
-      { path: `${ADMIN_BASE_PATH}/incidents`, element: <AdminIncidentListPage /> },
-      { path: `${ADMIN_BASE_PATH}/incidents/:incidentId`, element: <AdminIncidentEditPage /> },
-      { path: `${ADMIN_BASE_PATH}/companies`, element: <AdminCompanyPage /> },
-      { path: `${ADMIN_BASE_PATH}/actions`, element: <AdminActionPage /> },
-      { path: `${ADMIN_BASE_PATH}/reports`, element: <AdminReportPage /> },
+      {
+        element: <AdminLayout />,
+        children: [
+          { path: ADMIN_OTP_PATH, element: <AdminOtpPage /> },
+          { path: ADMIN_INCIDENTS_PATH, element: <AdminIncidentListPage /> },
+          { path: `${ADMIN_INCIDENTS_PATH}/:incidentId`, element: <AdminIncidentEditPage /> },
+          { path: ADMIN_COMPANIES_PATH, element: <AdminCompanyPage /> },
+          { path: ADMIN_ACTIONS_PATH, element: <AdminActionPage /> },
+          { path: ADMIN_REPORTS_PATH, element: <AdminReportPage /> },
+        ],
+      },
     ],
   },
-  { path: "*", element: <NotFoundPage /> },
 ]);
